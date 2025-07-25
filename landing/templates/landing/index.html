@@ -1,0 +1,300 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Dental Support Organization - Empowering Dental Practices{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{% static 'landing/css/landing.css' %}">
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section with Parallax Effect -->
+<section class="hero min-h-screen relative overflow-hidden" x-data="{ scrollY: 0 }" @scroll.window="scrollY = window.pageYOffset">
+    <!-- Background with Parallax -->
+    <div class="absolute inset-0 z-0" :style="`transform: translateY(${scrollY * 0.5}px)`">
+        <div class="absolute inset-0 bg-gradient-to-br from-primary/20 to-secondary/20"></div>
+        <div class="absolute inset-0 bg-base-100/80"></div>
+    </div>
+    
+    <!-- Animated Background Shapes -->
+    <div class="absolute inset-0 z-0 overflow-hidden">
+        <div class="absolute -top-40 -right-40 w-80 h-80 bg-primary/10 rounded-full blur-3xl animate-pulse"></div>
+        <div class="absolute -bottom-40 -left-40 w-80 h-80 bg-secondary/10 rounded-full blur-3xl animate-pulse" style="animation-delay: 2s;"></div>
+    </div>
+    
+    <div class="hero-content relative z-10 text-center">
+        <div class="max-w-4xl" x-data="{ show: false }" x-init="setTimeout(() => show = true, 100)">
+            <h1 class="text-5xl md:text-7xl font-bold mb-6" 
+                x-show="show" 
+                x-transition:enter="transition ease-out duration-1000"
+                x-transition:enter-start="opacity-0 transform translate-y-10"
+                x-transition:enter-end="opacity-100 transform translate-y-0">
+                Empowering Dental Excellence
+            </h1>
+            <p class="text-xl md:text-2xl mb-8 text-base-content/80"
+               x-show="show"
+               x-transition:enter="transition ease-out duration-1000 delay-300"
+               x-transition:enter-start="opacity-0 transform translate-y-10"
+               x-transition:enter-end="opacity-100 transform translate-y-0">
+                Your Partner in Building Successful Dental Practices
+            </p>
+            <p class="text-lg mb-8 max-w-2xl mx-auto"
+               x-show="show"
+               x-transition:enter="transition ease-out duration-1000 delay-500"
+               x-transition:enter-start="opacity-0"
+               x-transition:enter-end="opacity-100">
+                We provide comprehensive support services that allow dentists to focus on what they do best - 
+                delivering exceptional patient care while we handle the business complexities.
+            </p>
+            <div class="flex flex-wrap gap-4 justify-center"
+                 x-show="show"
+                 x-transition:enter="transition ease-out duration-1000 delay-700"
+                 x-transition:enter-start="opacity-0 transform translate-y-10"
+                 x-transition:enter-end="opacity-100 transform translate-y-0">
+                <a href="#services" class="btn btn-primary btn-lg">
+                    Explore Our Services
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                </a>
+                <a href="#contact" class="btn btn-outline btn-lg">Schedule Consultation</a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scroll Indicator -->
+    <div class="absolute bottom-8 left-1/2 transform -translate-x-1/2 animate-bounce">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+        </svg>
+    </div>
+</section>
+
+<!-- Services Section -->
+<section id="services" class="py-20 bg-base-200">
+    <div class="container mx-auto px-4">
+        <div class="text-center mb-16" x-data="{ show: false }" x-intersect="show = true">
+            <h2 class="text-4xl md:text-5xl font-bold mb-4"
+                x-show="show"
+                x-transition:enter="transition ease-out duration-1000"
+                x-transition:enter-start="opacity-0 transform translate-y-10"
+                x-transition:enter-end="opacity-100 transform translate-y-0">
+                Comprehensive Support Services
+            </h2>
+            <p class="text-xl text-base-content/70 max-w-3xl mx-auto"
+               x-show="show"
+               x-transition:enter="transition ease-out duration-1000 delay-200"
+               x-transition:enter-start="opacity-0"
+               x-transition:enter-end="opacity-100">
+                Everything you need to run a successful dental practice, all under one roof
+            </p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {% for service in services %}
+            <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-all duration-300 group card-hover-lift"
+                 x-data="{ show: false }" 
+                 x-intersect="show = true"
+                 x-show="show"
+                 x-transition:enter="transition ease-out duration-1000"
+                 x-transition:enter-start="opacity-0 transform translate-y-10"
+                 x-transition:enter-end="opacity-100 transform translate-y-0"
+                 style="transition-delay: {{ forloop.counter0 }}00ms">
+                <div class="card-body">
+                    <div class="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ service.icon }}" />
+                        </svg>
+                    </div>
+                    <h3 class="card-title text-2xl mb-2">{{ service.title }}</h3>
+                    <p class="text-base-content/70">{{ service.description }}</p>
+                    <div class="card-actions justify-start mt-4">
+                        <a href="#" class="link link-primary group-hover:link-hover">Learn more →</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Features Section with Counter Animation -->
+<section class="py-20 bg-gradient-to-br from-primary/5 to-secondary/5">
+    <div class="container mx-auto px-4">
+        <div class="text-center mb-16">
+            <h2 class="text-4xl md:text-5xl font-bold mb-4">Why Partner With Us?</h2>
+            <p class="text-xl text-base-content/70">Transform your practice with proven results</p>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+            {% for feature in features %}
+            <div class="text-center" x-data="{ show: false, count: 0 }" x-intersect="show = true">
+                <div class="stat"
+                     x-show="show"
+                     x-transition:enter="transition ease-out duration-1000"
+                     x-transition:enter-start="opacity-0 transform scale-90"
+                     x-transition:enter-end="opacity-100 transform scale-100">
+                    <div class="stat-figure text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+                        </svg>
+                    </div>
+                    <div class="stat-title text-lg">{{ feature.title }}</div>
+                    <div class="stat-desc text-base">{{ feature.description }}</div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Statistics Section -->
+<section class="py-20 bg-base-200">
+    <div class="container mx-auto px-4">
+        <div class="stats stats-vertical lg:stats-horizontal shadow w-full">
+            <div class="stat" x-data="{ show: false, current: 0, target: 150 }" x-intersect="show = true" x-init="$watch('show', value => { if(value) { const interval = setInterval(() => { if(current < target) current += 5; else clearInterval(interval); }, 50); } })">
+                <div class="stat-figure text-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
+                    </svg>
+                </div>
+                <div class="stat-title">Partner Practices</div>
+                <div class="stat-value text-primary"><span x-text="current">0</span>+</div>
+                <div class="stat-desc">Across multiple states</div>
+            </div>
+            
+            <div class="stat" x-data="{ show: false, current: 0, target: 98 }" x-intersect="show = true" x-init="$watch('show', value => { if(value) { const interval = setInterval(() => { if(current < target) current += 2; else clearInterval(interval); }, 50); } })">
+                <div class="stat-figure text-secondary">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                </div>
+                <div class="stat-title">Satisfaction Rate</div>
+                <div class="stat-value text-secondary"><span x-text="current">0</span>%</div>
+                <div class="stat-desc">Partner satisfaction score</div>
+            </div>
+            
+            <div class="stat" x-data="{ show: false, current: 0, target: 35 }" x-intersect="show = true" x-init="$watch('show', value => { if(value) { const interval = setInterval(() => { if(current < target) current += 1; else clearInterval(interval); }, 50); } })">
+                <div class="stat-figure text-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"></path>
+                    </svg>
+                </div>
+                <div class="stat-title">Average Growth</div>
+                <div class="stat-value"><span x-text="current">0</span>%</div>
+                <div class="stat-desc">Revenue increase in first year</div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- CTA Section -->
+<section class="py-20 bg-gradient-to-r from-primary to-secondary text-primary-content">
+    <div class="container mx-auto px-4 text-center">
+        <div x-data="{ show: false }" x-intersect="show = true">
+            <h2 class="text-4xl md:text-5xl font-bold mb-4"
+                x-show="show"
+                x-transition:enter="transition ease-out duration-1000"
+                x-transition:enter-start="opacity-0 transform translate-y-10"
+                x-transition:enter-end="opacity-100 transform translate-y-0">
+                Ready to Transform Your Practice?
+            </h2>
+            <p class="text-xl mb-8 max-w-2xl mx-auto opacity-90"
+               x-show="show"
+               x-transition:enter="transition ease-out duration-1000 delay-200"
+               x-transition:enter-start="opacity-0"
+               x-transition:enter-end="opacity-100">
+                Join the growing network of successful dental practices powered by our comprehensive support services
+            </p>
+            <div class="flex flex-wrap gap-4 justify-center"
+                 x-show="show"
+                 x-transition:enter="transition ease-out duration-1000 delay-400"
+                 x-transition:enter-start="opacity-0 transform translate-y-10"
+                 x-transition:enter-end="opacity-100 transform translate-y-0">
+                <a href="#contact" class="btn btn-lg bg-white text-primary hover:bg-gray-100">
+                    Get Started Today
+                </a>
+                <a href="/blog/" class="btn btn-lg btn-outline btn-primary">
+                    Read Success Stories
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Contact Form Section -->
+<section id="contact" class="py-20 bg-base-100">
+    <div class="container mx-auto px-4">
+        <div class="max-w-4xl mx-auto">
+            <div class="text-center mb-12">
+                <h2 class="text-4xl font-bold mb-4">Get In Touch</h2>
+                <p class="text-xl text-base-content/70">Let's discuss how we can help your practice thrive</p>
+            </div>
+            
+            <div class="card bg-base-200 shadow-xl">
+                <div class="card-body">
+                    <form class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Practice Name</span>
+                                </label>
+                                <input type="text" placeholder="Your Dental Practice" class="input input-bordered" required />
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Your Name</span>
+                                </label>
+                                <input type="text" placeholder="Dr. John Doe" class="input input-bordered" required />
+                            </div>
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Email</span>
+                                </label>
+                                <input type="email" placeholder="email@practice.com" class="input input-bordered" required />
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Phone</span>
+                                </label>
+                                <input type="tel" placeholder="(555) 123-4567" class="input input-bordered" required />
+                            </div>
+                        </div>
+                        
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Number of Locations</span>
+                            </label>
+                            <select class="select select-bordered">
+                                <option>1 Location</option>
+                                <option>2-5 Locations</option>
+                                <option>6-10 Locations</option>
+                                <option>10+ Locations</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Message</span>
+                            </label>
+                            <textarea class="textarea textarea-bordered" rows="4" placeholder="Tell us about your practice and goals..."></textarea>
+                        </div>
+                        
+                        <div class="form-control mt-6">
+                            <button type="submit" class="btn btn-primary btn-lg w-full">
+                                Send Message
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                                </svg>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock %}

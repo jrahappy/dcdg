@@ -1,0 +1,167 @@
+{% extends "accounts/account_base.html" %}
+
+{% block title %}Security - Account Management{% endblock %}
+
+{% block account_content %}
+<h2 class="text-2xl font-bold mb-6">Security</h2>
+
+<div class="space-y-6">
+    <!-- Password Section -->
+    <div class="card bg-base-200">
+        <div class="card-body">
+            <h3 class="card-title text-lg">Change Password</h3>
+            <p class="text-base-content/70 mb-4">Ensure your account is using a strong password to stay secure.</p>
+            
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="change_password" value="1">
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Current Password</span>
+                    </label>
+                    <input type="password" name="old_password" class="input input-bordered" required>
+                    {% if password_form.old_password.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ password_form.old_password.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">New Password</span>
+                    </label>
+                    <input type="password" name="new_password1" class="input input-bordered" required>
+                    {% if password_form.new_password1.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ password_form.new_password1.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                    {% if password_form.new_password1.help_text %}
+                        <label class="label">
+                            <span class="label-text-alt text-base-content/60">{{ password_form.new_password1.help_text|safe }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Confirm New Password</span>
+                    </label>
+                    <input type="password" name="new_password2" class="input input-bordered" required>
+                    {% if password_form.new_password2.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ password_form.new_password2.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+                
+                {% if password_form.non_field_errors %}
+                    <div class="alert alert-error">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <span>{{ password_form.non_field_errors.0 }}</span>
+                    </div>
+                {% endif %}
+                
+                <div class="card-actions justify-end">
+                    <button type="submit" class="btn btn-primary">Update Password</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Account Activity -->
+    <div class="card bg-base-200">
+        <div class="card-body">
+            <h3 class="card-title text-lg">Account Activity</h3>
+            <div class="space-y-4">
+                <div>
+                    <p class="font-semibold">Last Login</p>
+                    <p class="text-base-content/70">
+                        {% if last_login %}
+                            {{ last_login|date:"F d, Y at g:i A" }}
+                        {% else %}
+                            This is your first login
+                        {% endif %}
+                    </p>
+                </div>
+                <div>
+                    <p class="font-semibold">Account Created</p>
+                    <p class="text-base-content/70">{{ date_joined|date:"F d, Y" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Email Addresses -->
+    <div class="card bg-base-200">
+        <div class="card-body">
+            <h3 class="card-title text-lg">Email Addresses</h3>
+            <p class="text-base-content/70 mb-4">The following email addresses are associated with your account:</p>
+            
+            <div class="overflow-x-auto">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Email</th>
+                            <th>Status</th>
+                            <th>Primary</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>{{ user.email }}</td>
+                            <td>
+                                <span class="badge badge-success">Verified</span>
+                            </td>
+                            <td>
+                                <span class="badge badge-primary">Primary</span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Two-Factor Authentication -->
+    <div class="card bg-base-200">
+        <div class="card-body">
+            <h3 class="card-title text-lg">Two-Factor Authentication</h3>
+            <div class="alert alert-info">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>Two-factor authentication adds an extra layer of security to your account.</span>
+            </div>
+            <p class="text-base-content/70 mt-4">Status: <span class="badge">Not Enabled</span></p>
+            <div class="card-actions justify-end">
+                <button class="btn btn-primary btn-sm" disabled>Enable 2FA (Coming Soon)</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Actions -->
+    <div class="card bg-base-200 border-warning">
+        <div class="card-body">
+            <h3 class="card-title text-lg text-warning">Danger Zone</h3>
+            <div class="space-y-4">
+                <div>
+                    <p class="font-semibold">Download Your Data</p>
+                    <p class="text-base-content/70 mb-2">Download a copy of all your data from this account.</p>
+                    <button class="btn btn-sm btn-ghost" disabled>Request Data Export (Coming Soon)</button>
+                </div>
+                <div class="divider"></div>
+                <div>
+                    <p class="font-semibold text-error">Delete Account</p>
+                    <p class="text-base-content/70 mb-2">Once you delete your account, there is no going back. Please be certain.</p>
+                    <button class="btn btn-error btn-sm" disabled>Delete Account (Coming Soon)</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

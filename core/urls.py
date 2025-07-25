@@ -15,8 +15,18 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
+    path('', include('landing.urls')),  # Landing page is now the homepage
+    path('blog/', include('blog.urls')),  # Blog moved to /blog/
     path('admin/', admin.site.urls),
+    path('summernote/', include('django_summernote.urls')),
+    # Load accounts URLs first to override allauth's email confirmation
+    path('accounts/', include('accounts.urls')),
     path('accounts/', include('allauth.urls')),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

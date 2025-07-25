@@ -48,8 +48,12 @@ INSTALLED_APPS = [
     "allauth.account",
     "allauth.socialaccount",
     "django_vite",
+    "django_summernote",
     # Local apps
     "core",
+    "accounts",
+    "blog",
+    "landing",
 ]
 
 MIDDLEWARE = [
@@ -62,6 +66,8 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # django-allauth middleware
     "allauth.account.middleware.AccountMiddleware",
+    # Custom middleware to handle email verification redirects
+    "accounts.middleware.EmailVerificationRedirectMiddleware",
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -69,7 +75,7 @@ ROOT_URLCONF = "core.urls"
 TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
-        "DIRS": [],
+        "DIRS": [BASE_DIR / "templates"],
         "APP_DIRS": True,
         "OPTIONS": {
             "context_processors": [
@@ -92,6 +98,9 @@ DATABASES = {
     "default": {
         "ENGINE": os.getenv("DATABASE_ENGINE", "django.db.backends.sqlite3"),
         "NAME": BASE_DIR / os.getenv("DATABASE_NAME", "db.sqlite3"),
+        "OPTIONS": {
+            "timeout": 20,  # Increase timeout to 20 seconds
+        },
     }
 }
 
@@ -134,12 +143,26 @@ STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "assets"]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
-DJANGO_VITE = {"default": {"dev_mode": os.getenv("DJANGO_VITE_DEV_MODE", "True").lower() in ("true", "1", "yes")}}
+# Media files
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# Django Vite Settings
+DJANGO_VITE = {
+    "default": {
+        "dev_mode": os.getenv("DJANGO_VITE_DEV_MODE", "True").lower() in ("true", "1", "yes"),
+        "dev_server_port": 5173,
+        "static_url_prefix": "",
+    }
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/4.1/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Custom User Model
+AUTH_USER_MODEL = "accounts.User"
 
 # django-allauth settings
 AUTHENTICATION_BACKENDS = [
@@ -158,10 +181,52 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() in ("true", "1", "yes")
 
 # django-allauth configuration
-ACCOUNT_AUTHENTICATION_METHOD = "username_email"
-ACCOUNT_EMAIL_REQUIRED = True
-ACCOUNT_EMAIL_VERIFICATION = "mandatory"
-ACCOUNT_SIGNUP_EMAIL_ENTER_TWICE = True
+ACCOUNT_AUTHENTICATION_METHOD = "email"
+ACCOUNT_EMAIL_VERIFICATION = "none"  # Disabled email verification
+ACCOUNT_EMAIL_REQUIRED = True  # Keep email required but no verification
 ACCOUNT_USERNAME_MIN_LENGTH = 4
-LOGIN_REDIRECT_URL = "/"
+ACCOUNT_UNIQUE_EMAIL = True  # Ensure email uniqueness
+ACCOUNT_SIGNUP_EMAIL_ENTER_TWICE = False  # Don't require email twice
+LOGIN_REDIRECT_URL = "/accounts/profile/"
 ACCOUNT_LOGOUT_REDIRECT_URL = "/"
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = False  # Don't auto-login on email confirm
+ACCOUNT_LOGIN_ON_PASSWORD_RESET = False  # Don't auto-login on password reset
+ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = LOGIN_REDIRECT_URL
+ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = LOGIN_REDIRECT_URL
+ACCOUNT_ADAPTER = 'accounts.adapter.NoEmailVerificationAdapter'  # Custom adapter
+
+# Django Summernote Configuration
+SUMMERNOTE_CONFIG = {
+    # Editor size
+    'width': '100%',
+    'height': '400',
+    
+    # Toolbar customization
+    'toolbar': [
+        ['style', ['style']],
+        ['font', ['bold', 'italic', 'underline', 'clear']],
+        ['fontname', ['fontname']],
+        ['fontsize', ['fontsize']],
+        ['color', ['color']],
+        ['para', ['ul', 'ol', 'paragraph']],
+        ['table', ['table']],
+        ['insert', ['link', 'picture', 'video']],
+        ['view', ['fullscreen', 'codeview', 'help']],
+    ],
+    
+    # Codemirror settings
+    'codemirror': {
+        'mode': 'htmlmixed',
+        'lineNumbers': True,
+        'theme': 'monokai',
+    },
+    
+    # Upload settings
+    'attachment_require_authentication': True,
+    
+    # Other settings
+    'summernote': {
+        'airMode': False,
+        'lang': 'en-US',
+    },
+}

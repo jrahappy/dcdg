@@ -1,0 +1,147 @@
+{% extends "base.html" %}
+
+{% block title %}Profile - {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6 flex justify-between items-center">
+            <div>
+                <h3 class="text-lg leading-6 font-medium text-gray-900">
+                    User Profile
+                </h3>
+                <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                    Personal details and information
+                </p>
+            </div>
+            <a href="{% url 'profile-edit' %}" class="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                Edit Profile
+            </a>
+        </div>
+        
+        <div class="border-t border-gray-200">
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <div class="text-sm font-medium text-gray-500">
+                    Avatar
+                </div>
+                <div class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {% if profile.avatar %}
+                        <img src="{{ profile.avatar.url }}" alt="{{ user.username }}" class="h-20 w-20 rounded-full">
+                    {% else %}
+                        <div class="h-20 w-20 rounded-full bg-gray-300 flex items-center justify-center">
+                            <span class="text-2xl text-gray-600">{{ user.username.0|upper }}</span>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Username
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ user.username }}
+                </dd>
+            </div>
+            
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Email address
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ user.email }}
+                </dd>
+            </div>
+            
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Full name
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {% if user.first_name or user.last_name %}
+                        {{ user.first_name }} {{ user.last_name }}
+                    {% else %}
+                        <span class="text-gray-400">Not provided</span>
+                    {% endif %}
+                </dd>
+            </div>
+            
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Bio
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {% if profile.bio %}
+                        {{ profile.bio }}
+                    {% else %}
+                        <span class="text-gray-400">No bio yet</span>
+                    {% endif %}
+                </dd>
+            </div>
+            
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Location
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {% if profile.location %}
+                        {{ profile.location }}
+                    {% else %}
+                        <span class="text-gray-400">Not specified</span>
+                    {% endif %}
+                </dd>
+            </div>
+            
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Birth date
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {% if profile.birth_date %}
+                        {{ profile.birth_date|date:"F d, Y" }}
+                    {% else %}
+                        <span class="text-gray-400">Not specified</span>
+                    {% endif %}
+                </dd>
+            </div>
+            
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Phone number
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {% if profile.phone_number %}
+                        {{ profile.phone_number }}
+                    {% else %}
+                        <span class="text-gray-400">Not provided</span>
+                    {% endif %}
+                </dd>
+            </div>
+            
+            <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Website
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {% if profile.website %}
+                        <a href="{{ profile.website }}" target="_blank" class="text-blue-600 hover:text-blue-500">
+                            {{ profile.website }}
+                        </a>
+                    {% else %}
+                        <span class="text-gray-400">No website</span>
+                    {% endif %}
+                </dd>
+            </div>
+            
+            <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                <dt class="text-sm font-medium text-gray-500">
+                    Member since
+                </dt>
+                <dd class="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
+                    {{ user.date_joined|date:"F d, Y" }}
+                </dd>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
