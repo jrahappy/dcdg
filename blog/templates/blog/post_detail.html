@@ -1,0 +1,281 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ post.title }}{% endblock %}
+
+{% block content %}
+<article class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Draft Notice -->
+    {% if post.status == 'draft' and user == post.author %}
+        <div class="alert alert-warning shadow-lg mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+            </svg>
+            <div class="flex-1">
+                <h3 class="font-bold">This post is a draft</h3>
+                <div class="text-sm">Only you can see this post. Click the "Publish" button when you're ready to make it public.</div>
+            </div>
+        </div>
+    {% endif %}
+    
+    <!-- Post Header -->
+    <header class="mb-8">
+        <div class="flex items-center text-sm text-gray-500 mb-4">
+            {% if post.category %}
+                <a href="{% url 'blog:category-detail' post.category.slug %}" 
+                   class="text-blue-600 hover:text-blue-800">
+                    {{ post.category.name }}
+                </a>
+                <span class="mx-2">•</span>
+            {% endif %}
+            <time datetime="{{ post.published_date|date:'Y-m-d' }}">
+                {{ post.published_date|date:"F d, Y" }}
+            </time>
+            <span class="mx-2">•</span>
+            <span>{{ post.views }} views</span>
+        </div>
+        
+        <h1 class="text-4xl font-bold text-gray-900 mb-4">
+            {{ post.title }}
+            {% if post.status == 'draft' %}
+                <span class="badge badge-warning ml-2">Draft</span>
+            {% endif %}
+        </h1>
+        
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <span class="text-gray-600">
+                    By <a href="{% url 'blog:user-posts' post.author.username %}" 
+                          class="text-blue-600 hover:text-blue-800 font-medium">
+                        {{ post.author.get_full_name|default:post.author.username }}
+                    </a>
+                </span>
+            </div>
+            
+            {% if user == post.author %}
+                <div class="flex items-center gap-2">
+                    {% if post.status == 'draft' %}
+                        <form method="post" action="{% url 'blog:post-publish' post.pk %}" class="inline">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-success btn-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                </svg>
+                                Publish
+                            </button>
+                        </form>
+                    {% endif %}
+                    <a href="{% url 'blog:post-update' post.pk %}" class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Edit
+                    </a>
+                    <a href="{% url 'blog:post-delete' post.pk %}" class="btn btn-error btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Delete
+                    </a>
+                </div>
+            {% endif %}
+        </div>
+    </header>
+
+    <!-- Featured Image -->
+    {% if post.featured_image %}
+        <img src="{{ post.featured_image.url }}" alt="{{ post.title }}" 
+             class="w-full rounded-lg shadow-lg mb-8">
+    {% endif %}
+
+    <!-- Post Content -->
+    <div class="prose prose-lg max-w-none mb-8">
+        <p class="text-xl text-gray-600 mb-6">{{ post.excerpt }}</p>
+        <div class="text-gray-800">
+            {{ post.content|safe }}
+        </div>
+    </div>
+
+    <!-- Tags -->
+    {% if post.tags.all %}
+        <div class="flex flex-wrap gap-2 mb-8">
+            {% for tag in post.tags.all %}
+                <a href="{% url 'blog:tag-detail' tag.slug %}" 
+                   class="inline-block px-3 py-1 text-sm bg-gray-200 text-gray-700 rounded-full hover:bg-gray-300">
+                    #{{ tag.name }}
+                </a>
+            {% endfor %}
+        </div>
+    {% endif %}
+
+    <!-- Like Button with HTMX -->
+    <div class="flex items-center justify-between border-t border-b border-base-300 py-4 mb-8">
+        <div class="flex items-center space-x-4">
+            {% if user.is_authenticated %}
+                <button hx-post="{% url 'blog:like-post' post.pk %}"
+                        hx-trigger="click"
+                        hx-swap="outerHTML"
+                        hx-headers='{"X-CSRFToken": "{{ csrf_token }}"}'
+                        class="btn btn-ghost btn-sm gap-2">
+                    {% if is_liked %}
+                        <svg class="w-6 h-6 text-error" fill="currentColor" viewBox="0 0 20 20">
+                            <path d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z"/>
+                        </svg>
+                    {% else %}
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                        </svg>
+                    {% endif %}
+                    <span class="badge badge-sm">{{ post.like_count }}</span>
+                </button>
+            {% else %}
+                <span class="flex items-center space-x-2 text-gray-600">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                    </svg>
+                    <span>{{ post.like_count }} likes</span>
+                </span>
+            {% endif %}
+        </div>
+        
+        <div class="flex space-x-4">
+            <button onclick="sharePost('{{ request.build_absolute_uri }}')" 
+                    class="text-gray-600 hover:text-blue-600">
+                <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m9.632 8.048c.516.278.926.688 1.21 1.2a4.001 4.001 0 01-7.851 1.377m7.641-2.577l-1.64-1.642M6.316 10.658a3 3 0 010 2.684m9.632-8.048a4.001 4.001 0 00-7.851-1.377c.284.512.694.922 1.21 1.2m6.641 2.577l-1.64 1.642"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Related Posts -->
+    {% if related_posts %}
+        <section class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-4">Related Posts</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {% for related in related_posts %}
+                    <div class="bg-white rounded-lg shadow p-4">
+                        <h3 class="font-semibold mb-2">
+                            <a href="{% url 'blog:post-detail' related.slug %}" 
+                               class="text-gray-900 hover:text-blue-600">
+                                {{ related.title }}
+                            </a>
+                        </h3>
+                        <p class="text-sm text-gray-600">{{ related.excerpt|truncatewords:15 }}</p>
+                    </div>
+                {% endfor %}
+            </div>
+        </section>
+    {% endif %}
+
+    <!-- Comments Section -->
+    {% if post.allow_comments %}
+        <section class="mb-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">
+                Comments ({{ comments.count }})
+            </h2>
+
+            {% if user.is_authenticated %}
+                <form method="post" action="{% url 'blog:add-comment' post.pk %}" class="mb-8">
+                    {% csrf_token %}
+                    <div class="mb-4">
+                        {{ comment_form.content }}
+                    </div>
+                    <button type="submit" 
+                            class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">
+                        Post Comment
+                    </button>
+                </form>
+            {% else %}
+                <p class="text-gray-600 mb-8">
+                    Please <a href="{% url 'account_login' %}" class="text-blue-600 hover:text-blue-800">login</a> 
+                    to leave a comment.
+                </p>
+            {% endif %}
+
+            <!-- Comments List -->
+            <div class="space-y-6">
+                {% for comment in comments %}
+                    <div class="bg-gray-50 rounded-lg p-4">
+                        <div class="flex items-center justify-between mb-2">
+                            <div class="flex items-center space-x-2">
+                                <span class="font-semibold text-gray-900">
+                                    {{ comment.author.get_full_name|default:comment.author.username }}
+                                </span>
+                                <span class="text-sm text-gray-500">
+                                    {{ comment.created_at|date:"M d, Y at g:i A" }}
+                                </span>
+                            </div>
+                            {% if user.is_authenticated %}
+                                <button onclick="toggleReplyForm({{ comment.id }})" 
+                                        class="text-sm text-blue-600 hover:text-blue-800">
+                                    Reply
+                                </button>
+                            {% endif %}
+                        </div>
+                        <p class="text-gray-700">{{ comment.content|linebreaks }}</p>
+                        
+                        <!-- Reply Form -->
+                        {% if user.is_authenticated %}
+                            <form method="post" action="{% url 'blog:add-comment' post.pk %}" 
+                                  id="reply-form-{{ comment.id }}" class="hidden mt-4">
+                                {% csrf_token %}
+                                <input type="hidden" name="parent_id" value="{{ comment.id }}">
+                                <textarea name="content" rows="2" 
+                                          class="w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+                                          placeholder="Write your reply..."></textarea>
+                                <div class="mt-2 flex space-x-2">
+                                    <button type="submit" 
+                                            class="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700">
+                                        Reply
+                                    </button>
+                                    <button type="button" onclick="toggleReplyForm({{ comment.id }})" 
+                                            class="bg-gray-300 text-gray-700 px-3 py-1 rounded text-sm hover:bg-gray-400">
+                                        Cancel
+                                    </button>
+                                </div>
+                            </form>
+                        {% endif %}
+                        
+                        <!-- Replies -->
+                        {% for reply in comment.replies.all %}
+                            <div class="mt-4 ml-8 bg-white rounded p-3">
+                                <div class="flex items-center space-x-2 mb-2">
+                                    <span class="font-semibold text-gray-900 text-sm">
+                                        {{ reply.author.get_full_name|default:reply.author.username }}
+                                    </span>
+                                    <span class="text-xs text-gray-500">
+                                        {{ reply.created_at|date:"M d, Y at g:i A" }}
+                                    </span>
+                                </div>
+                                <p class="text-gray-700 text-sm">{{ reply.content|linebreaks }}</p>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% empty %}
+                    <p class="text-gray-500">No comments yet. Be the first to comment!</p>
+                {% endfor %}
+            </div>
+        </section>
+    {% endif %}
+</article>
+
+<script>
+function sharePost(url) {
+    if (navigator.share) {
+        navigator.share({
+            title: '{{ post.title }}',
+            text: '{{ post.excerpt }}',
+            url: url
+        });
+    } else {
+        navigator.clipboard.writeText(url);
+        alert('Link copied to clipboard!');
+    }
+}
+
+function toggleReplyForm(commentId) {
+    const form = document.getElementById('reply-form-' + commentId);
+    form.classList.toggle('hidden');
+}
+</script>
+{% endblock %}

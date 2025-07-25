@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Profile{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
+        <div class="px-4 py-5 sm:px-6">
+            <h3 class="text-lg leading-6 font-medium text-gray-900">
+                Edit Profile
+            </h3>
+            <p class="mt-1 max-w-2xl text-sm text-gray-500">
+                Update your personal information
+            </p>
+        </div>
+        
+        <form method="POST" enctype="multipart/form-data" class="border-t border-gray-200">
+            {% csrf_token %}
+            
+            <div class="px-4 py-5 sm:p-6">
+                <div class="grid grid-cols-6 gap-6">
+                    <!-- User Form Fields -->
+                    <div class="col-span-6 sm:col-span-3">
+                        <label for="{{ user_form.username.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Username
+                        </label>
+                        {{ user_form.username }}
+                        {% if user_form.username.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ user_form.username.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-span-6 sm:col-span-3">
+                        <label for="{{ user_form.email.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Email address
+                        </label>
+                        {{ user_form.email }}
+                        {% if user_form.email.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ user_form.email.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-span-6 sm:col-span-3">
+                        <label for="{{ user_form.first_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            First name
+                        </label>
+                        {{ user_form.first_name }}
+                        {% if user_form.first_name.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ user_form.first_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-span-6 sm:col-span-3">
+                        <label for="{{ user_form.last_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Last name
+                        </label>
+                        {{ user_form.last_name }}
+                        {% if user_form.last_name.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ user_form.last_name.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Profile Form Fields -->
+                    <div class="col-span-6">
+                        <label for="{{ profile_form.bio.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Bio
+                        </label>
+                        {{ profile_form.bio }}
+                        {% if profile_form.bio.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ profile_form.bio.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-span-6 sm:col-span-3">
+                        <label for="{{ profile_form.location.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Location
+                        </label>
+                        {{ profile_form.location }}
+                        {% if profile_form.location.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ profile_form.location.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-span-6 sm:col-span-3">
+                        <label for="{{ profile_form.birth_date.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Birth date
+                        </label>
+                        {{ profile_form.birth_date }}
+                        {% if profile_form.birth_date.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ profile_form.birth_date.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-span-6 sm:col-span-3">
+                        <label for="{{ profile_form.phone_number.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Phone number
+                        </label>
+                        {{ profile_form.phone_number }}
+                        {% if profile_form.phone_number.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ profile_form.phone_number.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-span-6 sm:col-span-3">
+                        <label for="{{ profile_form.website.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Website
+                        </label>
+                        {{ profile_form.website }}
+                        {% if profile_form.website.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ profile_form.website.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-span-6">
+                        <label for="{{ profile_form.avatar.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                            Profile photo
+                        </label>
+                        <div class="mt-1 flex items-center">
+                            {% if request.user.profile.avatar %}
+                                <img src="{{ request.user.profile.avatar.url }}" alt="Current avatar" class="h-12 w-12 rounded-full mr-4">
+                            {% endif %}
+                            {{ profile_form.avatar }}
+                        </div>
+                        {% if profile_form.avatar.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ profile_form.avatar.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="px-4 py-3 bg-gray-50 text-right sm:px-6">
+                <a href="{% url 'profile' %}" class="inline-flex justify-center py-2 px-4 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mr-3">
+                    Cancel
+                </a>
+                <button type="submit" class="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Save changes
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

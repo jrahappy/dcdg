@@ -4,7 +4,21 @@
       "Bash(ls:*)",
       "Bash(python:*)",
       "Bash(venvScripts:*)",
-      "Bash(pip install:*)"
+      "Bash(pip install:*)",
+      "Bash(mkdir:*)",
+      "Bash(del db.sqlite3)",
+      "Bash(rm:*)",
+      "Bash(cmd /c:*)",
+      "Bash(\"venv\\Scripts\\python.exe\":*)",
+      "Bash(\"venv\\Scripts\\pip.exe\" install Django)",
+      "Bash(\"venv\\Scripts\\pip.exe\" install Pillow)",
+      "Bash(pip index versions:*)",
+      "Bash(\"venv\\Scripts\\pip.exe\" show django-allauth)",
+      "Bash(\"venv\\Scripts\\pip.exe\" install --upgrade django-allauth)",
+      "Bash(\"venv\\Scripts\\pip.exe\" install --upgrade django-extensions python-dotenv Pillow)",
+      "Bash(copy db.sqlite3 db.sqlite3.backup)",
+      "Bash(cp:*)",
+      "Bash(taskkill:*)"
     ],
     "deny": []
   }

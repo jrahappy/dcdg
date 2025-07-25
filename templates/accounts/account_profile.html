@@ -1,0 +1,110 @@
+{% extends "accounts/account_base.html" %}
+
+{% block title %}Profile - Account Management{% endblock %}
+
+{% block account_content %}
+<h2 class="text-2xl font-bold mb-6">Profile</h2>
+
+<div class="space-y-6">
+    <!-- Avatar Section -->
+    <div class="flex items-center space-x-6">
+        <div class="avatar">
+            <div class="w-24 rounded-full ring ring-primary ring-offset-base-100 ring-offset-2">
+                {% if profile.avatar %}
+                    <img src="{{ profile.avatar.url }}" alt="{{ user.username }}" />
+                {% else %}
+                    <div class="bg-neutral-focus text-neutral-content flex items-center justify-center w-full h-full text-3xl">
+                        {{ user.username.0|upper }}
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+        <div>
+            <h3 class="text-xl font-semibold">{{ user.get_full_name|default:user.username }}</h3>
+            <p class="text-base-content/70">@{{ user.username }}</p>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Profile Information -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div>
+            <label class="label">
+                <span class="label-text font-semibold">Bio</span>
+            </label>
+            <p class="text-base-content/80">{{ profile.bio|default:"No bio added yet." }}</p>
+        </div>
+
+        <div>
+            <label class="label">
+                <span class="label-text font-semibold">Location</span>
+            </label>
+            <p class="text-base-content/80">{{ profile.location|default:"Not specified" }}</p>
+        </div>
+
+        <div>
+            <label class="label">
+                <span class="label-text font-semibold">Website</span>
+            </label>
+            {% if profile.website %}
+                <a href="{{ profile.website }}" target="_blank" class="link link-primary">{{ profile.website }}</a>
+            {% else %}
+                <p class="text-base-content/80">Not specified</p>
+            {% endif %}
+        </div>
+
+        <div>
+            <label class="label">
+                <span class="label-text font-semibold">Birth Date</span>
+            </label>
+            <p class="text-base-content/80">
+                {% if profile.birth_date %}
+                    {{ profile.birth_date|date:"F d, Y" }}
+                {% else %}
+                    Not specified
+                {% endif %}
+            </p>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Statistics -->
+    <div>
+        <h3 class="text-lg font-semibold mb-4">Activity Statistics</h3>
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-figure text-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
+                    </svg>
+                </div>
+                <div class="stat-title">Total Posts</div>
+                <div class="stat-value text-primary">{{ user.blog_posts.count }}</div>
+            </div>
+            
+            <div class="stat">
+                <div class="stat-figure text-secondary">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path>
+                    </svg>
+                </div>
+                <div class="stat-title">Member Since</div>
+                <div class="stat-value text-secondary">{{ user.date_joined|date:"Y" }}</div>
+                <div class="stat-desc">{{ user.date_joined|date:"F d, Y" }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Button -->
+    <div class="flex justify-end">
+        <a href="{% url 'account-info' %}" class="btn btn-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+            </svg>
+            Edit Profile
+        </a>
+    </div>
+</div>
+{% endblock %}

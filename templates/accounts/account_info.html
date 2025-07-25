@@ -1,0 +1,159 @@
+{% extends "accounts/account_base.html" %}
+
+{% block title %}User Information - Account Management{% endblock %}
+
+{% block account_content %}
+<h2 class="text-2xl font-bold mb-6">User Information</h2>
+
+<form method="post" enctype="multipart/form-data" class="space-y-6">
+    {% csrf_token %}
+    
+    <!-- Basic Information -->
+    <div>
+        <h3 class="text-lg font-semibold mb-4">Basic Information</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Username</span>
+                </label>
+                <input type="text" name="username" value="{{ user.username }}" class="input input-bordered" required>
+                {% if user_form.username.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ user_form.username.errors.0 }}</span>
+                    </label>
+                {% endif %}
+            </div>
+
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Email</span>
+                </label>
+                <input type="email" name="email" value="{{ user.email }}" class="input input-bordered" required>
+                {% if user_form.email.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ user_form.email.errors.0 }}</span>
+                    </label>
+                {% endif %}
+            </div>
+
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">First Name</span>
+                </label>
+                <input type="text" name="first_name" value="{{ user.first_name|default:'' }}" class="input input-bordered">
+                {% if user_form.first_name.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ user_form.first_name.errors.0 }}</span>
+                    </label>
+                {% endif %}
+            </div>
+
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Last Name</span>
+                </label>
+                <input type="text" name="last_name" value="{{ user.last_name|default:'' }}" class="input input-bordered">
+                {% if user_form.last_name.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ user_form.last_name.errors.0 }}</span>
+                    </label>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Profile Information -->
+    <div>
+        <h3 class="text-lg font-semibold mb-4">Profile Information</h3>
+        <div class="space-y-4">
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Avatar</span>
+                </label>
+                <div class="flex items-center space-x-4">
+                    <div class="avatar">
+                        <div class="w-16 rounded-full">
+                            {% if profile.avatar %}
+                                <img src="{{ profile.avatar.url }}" alt="{{ user.username }}" />
+                            {% else %}
+                                <div class="bg-neutral-focus text-neutral-content flex items-center justify-center w-full h-full">
+                                    {{ user.username.0|upper }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <input type="file" name="avatar" class="file-input file-input-bordered w-full max-w-xs" accept="image/*">
+                </div>
+                {% if profile_form.avatar.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ profile_form.avatar.errors.0 }}</span>
+                    </label>
+                {% endif %}
+            </div>
+
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Bio</span>
+                </label>
+                <textarea name="bio" rows="4" class="textarea textarea-bordered">{{ profile.bio|default:'' }}</textarea>
+                {% if profile_form.bio.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ profile_form.bio.errors.0 }}</span>
+                    </label>
+                {% endif %}
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Location</span>
+                    </label>
+                    <input type="text" name="location" value="{{ profile.location|default:'' }}" class="input input-bordered">
+                    {% if profile_form.location.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ profile_form.location.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Website</span>
+                    </label>
+                    <input type="url" name="website" value="{{ profile.website|default:'' }}" class="input input-bordered" placeholder="https://example.com">
+                    {% if profile_form.website.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ profile_form.website.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Birth Date</span>
+                    </label>
+                    <input type="date" name="birth_date" value="{{ profile.birth_date|date:'Y-m-d'|default:'' }}" class="input input-bordered">
+                    {% if profile_form.birth_date.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ profile_form.birth_date.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Submit Buttons -->
+    <div class="flex justify-end space-x-4">
+        <a href="{% url 'account-profile' %}" class="btn btn-ghost">Cancel</a>
+        <button type="submit" class="btn btn-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            Save Changes
+        </button>
+    </div>
+</form>
+{% endblock %}

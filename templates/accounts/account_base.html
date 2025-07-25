@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <h1 class="text-3xl font-bold mb-8">Account Management</h1>
+        
+        <div class="flex flex-col lg:flex-row gap-8">
+            <!-- Sidebar -->
+            <div class="w-full lg:w-64">
+                <ul class="menu bg-base-200 rounded-box">
+                    <li class="menu-title">
+                        <span>Account Settings</span>
+                    </li>
+                    <li>
+                        <a href="{% url 'account-profile' %}" class="{% if request.resolver_match.url_name == 'account-profile' %}active{% endif %}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                            Profile
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'account-info' %}" class="{% if request.resolver_match.url_name == 'account-info' %}active{% endif %}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            User Information
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'account-security' %}" class="{% if request.resolver_match.url_name == 'account-security' %}active{% endif %}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                            Security
+                        </a>
+                    </li>
+                </ul>
+            </div>
+            
+            <!-- Main Content -->
+            <div class="flex-1">
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                        {% block account_content %}
+                        {% endblock %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
