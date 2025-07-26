@@ -25,12 +25,16 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("SECRET_KEY", "django-insecure-0*@)!plk*dko$*1$+5a^7jzp0n9mdh2_yojwb^u3=4o1lh^4f6")
+SECRET_KEY = os.getenv(
+    "SECRET_KEY", "django-insecure-0*@)!plk*dko$*1$+5a^7jzp0n9mdh2_yojwb^u3=4o1lh^4f6"
+)
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
 
-ALLOWED_HOSTS = os.getenv("ALLOWED_HOSTS", "").split(",") if os.getenv("ALLOWED_HOSTS") else []
+ALLOWED_HOSTS = (
+    os.getenv("ALLOWED_HOSTS", "").split(",") if os.getenv("ALLOWED_HOSTS") else []
+)
 
 
 # Application definition
@@ -50,10 +54,14 @@ INSTALLED_APPS = [
     "django_vite",
     "django_summernote",
     # Local apps
+    "dogfoot",
     "core",
     "accounts",
     "blog",
     "landing",
+    "customer",
+    "dashboard",
+    "email_campaign",
 ]
 
 MIDDLEWARE = [
@@ -150,7 +158,8 @@ MEDIA_ROOT = BASE_DIR / "media"
 # Django Vite Settings
 DJANGO_VITE = {
     "default": {
-        "dev_mode": os.getenv("DJANGO_VITE_DEV_MODE", "True").lower() in ("true", "1", "yes"),
+        "dev_mode": os.getenv("DJANGO_VITE_DEV_MODE", "True").lower()
+        in ("true", "1", "yes"),
         "dev_server_port": 5173,
         "static_url_prefix": "",
     }
@@ -173,7 +182,9 @@ AUTHENTICATION_BACKENDS = [
 SITE_ID = int(os.getenv("SITE_ID", "1"))
 
 # Email settings
-EMAIL_BACKEND = os.getenv("EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend")
+EMAIL_BACKEND = os.getenv(
+    "EMAIL_BACKEND", "django.core.mail.backends.console.EmailBackend"
+)
 EMAIL_HOST = os.getenv("EMAIL_HOST", "")
 EMAIL_PORT = int(os.getenv("EMAIL_PORT", "587")) if os.getenv("EMAIL_PORT") else 587
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
@@ -187,46 +198,42 @@ ACCOUNT_EMAIL_REQUIRED = True  # Keep email required but no verification
 ACCOUNT_USERNAME_MIN_LENGTH = 4
 ACCOUNT_UNIQUE_EMAIL = True  # Ensure email uniqueness
 ACCOUNT_SIGNUP_EMAIL_ENTER_TWICE = False  # Don't require email twice
-LOGIN_REDIRECT_URL = "/accounts/profile/"
+LOGIN_REDIRECT_URL = "/dashboard/"
 ACCOUNT_LOGOUT_REDIRECT_URL = "/"
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = False  # Don't auto-login on email confirm
 ACCOUNT_LOGIN_ON_PASSWORD_RESET = False  # Don't auto-login on password reset
 ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = LOGIN_REDIRECT_URL
 ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = LOGIN_REDIRECT_URL
-ACCOUNT_ADAPTER = 'accounts.adapter.NoEmailVerificationAdapter'  # Custom adapter
+ACCOUNT_ADAPTER = "accounts.adapter.NoEmailVerificationAdapter"  # Custom adapter
 
 # Django Summernote Configuration
 SUMMERNOTE_CONFIG = {
     # Editor size
-    'width': '100%',
-    'height': '400',
-    
+    "width": "100%",
+    "height": "400",
     # Toolbar customization
-    'toolbar': [
-        ['style', ['style']],
-        ['font', ['bold', 'italic', 'underline', 'clear']],
-        ['fontname', ['fontname']],
-        ['fontsize', ['fontsize']],
-        ['color', ['color']],
-        ['para', ['ul', 'ol', 'paragraph']],
-        ['table', ['table']],
-        ['insert', ['link', 'picture', 'video']],
-        ['view', ['fullscreen', 'codeview', 'help']],
+    "toolbar": [
+        ["style", ["style"]],
+        ["font", ["bold", "italic", "underline", "clear"]],
+        ["fontname", ["fontname"]],
+        ["fontsize", ["fontsize"]],
+        ["color", ["color"]],
+        ["para", ["ul", "ol", "paragraph"]],
+        ["table", ["table"]],
+        ["insert", ["link", "picture", "video"]],
+        ["view", ["fullscreen", "codeview", "help"]],
     ],
-    
     # Codemirror settings
-    'codemirror': {
-        'mode': 'htmlmixed',
-        'lineNumbers': True,
-        'theme': 'monokai',
+    "codemirror": {
+        "mode": "htmlmixed",
+        "lineNumbers": True,
+        "theme": "monokai",
     },
-    
     # Upload settings
-    'attachment_require_authentication': True,
-    
+    "attachment_require_authentication": True,
     # Other settings
-    'summernote': {
-        'airMode': False,
-        'lang': 'en-US',
+    "summernote": {
+        "airMode": False,
+        "lang": "en-US",
     },
 }

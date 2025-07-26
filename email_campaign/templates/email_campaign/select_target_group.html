@@ -1,0 +1,153 @@
+{% extends 'dashboard/base.html' %}
+
+{% block page_title %}Select Target Group{% endblock %}
+
+{% block dashboard_content %}
+<div class="select-group-header">
+    <h2>Select Target Group for Campaign</h2>
+    <p>Choose an existing target group or create a new one</p>
+</div>
+
+<div class="target-groups-grid">
+    {% for group in target_groups %}
+    <div class="group-card">
+        <h3>{{ group.name }}</h3>
+        <p class="group-description">{{ group.description|default:"No description"|truncatewords:20 }}</p>
+        <div class="group-stats">
+            <div class="stat">
+                <span class="number">{{ group.customer_count }}</span>
+                <span class="label">Recipients</span>
+            </div>
+            <div class="stat">
+                <span class="number">{{ group.created_at|date:"M d" }}</span>
+                <span class="label">Created</span>
+            </div>
+        </div>
+        <a href="{% url 'email_campaign:campaign_create' %}?target_group={{ group.id }}" 
+           class="btn btn-primary btn-block">
+            Use This Group
+        </a>
+    </div>
+    {% endfor %}
+    
+    <div class="group-card new-group">
+        <div class="new-group-icon">
+            <i class="fas fa-plus-circle"></i>
+        </div>
+        <h3>Create New Target Group</h3>
+        <p>Build a custom group by selecting customers</p>
+        <a href="{% url 'email_campaign:customer_selection' %}" 
+           class="btn btn-outline-primary btn-block">
+            Start Building
+        </a>
+    </div>
+</div>
+
+<style>
+.select-group-header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+.select-group-header h2 {
+    margin-bottom: 10px;
+}
+
+.select-group-header p {
+    color: #7f8c8d;
+}
+
+.target-groups-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.group-card {
+    background-color: white;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.group-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+.group-card h3 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #2c3e50;
+}
+
+.group-description {
+    color: #7f8c8d;
+    margin-bottom: 20px;
+    min-height: 60px;
+}
+
+.group-stats {
+    display: flex;
+    gap: 30px;
+    margin-bottom: 20px;
+}
+
+.stat {
+    text-align: center;
+}
+
+.stat .number {
+    display: block;
+    font-size: 24px;
+    font-weight: bold;
+    color: #3498db;
+}
+
+.stat .label {
+    display: block;
+    font-size: 12px;
+    color: #7f8c8d;
+    text-transform: uppercase;
+}
+
+.btn-block {
+    width: 100%;
+    display: block;
+    text-align: center;
+}
+
+.new-group {
+    border: 2px dashed #bdc3c7;
+    background-color: #f8f9fa;
+    text-align: center;
+}
+
+.new-group:hover {
+    border-color: #3498db;
+    background-color: #fff;
+}
+
+.new-group-icon {
+    font-size: 48px;
+    color: #bdc3c7;
+    margin-bottom: 20px;
+}
+
+.new-group:hover .new-group-icon {
+    color: #3498db;
+}
+
+.btn-outline-primary {
+    background-color: transparent;
+    color: #3498db;
+    border: 2px solid #3498db;
+}
+
+.btn-outline-primary:hover {
+    background-color: #3498db;
+    color: white;
+}
+</style>
+{% endblock %}

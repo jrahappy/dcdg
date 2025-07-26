@@ -1,0 +1,673 @@
+{% extends 'dashboard/base.html' %}
+
+{% block page_title %}Edit Target Group{% endblock %}
+
+{% block dashboard_content %}
+<div class="gmail-list-container">
+    <!-- Header -->
+    <div class="gmail-toolbar">
+        <div class="toolbar-left">
+            <button class="toolbar-btn" onclick="window.history.back()">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2 class="toolbar-title">Edit Target Group</h2>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="detail-container">
+        <form method="POST" id="edit-form">
+            {% csrf_token %}
+            
+            <!-- Target Group Header -->
+            <div class="detail-header">
+                <div class="detail-avatar">
+                    <div class="avatar-circle-large">
+                        <i class="fas fa-users"></i>
+                    </div>
+                </div>
+                <div class="detail-header-info">
+                    <h1 class="detail-name">{{ target_group.name }}</h1>
+                    {% if target_group.description %}
+                        <p class="detail-company">{{ target_group.description }}</p>
+                    {% endif %}
+                    <div class="detail-status">
+                        <span class="status-badge customers">
+                            <i class="fas fa-users"></i> {{ target_group.customer_count }} customer{{ target_group.customer_count|pluralize }}
+                        </span>
+                        {% if target_group.is_active %}
+                            <span class="status-badge active">Active</span>
+                        {% else %}
+                            <span class="status-badge inactive">Inactive</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="detail-sections">
+                <!-- Basic Information -->
+                <div class="detail-section">
+                    <h3 class="section-title">Basic Information</h3>
+                
+                    <div class="detail-grid">
+                        <div class="form-group full-width">
+                            <label for="name">Target Group Name *</label>
+                            <input type="text" 
+                                   id="name" 
+                                   name="name" 
+                                   class="form-control" 
+                                   value="{{ target_group.name }}"
+                                   placeholder="e.g., Seattle Medical Clinics Q1 2024"
+                                   required>
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label for="description">Description</label>
+                            <textarea id="description" 
+                                      name="description" 
+                                      class="form-control" 
+                                      rows="4"
+                                      placeholder="Describe the purpose or criteria for this target group...">{{ target_group.description }}</textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Customer Selection -->
+                <div class="detail-section">
+                    <h3 class="section-title">Customer Selection</h3>
+                    <p class="section-description">Select customers to include in this target group</p>
+                    
+                    <div class="customer-controls">
+                        <div class="search-box">
+                            <input type="text" 
+                                   id="customer-search" 
+                                   class="form-control" 
+                                   placeholder="Search customers by name, email, or company...">
+                        </div>
+                        <div class="selection-info">
+                            <span id="selected-count">{{ current_customer_ids|length }}</span> customers selected
+                        </div>
+                    </div>
+                    
+                    <div class="customer-selection">
+                        <div class="selection-actions">
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="selectAll()">
+                                <i class="fas fa-check-square"></i> Select All
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="selectNone()">
+                                <i class="fas fa-square"></i> Deselect All
+                            </button>
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="toggleSelection()">
+                                <i class="fas fa-exchange-alt"></i> Toggle Selection
+                            </button>
+                        </div>
+                        
+                        <div class="customer-list">
+                            {% for customer in all_customers %}
+                            <div class="customer-item" data-search="{{ customer.get_full_name|lower }} {{ customer.email|lower }} {{ customer.company_name|lower }}" data-customer-id="{{ customer.id }}">
+                                <label class="customer-label">
+                                    <input type="checkbox" 
+                                           name="customers" 
+                                           value="{{ customer.id }}"
+                                           {% if customer.id in current_customer_ids %}checked{% endif %}
+                                           onchange="updateCount()">
+                                    <div class="customer-info">
+                                        <strong>{{ customer.get_full_name }}</strong>
+                                        {% if customer.company_name %}
+                                            <span class="company">{{ customer.company_name }}</span>
+                                        {% endif %}
+                                        <span class="email">{{ customer.email }}</span>
+                                        {% if customer.city %}
+                                            <span class="location">{{ customer.city }}, {{ customer.state|default:"" }}</span>
+                                        {% endif %}
+                                    </div>
+                                </label>
+                                <button type="button" 
+                                        class="btn btn-sm btn-danger kick-out-btn" 
+                                        onclick="kickOutCustomer(this, {{ customer.id }})"
+                                        title="Remove from group">
+                                    <i class="fas fa-user-times"></i> Remove
+                                </button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Group Information -->
+                <div class="detail-section">
+                    <h3 class="section-title">Group Information</h3>
+                    
+                    <div class="detail-grid">
+                        <div class="detail-item">
+                            <label>Current Customers</label>
+                            <div class="detail-value">{{ target_group.customer_count }}</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Created At</label>
+                            <div class="detail-value">{{ target_group.created_at|date:"F d, Y g:i A" }}</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Last Updated</label>
+                            <div class="detail-value">{{ target_group.updated_at|date:"F d, Y g:i A" }}</div>
+                        </div>
+                        <div class="detail-item">
+                            <label>Created By</label>
+                            <div class="detail-value">{{ target_group.created_by.get_full_name|default:target_group.created_by.username }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Form Actions at Bottom -->
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i>
+                    Save Changes
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.toolbar-left {
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    gap: 4px;
+}
+
+.toolbar-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+    color: #5f6368;
+}
+
+.toolbar-btn:hover {
+    background-color: rgba(60, 64, 67, 0.08);
+}
+
+.toolbar-title {
+    font-size: 20px;
+    font-weight: 500;
+    color: #202124;
+    margin: 0 0 0 16px;
+}
+
+.detail-container {
+    max-width: 1000px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.detail-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 24px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    margin-bottom: 24px;
+}
+
+.detail-avatar {
+    flex-shrink: 0;
+}
+
+.avatar-circle-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: #4285f4;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: 500;
+}
+
+.detail-header-info {
+    flex: 1;
+}
+
+.detail-name {
+    font-size: 28px;
+    font-weight: 400;
+    color: #202124;
+    margin: 0 0 4px;
+}
+
+.detail-company {
+    font-size: 16px;
+    color: #5f6368;
+    margin: 0 0 12px;
+}
+
+.detail-status {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.status-badge.customers {
+    background-color: #e8f0fe;
+    color: #1a73e8;
+}
+
+.status-badge.active {
+    background-color: #e6f4ea;
+    color: #1e8e3e;
+}
+
+.status-badge.inactive {
+    background-color: #f1f3f4;
+    color: #5f6368;
+}
+
+.detail-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.detail-section {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    padding: 24px;
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 500;
+    color: #202124;
+    margin: 0 0 20px;
+}
+
+.section-description {
+    color: #5f6368;
+    margin-bottom: 20px;
+    font-size: 14px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-group label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #5f6368;
+}
+
+.detail-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.detail-item label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #5f6368;
+}
+
+.detail-value {
+    font-size: 14px;
+    color: #202124;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #202124;
+    transition: border-color 0.2s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 2px rgba(26,115,232,0.1);
+}
+
+textarea.form-control {
+    min-height: 100px;
+    resize: vertical;
+}
+
+.customer-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    gap: 20px;
+}
+
+.search-box {
+    flex: 1;
+}
+
+.selection-info {
+    background-color: #1a73e8;
+    color: white;
+    padding: 8px 16px;
+    border-radius: 12px;
+    font-weight: 500;
+    font-size: 14px;
+}
+
+#selected-count {
+    font-weight: 600;
+}
+
+.customer-selection {
+    border: 1px solid #dadce0;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+}
+
+.selection-actions {
+    background-color: #f8f9fa;
+    padding: 12px;
+    border-bottom: 1px solid #e0e0e0;
+    display: flex;
+    gap: 8px;
+}
+
+.customer-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.customer-item {
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid #f1f3f4;
+    transition: background-color 0.2s;
+}
+
+.customer-item:hover {
+    background-color: #f8f9fa;
+}
+
+.customer-item:last-child {
+    border-bottom: none;
+}
+
+.customer-item.hidden {
+    display: none;
+}
+
+.customer-label {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    margin: 0;
+    flex: 1;
+}
+
+.customer-label input[type="checkbox"] {
+    margin-right: 12px;
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #1a73e8;
+}
+
+.customer-info {
+    flex: 1;
+    display: grid;
+    grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) minmax(200px, 1fr) auto;
+    gap: 12px;
+    align-items: center;
+}
+
+.customer-info strong {
+    color: #202124;
+    font-weight: 500;
+}
+
+.customer-info .company {
+    color: #1a73e8;
+    font-weight: 400;
+}
+
+.customer-info .email {
+    color: #5f6368;
+    font-size: 13px;
+}
+
+.customer-info .location {
+    color: #5f6368;
+    font-size: 13px;
+}
+
+.kick-out-btn {
+    margin: 0 12px;
+    background-color: #d33b27;
+    color: white;
+    white-space: nowrap;
+    border: none;
+    padding: 6px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.kick-out-btn:hover {
+    background-color: #b92d21;
+}
+
+.form-actions {
+    margin-top: 24px;
+    padding: 24px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    text-decoration: none;
+}
+
+.btn-primary {
+    background-color: #1a73e8;
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background-color: #1557b0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.btn-secondary {
+    background-color: #fff;
+    color: #5f6368;
+    border: 1px solid #dadce0;
+}
+
+.btn-secondary:hover {
+    background-color: #f8f9fa;
+    border-color: #5f6368;
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+.btn-danger {
+    background-color: #d33b27;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #b92d21;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .detail-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .customer-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .customer-info {
+        grid-template-columns: 1fr;
+        gap: 4px;
+    }
+    
+    .selection-actions {
+        flex-wrap: wrap;
+    }
+    
+    .form-actions {
+        flex-direction: column-reverse;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+// Search functionality
+document.getElementById('customer-search').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const items = document.querySelectorAll('.customer-item');
+    
+    items.forEach(item => {
+        const searchData = item.getAttribute('data-search');
+        if (searchData.includes(searchTerm)) {
+            item.classList.remove('hidden');
+        } else {
+            item.classList.add('hidden');
+        }
+    });
+});
+
+// Update selected count
+function updateCount() {
+    const checked = document.querySelectorAll('input[name="customers"]:checked').length;
+    document.getElementById('selected-count').textContent = checked;
+}
+
+// Select all visible customers
+function selectAll() {
+    const visibleCheckboxes = document.querySelectorAll('.customer-item:not(.hidden) input[name="customers"]');
+    visibleCheckboxes.forEach(cb => cb.checked = true);
+    updateCount();
+}
+
+// Deselect all visible customers
+function selectNone() {
+    const visibleCheckboxes = document.querySelectorAll('.customer-item:not(.hidden) input[name="customers"]');
+    visibleCheckboxes.forEach(cb => cb.checked = false);
+    updateCount();
+}
+
+// Toggle selection of visible customers
+function toggleSelection() {
+    const visibleCheckboxes = document.querySelectorAll('.customer-item:not(.hidden) input[name="customers"]');
+    visibleCheckboxes.forEach(cb => cb.checked = !cb.checked);
+    updateCount();
+}
+
+// Kick out customer function
+function kickOutCustomer(button, customerId) {
+    const customerItem = button.closest('.customer-item');
+    const checkbox = customerItem.querySelector('input[type="checkbox"]');
+    
+    // Uncheck the checkbox
+    checkbox.checked = false;
+    
+    // Add visual feedback
+    customerItem.style.backgroundColor = '#fee';
+    setTimeout(() => {
+        customerItem.style.backgroundColor = '';
+    }, 500);
+    
+    // Update count
+    updateCount();
+    
+    // Optional: Hide the item after animation
+    // setTimeout(() => {
+    //     customerItem.classList.add('hidden');
+    // }, 500);
+}
+
+// Form submission confirmation
+document.getElementById('edit-form').addEventListener('submit', function(e) {
+    const selectedCount = document.querySelectorAll('input[name="customers"]:checked').length;
+    if (selectedCount === 0) {
+        if (!confirm('No customers selected. The target group will be empty. Continue?')) {
+            e.preventDefault();
+        }
+    }
+});
+</script>
+{% endblock %}

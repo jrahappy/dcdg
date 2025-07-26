@@ -1,5 +1,4 @@
 from django import forms
-from django_summernote.widgets import SummernoteWidget
 from .models import Post, Comment, Category, Tag
 
 
@@ -13,7 +12,7 @@ class PostForm(forms.ModelForm):
             'category': forms.Select(attrs={'class': 'select select-bordered w-full'}),
             'tags': forms.SelectMultiple(attrs={'class': 'select select-bordered w-full', 'size': '5'}),
             'excerpt': forms.Textarea(attrs={'rows': 3, 'class': 'textarea textarea-bordered w-full'}),
-            'content': SummernoteWidget(),
+            'content': forms.Textarea(attrs={'rows': 10, 'class': 'textarea textarea-bordered w-full'}),
             'featured_image': forms.FileInput(attrs={'class': 'file-input file-input-bordered w-full'}),
             'status': forms.Select(attrs={'class': 'select select-bordered w-full'}),
         }

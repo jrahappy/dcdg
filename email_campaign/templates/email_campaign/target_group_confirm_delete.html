@@ -1,0 +1,295 @@
+{% extends 'dashboard/base.html' %}
+
+{% block page_title %}Delete Target Group{% endblock %}
+
+{% block dashboard_content %}
+<div class="delete-container">
+    <div class="delete-card">
+        <div class="delete-icon">
+            <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        
+        <h2>Delete Target Group</h2>
+        
+        <p class="warning-text">
+            Are you sure you want to delete the target group <strong>"{{ target_group.name }}"</strong>?
+        </p>
+        
+        {% if campaign_count > 0 %}
+        <div class="alert alert-danger">
+            <i class="fas fa-ban"></i>
+            <div>
+                <strong>Cannot delete this target group!</strong><br>
+                This target group is currently used by {{ campaign_count }} email campaign{{ campaign_count|pluralize }}.
+                Please delete or reassign these campaigns before deleting this target group.
+            </div>
+        </div>
+        
+        <div class="campaigns-using">
+            <h4>Campaigns using this target group:</h4>
+            <ul>
+                {% for campaign in target_group.emailcampaign_set.all|slice:":5" %}
+                <li>
+                    <a href="{% url 'email_campaign:campaign_detail' pk=campaign.id %}">
+                        {{ campaign.name }}
+                    </a>
+                    <span class="badge badge-{{ campaign.status }}">{{ campaign.get_status_display }}</span>
+                </li>
+                {% endfor %}
+                {% if target_group.emailcampaign_set.count > 5 %}
+                <li class="text-muted">... and {{ target_group.emailcampaign_set.count|add:"-5" }} more</li>
+                {% endif %}
+            </ul>
+        </div>
+        {% else %}
+        <div class="group-info">
+            <div class="info-item">
+                <span class="label">Customers in group:</span>
+                <span class="value">{{ target_group.customer_count }}</span>
+            </div>
+            <div class="info-item">
+                <span class="label">Created:</span>
+                <span class="value">{{ target_group.created_at|date:"M d, Y" }}</span>
+            </div>
+        </div>
+        
+        <p class="delete-warning">
+            <i class="fas fa-info-circle"></i>
+            This action cannot be undone. The target group and all its customer associations will be permanently deleted.
+        </p>
+        {% endif %}
+        
+        <div class="delete-actions">
+            {% if campaign_count == 0 %}
+            <form method="post" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Yes, Delete Target Group
+                </button>
+            </form>
+            {% endif %}
+            <a href="{% url 'email_campaign:target_group_detail' pk=target_group.id %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Cancel
+            </a>
+        </div>
+    </div>
+</div>
+
+<style>
+.delete-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 60vh;
+}
+
+.delete-card {
+    background-color: white;
+    border-radius: 10px;
+    padding: 40px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    max-width: 600px;
+    width: 100%;
+    text-align: center;
+}
+
+.delete-icon {
+    font-size: 60px;
+    color: #e74c3c;
+    margin-bottom: 20px;
+}
+
+.delete-card h2 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+.warning-text {
+    font-size: 16px;
+    color: #555;
+    margin-bottom: 30px;
+}
+
+.alert {
+    display: flex;
+    align-items: start;
+    gap: 15px;
+    background-color: #fee;
+    border: 1px solid #fcc;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.alert i {
+    font-size: 24px;
+    color: #e74c3c;
+    flex-shrink: 0;
+}
+
+.alert strong {
+    display: block;
+    margin-bottom: 5px;
+}
+
+.campaigns-using {
+    background-color: #f8f9fa;
+    border-radius: 5px;
+    padding: 20px;
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.campaigns-using h4 {
+    margin-top: 0;
+    margin-bottom: 15px;
+    color: #2c3e50;
+}
+
+.campaigns-using ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.campaigns-using li {
+    padding: 8px 0;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.campaigns-using li:last-child {
+    border-bottom: none;
+}
+
+.badge {
+    padding: 3px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.badge-draft {
+    background-color: #f39c12;
+    color: white;
+}
+
+.badge-sent {
+    background-color: #27ae60;
+    color: white;
+}
+
+.badge-sending {
+    background-color: #3498db;
+    color: white;
+}
+
+.badge-failed {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.group-info {
+    display: flex;
+    justify-content: center;
+    gap: 40px;
+    margin-bottom: 30px;
+}
+
+.info-item {
+    text-align: left;
+}
+
+.info-item .label {
+    display: block;
+    font-weight: 600;
+    color: #7f8c8d;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+.info-item .value {
+    font-size: 18px;
+    color: #2c3e50;
+}
+
+.delete-warning {
+    background-color: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 30px;
+    color: #856404;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    text-align: left;
+}
+
+.delete-warning i {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+
+.delete-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+}
+
+.btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 5px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-danger {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c0392b;
+}
+
+.btn-secondary {
+    background-color: #95a5a6;
+    color: white;
+}
+
+.btn-secondary:hover {
+    background-color: #7f8c8d;
+}
+
+@media (max-width: 768px) {
+    .delete-card {
+        padding: 30px 20px;
+    }
+    
+    .group-info {
+        flex-direction: column;
+        gap: 20px;
+    }
+    
+    .delete-actions {
+        flex-direction: column;
+        width: 100%;
+    }
+    
+    .delete-actions .btn {
+        width: 100%;
+    }
+}
+</style>
+{% endblock %}

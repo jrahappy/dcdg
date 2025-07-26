@@ -1,0 +1,581 @@
+{% extends 'dashboard/base.html' %}
+
+{% block page_title %}{{ action }} Blog Post{% endblock %}
+
+{% block dashboard_content %}
+<div class="gmail-list-container">
+    <!-- Header -->
+    <div class="gmail-toolbar">
+        <div class="toolbar-left">
+            <button class="toolbar-btn" onclick="window.history.back()">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2 class="toolbar-title">{{ action }} Blog Post</h2>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="detail-container">
+        <form method="POST" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- Post Header (for edit mode) -->
+            {% if action == "Edit" %}
+            <div class="detail-header">
+                <div class="detail-avatar">
+                    <div class="avatar-circle-large">
+                        <i class="fas fa-newspaper"></i>
+                    </div>
+                </div>
+                <div class="detail-header-info">
+                    <h1 class="detail-name">
+                        {% if post.title %}
+                            {{ post.title }}
+                        {% else %}
+                            Edit Blog Post
+                        {% endif %}
+                    </h1>
+                    {% if post.category %}
+                        <p class="detail-company">{{ post.category.name }}</p>
+                    {% endif %}
+                    <div class="detail-status">
+                        {% if post.status == 'published' %}
+                            <span class="status-badge published">Published</span>
+                        {% else %}
+                            <span class="status-badge draft">Draft</span>
+                        {% endif %}
+                        {% if post.featured %}
+                            <span class="status-badge featured">Featured</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="detail-sections">
+                <!-- Post Information -->
+                <div class="detail-section">
+                    <h3 class="section-title">Post Information</h3>
+                
+                    <div class="detail-grid">
+                        <div class="form-group full-width">
+                            <label for="{{ form.title.id_for_label }}">Title *</label>
+                            {{ form.title }}
+                            {% if form.title.errors %}
+                                <div class="error-message">{{ form.title.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="{{ form.slug.id_for_label }}">Slug</label>
+                            {{ form.slug }}
+                            <small class="form-text">Leave empty to auto-generate from title</small>
+                            {% if form.slug.errors %}
+                                <div class="error-message">{{ form.slug.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="{{ form.category.id_for_label }}">Category</label>
+                            {{ form.category }}
+                            {% if form.category.errors %}
+                                <div class="error-message">{{ form.category.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="{{ form.status.id_for_label }}">Status</label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                                <div class="error-message">{{ form.status.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label for="{{ form.excerpt.id_for_label }}">Excerpt</label>
+                            {{ form.excerpt }}
+                            <small class="form-text">Brief summary of the post</small>
+                            {% if form.excerpt.errors %}
+                                <div class="error-message">{{ form.excerpt.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Content -->
+                <div class="detail-section">
+                    <h3 class="section-title">Content</h3>
+                    
+                    <div class="form-group">
+                        <label for="{{ form.content.id_for_label }}">Post Content *</label>
+                        {{ form.content }}
+                        {% if form.content.errors %}
+                            <div class="error-message">{{ form.content.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Media & Tags -->
+                <div class="detail-section">
+                    <h3 class="section-title">Media & Tags</h3>
+                    
+                    <div class="detail-grid">
+                        <div class="form-group full-width">
+                            <label for="{{ form.featured_image.id_for_label }}">Featured Image</label>
+                            {% if post and post.featured_image %}
+                                <div class="current-image">
+                                    <img src="{{ post.featured_image.url }}" alt="Current featured image">
+                                    <p>Current image</p>
+                                </div>
+                            {% endif %}
+                            {{ form.featured_image }}
+                            <small class="form-text">Upload a featured image for the post</small>
+                            {% if form.featured_image.errors %}
+                                <div class="error-message">{{ form.featured_image.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label for="{{ form.tags.id_for_label }}">Tags</label>
+                            {{ form.tags }}
+                            <small class="form-text">Select relevant tags for the post</small>
+                            {% if form.tags.errors %}
+                                <div class="error-message">{{ form.tags.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Settings -->
+                <div class="detail-section">
+                    <h3 class="section-title">Post Settings</h3>
+                    
+                    <div class="detail-grid">
+                        <div class="form-group checkbox-group">
+                            {{ form.allow_comments }}
+                            <label for="{{ form.allow_comments.id_for_label }}" class="checkbox-label">
+                                Allow Comments
+                            </label>
+                            {% if form.allow_comments.errors %}
+                                <div class="error-message">{{ form.allow_comments.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group checkbox-group">
+                            {{ form.featured }}
+                            <label for="{{ form.featured.id_for_label }}" class="checkbox-label">
+                                Featured Post
+                            </label>
+                            {% if form.featured.errors %}
+                                <div class="error-message">{{ form.featured.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- SEO Settings -->
+                <div class="detail-section">
+                    <h3 class="section-title">SEO Settings</h3>
+                    
+                    <div class="detail-grid">
+                        <div class="form-group full-width">
+                            <label for="{{ form.meta_title.id_for_label }}">Meta Title</label>
+                            {{ form.meta_title }}
+                            <small class="form-text">SEO title (leave empty to use post title)</small>
+                            {% if form.meta_title.errors %}
+                                <div class="error-message">{{ form.meta_title.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label for="{{ form.meta_description.id_for_label }}">Meta Description</label>
+                            {{ form.meta_description }}
+                            <small class="form-text">SEO description (leave empty to use excerpt)</small>
+                            {% if form.meta_description.errors %}
+                                <div class="error-message">{{ form.meta_description.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-group full-width">
+                            <label for="{{ form.meta_keywords.id_for_label }}">Meta Keywords</label>
+                            {{ form.meta_keywords }}
+                            <small class="form-text">Comma-separated keywords for SEO</small>
+                            {% if form.meta_keywords.errors %}
+                                <div class="error-message">{{ form.meta_keywords.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Form Actions at Bottom -->
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i>
+                    Save Changes
+                </button>
+                <button type="button" class="btn btn-secondary" onclick="window.history.back()">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+.toolbar-left {
+    display: flex;
+    align-items: center;
+    flex-direction: row;
+    gap: 4px;
+}
+
+.toolbar-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+    color: #5f6368;
+}
+
+.toolbar-btn:hover {
+    background-color: rgba(60, 64, 67, 0.08);
+}
+
+.toolbar-title {
+    font-size: 20px;
+    font-weight: 500;
+    color: #202124;
+    margin: 0 0 0 16px;
+}
+
+.detail-container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px;
+}
+
+.detail-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    padding: 24px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    margin-bottom: 24px;
+}
+
+.detail-avatar {
+    flex-shrink: 0;
+}
+
+.avatar-circle-large {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background-color: #1a73e8;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 32px;
+    font-weight: 500;
+}
+
+.detail-header-info {
+    flex: 1;
+}
+
+.detail-name {
+    font-size: 28px;
+    font-weight: 400;
+    color: #202124;
+    margin: 0 0 4px;
+}
+
+.detail-company {
+    font-size: 16px;
+    color: #5f6368;
+    margin: 0 0 12px;
+}
+
+.detail-status {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.status-badge {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 12px;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.status-badge.published {
+    background-color: #e6f4ea;
+    color: #1e8e3e;
+}
+
+.status-badge.draft {
+    background-color: #fef7e0;
+    color: #f9ab00;
+}
+
+.status-badge.featured {
+    background-color: #fce8e6;
+    color: #d93025;
+}
+
+.detail-sections {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.detail-section {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    padding: 24px;
+}
+
+.section-title {
+    font-size: 18px;
+    font-weight: 500;
+    color: #202124;
+    margin: 0 0 20px;
+}
+
+.detail-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group.full-width {
+    grid-column: 1 / -1;
+}
+
+.form-group label {
+    font-size: 14px;
+    font-weight: 500;
+    color: #5f6368;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    font-size: 14px;
+    color: #202124;
+    transition: border-color 0.2s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 2px rgba(26,115,232,0.1);
+}
+
+textarea.form-control {
+    min-height: 100px;
+    resize: vertical;
+}
+
+select.form-control {
+    padding: 10px 12px;
+}
+
+.form-text {
+    font-size: 12px;
+    color: #5f6368;
+    margin-top: -4px;
+}
+
+.checkbox-group {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.checkbox-label {
+    font-size: 14px;
+    color: #202124;
+    margin-bottom: 0;
+    cursor: pointer;
+}
+
+.form-check-input {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.error-message {
+    color: #d33b27;
+    font-size: 13px;
+}
+
+.current-image {
+    margin-bottom: 12px;
+}
+
+.current-image img {
+    max-width: 200px;
+    max-height: 150px;
+    border-radius: 4px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.current-image p {
+    font-size: 13px;
+    color: #5f6368;
+    margin-top: 8px;
+}
+
+.form-actions {
+    margin-top: 24px;
+    padding: 24px;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    display: flex;
+    gap: 12px;
+    justify-content: flex-end;
+}
+
+.btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-primary {
+    background-color: #1a73e8;
+    color: #fff;
+}
+
+.btn-primary:hover {
+    background-color: #1557b0;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
+}
+
+.btn-secondary {
+    background-color: #fff;
+    color: #5f6368;
+    border: 1px solid #dadce0;
+}
+
+.btn-secondary:hover {
+    background-color: #f8f9fa;
+    border-color: #5f6368;
+}
+
+/* Override Summernote/Editor styles */
+.note-editor.note-frame {
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+}
+
+.note-editor.note-frame .note-toolbar {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #e0e0e0;
+    border-radius: 4px 4px 0 0;
+}
+
+.note-editor.note-frame:focus-within {
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 2px rgba(26,115,232,0.1);
+}
+
+/* Select2 override if used */
+.select2-container--default .select2-selection--multiple {
+    border: 1px solid #dadce0;
+    border-radius: 4px;
+    min-height: 38px;
+}
+
+.select2-container--default.select2-container--focus .select2-selection--multiple {
+    border-color: #1a73e8;
+    box-shadow: 0 0 0 2px rgba(26,115,232,0.1);
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .detail-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .detail-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .form-actions {
+        flex-direction: column-reverse;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
+</style>
+
+<script>
+$(document).ready(function() {
+    // Initialize Summernote on the content field
+    $('#id_content').summernote({
+        height: 400,
+        toolbar: [
+            ['style', ['style']],
+            ['font', ['bold', 'italic', 'underline', 'clear']],
+            ['fontname', ['fontname']],
+            ['fontsize', ['fontsize']],
+            ['color', ['color']],
+            ['para', ['ul', 'ol', 'paragraph']],
+            ['table', ['table']],
+            ['insert', ['link', 'picture', 'video']],
+            ['view', ['fullscreen', 'codeview', 'help']]
+        ],
+        callbacks: {
+            onFocus: function() {
+                $(this).parent().find('.note-editor').css('border-color', '#1a73e8');
+                $(this).parent().find('.note-editor').css('box-shadow', '0 0 0 2px rgba(26,115,232,0.1)');
+            },
+            onBlur: function() {
+                $(this).parent().find('.note-editor').css('border-color', '#dadce0');
+                $(this).parent().find('.note-editor').css('box-shadow', 'none');
+            }
+        }
+    });
+    
+    // Add form-control class to all form fields
+    $('input[type="text"], input[type="email"], input[type="url"], textarea, select').not('.note-editor *').addClass('form-control');
+    $('input[type="checkbox"]').addClass('form-check-input');
+});
+</script>
+{% endblock %}

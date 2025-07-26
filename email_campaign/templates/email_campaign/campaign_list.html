@@ -1,0 +1,324 @@
+{% extends 'dashboard/base.html' %}
+
+{% block page_title %}Email Campaigns{% endblock %}
+
+{% block dashboard_content %}
+<div class="h-full flex flex-col bg-white" x-data="{ viewMode: localStorage.getItem('campaignViewMode') || 'list' }">
+    <!-- Toolbar -->
+    <div class="flex items-center justify-between h-12 px-4 border-b border-gray-200 bg-white">
+        <div class="flex items-center gap-1">
+            <button class="w-10 h-10 border-0 bg-none cursor-pointer flex items-center justify-center rounded-full transition-colors duration-200 text-gray-600 hover:bg-gray-100" onclick="window.location.reload()">
+                <i class="fas fa-sync"></i>
+            </button>
+            <button class="w-10 h-10 border-0 bg-none cursor-pointer flex items-center justify-center rounded-full transition-colors duration-200 text-gray-600 hover:bg-gray-100" onclick="window.location.href='{% url 'email_campaign:customer_selection' %}'">
+                <i class="fas fa-plus"></i>
+            </button>
+            <button class="w-10 h-10 border-0 bg-none cursor-pointer flex items-center justify-center rounded-full transition-colors duration-200 text-gray-600 hover:bg-gray-100">
+                <i class="fas fa-ellipsis-v"></i>
+            </button>
+        </div>
+        
+        <div class="flex items-center gap-1">
+            <!-- View Mode Toggle -->
+            <button 
+                @click="viewMode = viewMode === 'list' ? 'grid' : 'list'; localStorage.setItem('campaignViewMode', viewMode)"
+                class="w-10 h-10 border-0 bg-none cursor-pointer flex items-center justify-center rounded-full transition-colors duration-200 text-gray-600 hover:bg-gray-100 mr-2"
+                :title="viewMode === 'list' ? 'Switch to grid view' : 'Switch to list view'">
+                <i :class="viewMode === 'list' ? 'fas fa-th' : 'fas fa-list'"></i>
+            </button>
+            
+            <span class="text-sm text-gray-600 mx-4">
+                {% if page_obj.paginator.count == 1 %}
+                    1 campaign
+                {% else %}
+                    {{ page_obj.start_index|default:"0" }}-{{ page_obj.end_index|default:"0" }} of {{ page_obj.paginator.count|default:"0" }}
+                {% endif %}
+            </span>
+            <div class="flex gap-1">
+                <button class="w-10 h-10 border-0 bg-none cursor-pointer flex items-center justify-center rounded-full transition-colors duration-200 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed" {% if not page_obj.has_previous %}disabled{% endif %} 
+                        onclick="{% if page_obj.has_previous %}window.location.href='?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}'{% endif %}">
+                    <i class="fas fa-chevron-left"></i>
+                </button>
+                <button class="w-10 h-10 border-0 bg-none cursor-pointer flex items-center justify-center rounded-full transition-colors duration-200 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed" {% if not page_obj.has_next %}disabled{% endif %}
+                        onclick="{% if page_obj.has_next %}window.location.href='?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}'{% endif %}">
+                    <i class="fas fa-chevron-right"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- List View -->
+    <div class="flex-1 overflow-y-auto" x-show="viewMode === 'list'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+        {% for campaign in page_obj %}
+        <div class="group flex items-center px-4 h-14 border-b border-gray-100 cursor-pointer relative transition-shadow duration-200 hover:shadow-md hover:border-gray-300 hover:z-10" onclick="window.location.href='{% url 'email_campaign:campaign_detail' campaign.id %}'">
+            <div class="w-10 flex items-center justify-center text-gray-600 cursor-pointer hover:text-yellow-400 transition-colors duration-200" onclick="event.stopPropagation()">
+                <i class="far fa-star"></i>
+            </div>
+            
+            <div class="w-10 flex items-center justify-center mr-3">
+                <div class="w-8 h-8 rounded-full bg-purple-500 text-white flex items-center justify-center text-sm">
+                    <i class="fas fa-envelope"></i>
+                </div>
+            </div>
+            
+            <div class="flex-1 flex flex-col min-w-0 pr-4">
+                <div class="flex items-center gap-2">
+                    <span class="font-medium text-gray-800 truncate">{{ campaign.name }}</span>
+                    <span class="inline-block px-2 py-0.5 rounded-full text-xs font-medium
+                        {% if campaign.status == 'draft' %}bg-yellow-100 text-yellow-800
+                        {% elif campaign.status == 'sent' %}bg-green-100 text-green-800
+                        {% elif campaign.status == 'sending' %}bg-blue-100 text-blue-800
+                        {% else %}bg-red-100 text-red-800{% endif %}">
+                        {{ campaign.get_status_display }}
+                    </span>
+                </div>
+                <span class="text-gray-600 text-sm truncate">
+                    <strong>Subject:</strong> {{ campaign.subject }} • 
+                    <strong>To:</strong> {{ campaign.target_group.name }} ({{ campaign.total_recipients }} recipients)
+                </span>
+            </div>
+            
+            {% if campaign.status == 'sent' %}
+            <div class="flex gap-4 mr-4 text-sm text-gray-600">
+                <span class="flex items-center gap-1" title="Sent">
+                    <i class="fas fa-check-circle text-green-600 text-xs"></i> {{ campaign.sent_count|default:"0" }}
+                </span>
+                <span class="flex items-center gap-1" title="Failed">
+                    <i class="fas fa-times-circle text-red-600 text-xs"></i> {{ campaign.failed_count|default:"0" }}
+                </span>
+            </div>
+            {% endif %}
+            
+            <div class="hidden group-hover:flex gap-1 mr-4">
+                <a href="{% url 'email_campaign:campaign_detail' campaign.id %}" 
+                   class="w-8 h-8 border-0 bg-none cursor-pointer flex items-center justify-center rounded-full transition-colors duration-200 text-gray-600 hover:bg-gray-100 no-underline" 
+                   onclick="event.stopPropagation()"
+                   title="View Details">
+                    <i class="fas fa-eye"></i>
+                </a>
+                {% if campaign.status == 'draft' %}
+                <button class="w-8 h-8 border-0 bg-blue-500 cursor-pointer flex items-center justify-center rounded-full transition-colors duration-200 text-white hover:bg-blue-600" 
+                        onclick="event.stopPropagation(); sendCampaign({{ campaign.id }})"
+                        title="Send Campaign">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+                {% endif %}
+                <button class="w-8 h-8 border-0 bg-none cursor-pointer flex items-center justify-center rounded-full transition-colors duration-200 text-gray-600 hover:bg-red-100 hover:text-red-600" 
+                        onclick="event.stopPropagation(); showDeleteModal({{ campaign.id }}, '{{ campaign.name|escapejs }}')"
+                        title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+            
+            <div class="w-20 text-right text-sm text-gray-600 group-hover:hidden">
+                {{ campaign.created_at|date:"M d" }}
+            </div>
+        </div>
+        {% empty %}
+        <div class="flex flex-col items-center justify-center h-full p-10 text-center">
+            <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='%23dadce0' stroke-width='2'%3E%3Crect x='3' y='7' width='18' height='13' rx='2'/%3E%3Cpolyline points='3 7 12 13 21 7'/%3E%3C/svg%3E" alt="No campaigns" class="w-25 h-25 mb-6 opacity-50">
+            {% if search_query or status_filter %}
+                <h3 class="text-xl font-normal text-gray-600 mb-2">No campaigns found</h3>
+                <p class="text-sm text-gray-600 mb-6">No campaigns match your search criteria</p>
+                <button class="flex items-center gap-2 px-6 h-9 border-0 rounded-full bg-blue-500 text-white text-sm font-medium cursor-pointer transition-colors duration-200 hover:bg-blue-600" onclick="clearSearch()">
+                    <i class="fas fa-times"></i>
+                    Clear Search
+                </button>
+            {% else %}
+                <h3 class="text-xl font-normal text-gray-600 mb-2">No campaigns yet</h3>
+                <p class="text-sm text-gray-600 mb-6">Create your first email campaign to get started</p>
+                <button class="flex items-center gap-2 px-6 h-9 border-0 rounded-full bg-blue-500 text-white text-sm font-medium cursor-pointer transition-colors duration-200 hover:bg-blue-600" onclick="window.location.href='{% url 'email_campaign:customer_selection' %}'">
+                    <i class="fas fa-plus"></i>
+                    Create Campaign
+                </button>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Grid View -->
+    <div class="flex-1 overflow-y-auto p-6" x-show="viewMode === 'grid'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100">
+        <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            {% for campaign in page_obj %}
+            <div class="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-lg transition-all duration-200 overflow-hidden group cursor-pointer" onclick="window.location.href='{% url 'email_campaign:campaign_detail' campaign.id %}'">
+                <!-- Card Header -->
+                <div class="relative h-32 bg-gradient-to-br from-purple-500 to-pink-500 p-4 flex flex-col justify-between">
+                    <!-- Actions -->
+                    <div class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                        <div class="flex gap-1">
+                            {% if campaign.status == 'draft' %}
+                            <button class="w-8 h-8 bg-white bg-opacity-90 rounded-full flex items-center justify-center text-blue-600 hover:bg-opacity-100 transition-all duration-200" 
+                                    onclick="event.stopPropagation(); sendCampaign({{ campaign.id }})"
+                                    title="Send Campaign">
+                                <i class="fas fa-paper-plane text-sm"></i>
+                            </button>
+                            {% endif %}
+                            <button class="w-8 h-8 bg-white bg-opacity-90 rounded-full flex items-center justify-center text-gray-700 hover:bg-opacity-100 transition-all duration-200" 
+                                    onclick="event.stopPropagation(); showDeleteModal({{ campaign.id }}, '{{ campaign.name|escapejs }}')" 
+                                    title="Delete">
+                                <i class="fas fa-trash text-sm"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Campaign Icon -->
+                    <div class="w-12 h-12 bg-white bg-opacity-20 rounded-full flex items-center justify-center">
+                        <i class="fas fa-envelope text-2xl text-white"></i>
+                    </div>
+                    
+                    <!-- Status Badge -->
+                    <span class="inline-flex self-start px-2 py-1 rounded-full text-xs font-medium
+                        {% if campaign.status == 'draft' %}bg-yellow-500 text-white
+                        {% elif campaign.status == 'sent' %}bg-green-500 text-white
+                        {% elif campaign.status == 'sending' %}bg-blue-500 text-white
+                        {% else %}bg-red-500 text-white{% endif %}">
+                        {{ campaign.get_status_display }}
+                    </span>
+                </div>
+                
+                <!-- Card Body -->
+                <div class="p-4">
+                    <h3 class="font-semibold text-gray-800 mb-2 truncate">{{ campaign.name }}</h3>
+                    <p class="text-sm text-gray-600 mb-3 line-clamp-2">
+                        <strong>Subject:</strong> {{ campaign.subject }}
+                    </p>
+                    
+                    <!-- Target Group -->
+                    <div class="flex items-center gap-2 mb-3 text-sm text-gray-600">
+                        <i class="fas fa-users text-xs"></i>
+                        <span class="truncate">{{ campaign.target_group.name }}</span>
+                        <span class="text-xs bg-gray-100 px-2 py-0.5 rounded-full">{{ campaign.total_recipients }} recipients</span>
+                    </div>
+                    
+                    <!-- Stats for sent campaigns -->
+                    {% if campaign.status == 'sent' %}
+                    <div class="flex justify-between text-sm pt-3 border-t border-gray-100">
+                        <span class="flex items-center gap-1 text-green-600">
+                            <i class="fas fa-check-circle text-xs"></i> {{ campaign.sent_count|default:"0" }} sent
+                        </span>
+                        <span class="flex items-center gap-1 text-red-600">
+                            <i class="fas fa-times-circle text-xs"></i> {{ campaign.failed_count|default:"0" }} failed
+                        </span>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Footer -->
+                    <div class="mt-4 pt-3 border-t border-gray-100 flex justify-between items-center">
+                        <span class="text-xs text-gray-500">{{ campaign.created_at|date:"M d, Y" }}</span>
+                        <a href="{% url 'email_campaign:campaign_detail' campaign.id %}" 
+                           class="text-xs text-blue-600 hover:text-blue-700 font-medium" 
+                           onclick="event.stopPropagation()">
+                            View details →
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-span-full">
+                <div class="flex flex-col items-center justify-center h-full p-10 text-center">
+                    <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 24 24' fill='none' stroke='%23dadce0' stroke-width='2'%3E%3Crect x='3' y='7' width='18' height='13' rx='2'/%3E%3Cpolyline points='3 7 12 13 21 7'/%3E%3C/svg%3E" alt="No campaigns" class="w-25 h-25 mb-6 opacity-50">
+                    {% if search_query or status_filter %}
+                        <h3 class="text-xl font-normal text-gray-600 mb-2">No campaigns found</h3>
+                        <p class="text-sm text-gray-600 mb-6">No campaigns match your search criteria</p>
+                        <button class="flex items-center gap-2 px-6 h-9 border-0 rounded-full bg-blue-500 text-white text-sm font-medium cursor-pointer transition-colors duration-200 hover:bg-blue-600" onclick="clearSearch()">
+                            <i class="fas fa-times"></i>
+                            Clear Search
+                        </button>
+                    {% else %}
+                        <h3 class="text-xl font-normal text-gray-600 mb-2">No campaigns yet</h3>
+                        <p class="text-sm text-gray-600 mb-6">Create your first email campaign to get started</p>
+                        <button class="flex items-center gap-2 px-6 h-9 border-0 rounded-full bg-blue-500 text-white text-sm font-medium cursor-pointer transition-colors duration-200 hover:bg-blue-600" onclick="window.location.href='{% url 'email_campaign:customer_selection' %}'">
+                            <i class="fas fa-plus"></i>
+                            Create Campaign
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div id="deleteModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div class="flex items-center justify-between p-5 border-b border-gray-200">
+                <h2 class="text-xl font-medium text-gray-800">Delete Campaign</h2>
+                <button class="text-gray-400 hover:text-gray-600" onclick="closeDeleteModal()">&times;</button>
+            </div>
+            <div class="p-6">
+                <div class="text-center py-4">
+                    <i class="fas fa-exclamation-triangle text-5xl text-yellow-500 mb-4"></i>
+                    <p class="text-gray-700 mb-2">Are you sure you want to delete "<strong id="campaignName"></strong>"?</p>
+                    <p class="text-sm text-gray-500">This action cannot be undone.</p>
+                </div>
+            </div>
+            <div class="flex gap-3 justify-end p-4 bg-gray-50">
+                <button class="px-4 py-2 border border-gray-300 rounded text-gray-700 hover:bg-gray-100" onclick="closeDeleteModal()">Cancel</button>
+                <form method="POST" id="deleteForm" class="inline">
+                    {% csrf_token %}
+                    <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                        <i class="fas fa-trash mr-2"></i>Delete Campaign
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add line-clamp utility -->
+<style>
+.line-clamp-2 {
+    overflow: hidden;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+</style>
+
+<script>
+// Delete Modal functionality
+function showDeleteModal(campaignId, campaignName) {
+    const modal = document.getElementById('deleteModal');
+    const form = document.getElementById('deleteForm');
+    const nameElement = document.getElementById('campaignName');
+    
+    // Set the form action URL
+    form.action = `/email-campaign/campaigns/${campaignId}/delete/`;
+    
+    // Set the campaign name
+    nameElement.textContent = campaignName;
+    
+    // Show the modal
+    modal.classList.remove('hidden');
+}
+
+function closeDeleteModal() {
+    const modal = document.getElementById('deleteModal');
+    modal.classList.add('hidden');
+}
+
+// Send campaign function
+function sendCampaign(campaignId) {
+    if (confirm('Are you sure you want to send this campaign?')) {
+        window.location.href = `/email-campaign/send/${campaignId}/`;
+    }
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('deleteModal');
+    if (event.target === modal) {
+        closeDeleteModal();
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closeDeleteModal();
+    }
+});
+</script>
+{% endblock %}

@@ -18,7 +18,21 @@
       "Bash(\"venv\\Scripts\\pip.exe\" install --upgrade django-extensions python-dotenv Pillow)",
       "Bash(copy db.sqlite3 db.sqlite3.backup)",
       "Bash(cp:*)",
-      "Bash(taskkill:*)"
+      "Bash(taskkill:*)",
+      "Bash(where python)",
+      "Bash(D:DevdcdgdcdgvenvScriptsactivate.bat)",
+      "Bash(powershell:*)",
+      "Bash(D:DevdcdgdcdgvenvScriptspython.exe --version)",
+      "Bash(\"D:/Dev/dcdg/dcdg/venv/Scripts/python.exe\" --version)",
+      "Bash(\"D:/Dev/dcdg/dcdg/venv/Scripts/python.exe\" manage.py startapp customer)",
+      "Bash(\"D:/Dev/dcdg/dcdg/venv/Scripts/python.exe\" manage.py makemigrations customer)",
+      "Bash(\"D:/Dev/dcdg/dcdg/venv/Scripts/python.exe\" manage.py migrate customer)",
+      "Bash(\"D:/Dev/dcdg/dcdg/venv/Scripts/python.exe\" manage.py startapp dashboard)",
+      "Bash(\"D:/Dev/dcdg/dcdg/venv/Scripts/pip.exe\" list)",
+      "Bash(\"D:/Dev/dcdg/dcdg/venv/Scripts/python.exe\" manage.py startapp email_campaign)",
+      "Bash(\"D:/Dev/dcdg/dcdg/venv/Scripts/python.exe\" manage.py makemigrations email_campaign)",
+      "Bash(\"D:/Dev/dcdg/dcdg/venv/Scripts/python.exe\" manage.py migrate email_campaign)",
+      "Bash(curl:*)"
     ],
     "deny": []
   }

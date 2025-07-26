@@ -1,0 +1,302 @@
+{% extends 'dashboard/base.html' %}
+
+{% block page_title %}{{ action|default:"Create" }} Email Campaign{% endblock %}
+
+{% block dashboard_content %}
+<div class="h-full flex flex-col bg-white">
+    <!-- Header -->
+    <div class="flex items-center justify-between h-12 px-4 border-b border-gray-200 bg-white">
+        <div class="flex items-center gap-1">
+            <button class="w-10 h-10 border-0 bg-none cursor-pointer flex items-center justify-center rounded-full transition-colors duration-200 text-gray-600 hover:bg-gray-100" onclick="window.history.back()">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2 class="text-xl font-medium text-gray-800 ml-4">{{ action|default:"Create" }} Email Campaign</h2>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <div class="max-w-6xl mx-auto p-6">
+        <form method="POST">
+            {% csrf_token %}
+            
+            <!-- Campaign Header (for edit mode) -->
+            {% if action == "Edit" %}
+            <div class="flex items-center gap-6 p-6 bg-white rounded-lg shadow-sm mb-6">
+                <div class="flex-shrink-0">
+                    <div class="w-20 h-20 rounded-full bg-blue-500 text-white flex items-center justify-center text-2xl font-medium">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <h1 class="text-3xl font-normal text-gray-800 mb-1">
+                        {% if form.name.value %}
+                            {{ form.name.value }}
+                        {% else %}
+                            Edit Campaign
+                        {% endif %}
+                    </h1>
+                    {% if form.subject.value %}
+                        <p class="text-base text-gray-600 mb-3">{{ form.subject.value }}</p>
+                    {% endif %}
+                    <div class="inline-block">
+                        {% if target_group %}
+                            <span class="inline-block px-3 py-1 rounded-xl text-sm font-medium bg-gray-100 text-gray-600">
+                                <i class="fas fa-users"></i> {{ target_group.customer_count }} recipient{{ target_group.customer_count|pluralize }}
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <!-- Target Group Info for Create Mode -->
+            {% if target_group %}
+            <div class="flex items-center gap-6 p-6 bg-white rounded-lg shadow-sm mb-6">
+                <div class="flex-shrink-0">
+                    <div class="w-20 h-20 rounded-full bg-blue-500 text-white flex items-center justify-center text-2xl font-medium">
+                        <i class="fas fa-envelope"></i>
+                    </div>
+                </div>
+                <div class="flex-1">
+                    <h1 class="text-3xl font-normal text-gray-800 mb-1">Create Email Campaign</h1>
+                    <p class="text-base text-gray-600 mb-3">Target Group: {{ target_group.name }}</p>
+                    <div class="inline-block">
+                        <span class="inline-block px-3 py-1 rounded-xl text-sm font-medium bg-gray-100 text-gray-600">
+                            <i class="fas fa-users"></i> {{ target_group.customer_count }} recipient{{ target_group.customer_count|pluralize }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            {% endif %}
+            
+            <div class="flex flex-col gap-6">
+                <!-- Campaign Information -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-medium text-gray-800 mb-5">Campaign Information</h3>
+                
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                        <div class="flex flex-col gap-2 col-span-full">
+                            <label for="{{ form.name.id_for_label }}" class="text-sm font-medium text-gray-600">Campaign Name *</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="text-red-600 text-xs">{{ form.name.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="flex flex-col gap-2">
+                            <label for="{{ form.from_email.id_for_label }}" class="text-sm font-medium text-gray-600">From Email</label>
+                            {{ form.from_email }}
+                            <small class="text-xs text-gray-600 -mt-1">Leave empty to use system default</small>
+                            {% if form.from_email.errors %}
+                                <div class="text-red-600 text-xs">{{ form.from_email.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        {% if target_group %}
+                        <div class="flex flex-col gap-2">
+                            <label class="text-sm font-medium text-gray-600">Target Group</label>
+                            <div class="text-sm text-gray-800 py-2">
+                                <a href="{% url 'email_campaign:target_group_detail' target_group.id %}" class="text-blue-500 no-underline hover:underline">
+                                    {{ target_group.name }}
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="flex flex-col gap-2 col-span-full">
+                            <label for="{{ form.subject.id_for_label }}" class="text-sm font-medium text-gray-600">Subject Line *</label>
+                            {{ form.subject }}
+                            {% if form.subject.errors %}
+                                <div class="text-red-600 text-xs">{{ form.subject.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Email Content -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-medium text-gray-800 mb-5">Email Content</h3>
+                    
+                    <div class="flex flex-col gap-2">
+                        <label for="{{ form.content.id_for_label }}" class="text-sm font-medium text-gray-600">Email Body *</label>
+                        {{ form.content }}
+                        {% if form.content.errors %}
+                            <div class="text-red-600 text-xs">{{ form.content.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <!-- Email Preview -->
+                <div class="bg-white rounded-lg shadow-sm p-6">
+                    <h3 class="text-lg font-medium text-gray-800 mb-5">Live Preview</h3>
+                    
+                    <div class="mt-4">
+                        <div class="bg-white border border-gray-200 rounded-lg overflow-hidden shadow-sm">
+                            <div class="p-4 bg-gray-50 border-b border-gray-200">
+                                <div class="mb-2 text-sm text-gray-800">
+                                    <strong class="text-gray-600 font-medium">From:</strong> <span id="preview-from">{{ user.email }}</span>
+                                </div>
+                                <div class="mb-2 text-sm text-gray-800">
+                                    <strong class="text-gray-600 font-medium">To:</strong> 
+                                    <span>
+                                        {% if target_group %}
+                                            {{ target_group.customer_count }} recipient{{ target_group.customer_count|pluralize }}
+                                        {% else %}
+                                            Recipients will be shown here
+                                        {% endif %}
+                                    </span>
+                                </div>
+                                <div class="text-sm text-gray-800">
+                                    <strong class="text-gray-600 font-medium">Subject:</strong> <span id="preview-subject">Your subject will appear here</span>
+                                </div>
+                            </div>
+                            <div class="p-5 min-h-48 text-sm text-gray-800 leading-relaxed" id="preview-content">
+                                Your email content will appear here...
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Form Actions at Bottom -->
+            <div class="mt-6 p-6 bg-white rounded-lg shadow-sm flex gap-3 justify-end">
+                <button type="submit" class="flex items-center gap-2 px-6 py-3 border-0 rounded text-sm font-medium cursor-pointer transition-all duration-200 bg-blue-500 text-white hover:bg-blue-600 hover:shadow-md">
+                    <i class="fas fa-save"></i>
+                    {% if action == "Edit" %}Save Changes{% else %}Create Campaign{% endif %}
+                </button>
+                <button type="button" class="px-6 py-3 border border-gray-300 rounded text-sm font-medium cursor-pointer transition-all duration-200 bg-white text-gray-600 hover:bg-gray-100 hover:border-gray-600" onclick="window.history.back()">
+                    Cancel
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<style>
+/* Override Summernote/Editor styles */
+.note-editor.note-frame {
+    border: 1px solid #d1d5db !important;
+    border-radius: 4px !important;
+    width: 100% !important;
+}
+
+.note-editor.note-frame .note-toolbar {
+    background-color: #f9fafb !important;
+    border-bottom: 1px solid #e5e7eb !important;
+    border-radius: 4px 4px 0 0 !important;
+}
+
+.note-editor.note-frame:focus-within {
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+}
+
+.note-editable {
+    min-height: 300px !important;
+    padding: 12px !important;
+    font-size: 14px !important;
+    color: #1f2937 !important;
+    line-height: 1.6 !important;
+}
+
+/* Ensure form controls use Tailwind styling */
+.form-control {
+    width: 100% !important;
+    padding: 10px 12px !important;
+    border: 1px solid #d1d5db !important;
+    border-radius: 4px !important;
+    font-size: 14px !important;
+    color: #1f2937 !important;
+    transition: border-color 0.2s !important;
+    background-color: #fff !important;
+}
+
+.form-control:focus {
+    outline: none !important;
+    border-color: #3b82f6 !important;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.1) !important;
+}
+
+textarea.form-control {
+    min-height: 300px !important;
+    resize: vertical !important;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+    .grid {
+        grid-template-columns: 1fr !important;
+    }
+    
+    .col-span-full {
+        grid-column: 1 / -1 !important;
+    }
+    
+    .flex {
+        flex-direction: column-reverse !important;
+    }
+    
+    .justify-end {
+        justify-content: stretch !important;
+    }
+    
+    button {
+        width: 100% !important;
+        justify-content: center !important;
+    }
+}
+</style>
+
+<script>
+$(document).ready(function() {
+    // Initialize Summernote on the content field
+    $('#id_content').summernote({
+        height: 300,
+        toolbar: [
+            ['style', ['style']],
+            ['font', ['bold', 'italic', 'underline', 'clear']],
+            ['fontsize', ['fontsize']],
+            ['color', ['color']],
+            ['para', ['ul', 'ol', 'paragraph']],
+            ['insert', ['link']],
+            ['view', ['fullscreen', 'codeview']]
+        ],
+        callbacks: {
+            onChange: function(contents) {
+                updatePreview();
+            },
+            onFocus: function() {
+                $(this).parent().find('.note-editor').css('border-color', '#1a73e8');
+                $(this).parent().find('.note-editor').css('box-shadow', '0 0 0 2px rgba(26,115,232,0.1)');
+            },
+            onBlur: function() {
+                $(this).parent().find('.note-editor').css('border-color', '#dadce0');
+                $(this).parent().find('.note-editor').css('box-shadow', 'none');
+            }
+        }
+    });
+    
+    // Add form-control class to all form fields
+    $('input[type="text"], input[type="email"], textarea, select').not('.note-editor *').addClass('form-control');
+    
+    // Live preview updates
+    $('#id_subject, #id_from_email').on('input', updatePreview);
+    
+    // Initial preview update
+    updatePreview();
+});
+
+function updatePreview() {
+    const subjectField = document.getElementById('id_subject');
+    const fromEmailField = document.getElementById('id_from_email');
+    
+    const subject = subjectField ? subjectField.value || 'Your subject will appear here' : 'Your subject will appear here';
+    const fromEmail = fromEmailField ? fromEmailField.value || '{{ user.email }}' : '{{ user.email }}';
+    const content = $('#id_content').summernote('code') || 'Your email content will appear here...';
+    
+    document.getElementById('preview-subject').textContent = subject;
+    document.getElementById('preview-from').textContent = fromEmail;
+    document.getElementById('preview-content').innerHTML = content;
+}
+</script>
+{% endblock %}

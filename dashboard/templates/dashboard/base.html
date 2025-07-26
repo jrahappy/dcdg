@@ -1,0 +1,1369 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - {{ block.super }}{% endblock %}
+
+{% block navbar %}{% endblock %}
+
+{% block main %}
+{% block content %}
+<div class="gmail-dashboard">
+    <!-- Header Bar -->
+    <div class="dashboard-header">
+        <div class="header-left">
+            <button class="menu-toggle" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            <div class="header-brand">
+                <!-- <i class="fas fa-chart-line"></i> -->
+                <span>Humanrad</span>
+            </div>
+        </div>
+        <div class="header-search" id="headerSearch">
+            <form method="get" action="{% url 'dashboard:global_search' %}" class="search-form">
+                <button type="button" class="mobile-close-search" onclick="closeMobileSearch()">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <i class="fas fa-search search-icon"></i>
+                <input type="text" name="q" placeholder="Search customers, campaigns, target groups..." value="{{ request.GET.q }}">
+            </form>
+        </div>
+        <div class="header-actions">
+            <button class="icon-btn mobile-search-btn" onclick="toggleMobileSearch()" title="Search">
+                <i class="fas fa-search"></i>
+            </button>
+            <div class="notification-menu">
+                <button class="icon-btn" onclick="toggleNotifications(event)" title="Notifications">
+                    <i class="fas fa-bell"></i>
+                    <span class="notification-badge" id="notificationBadge" style="display: none;">0</span>
+                </button>
+                <div class="notification-dropdown" id="notificationDropdown">
+                    <div class="dropdown-header">
+                        <h3>Notifications</h3>
+                        <button class="mark-all-read" onclick="markAllAsRead()">Mark all as read</button>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <div class="notification-list" id="notificationList">
+                        <div class="notification-empty">
+                            <i class="fas fa-bell-slash"></i>
+                            <p>No new notifications</p>
+                        </div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <div class="dropdown-footer">
+                        <a href="#" class="view-all-link">View all notifications</a>
+                    </div>
+                </div>
+            </div>
+            <div class="user-menu">
+                <button class="user-avatar" onclick="toggleUserDropdown(event)">
+                    <div class="avatar-circle">
+                        {% if request.user.first_name and request.user.last_name %}
+                            {{ request.user.first_name.0|upper }}{{ request.user.last_name.0|upper }}
+                        {% else %}
+                            {{ request.user.username.0|upper }}{{ request.user.username.1|upper|default:"" }}
+                        {% endif %}
+                    </div>
+                </button>
+                <div class="user-dropdown" id="userDropdown">
+                    <div class="dropdown-header">
+                        <div class="user-info">
+                            <div class="user-name">{{ request.user.get_full_name|default:request.user.username }}</div>
+                            <div class="user-email">{{ request.user.email }}</div>
+                        </div>
+                    </div>
+                    <div class="dropdown-divider"></div>
+                    <a href="{% url 'account-profile' %}" class="dropdown-item">
+                        <i class="fas fa-user-circle"></i>
+                        <span>Profile</span>
+                    </a>
+                    <a href="{% url 'account-info' %}" class="dropdown-item">
+                        <i class="fas fa-info-circle"></i>
+                        <span>User Information</span>
+                    </a>
+                    <a href="{% url 'account-security' %}" class="dropdown-item">
+                        <i class="fas fa-shield-alt"></i>
+                        <span>Security</span>
+                    </a>
+                    <div class="dropdown-divider"></div>
+                    <a href="#" class="dropdown-item" onclick="event.preventDefault(); showLogoutModal();">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Sign out</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-body">
+        <!-- Sidebar Overlay for Mobile -->
+        <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+        
+        <!-- Sidebar -->
+        <aside class="gmail-sidebar" id="sidebar">
+            <!-- Compose Button -->
+            <div class="compose-section">
+                <button class="compose-btn" onclick="window.location.href='{% url 'email_campaign:customer_selection' %}'">
+                    <i class="fas fa-plus"></i>
+                    <span>New Campaign</span>
+                </button>
+            </div>
+
+            <!-- Navigation -->
+            <nav class="sidebar-nav">
+                <a href="{% url 'dashboard:home' %}" class="nav-item {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+                    <i class="fas fa-inbox"></i>
+                    <span class="nav-label">Dashboard</span>
+                    {% if request.resolver_match.url_name == 'home' %}
+                    <span class="nav-indicator"></span>
+                    {% endif %}
+                </a>
+                
+                <a href="{% url 'dashboard:customer_list' %}" class="nav-item {% if request.resolver_match.url_name == 'customer_list' %}active{% endif %}">
+                    <i class="fas fa-users"></i>
+                    <span class="nav-label">Customers</span>
+                    <span class="nav-count">{{ customer_count|default:"" }}</span>
+                </a>
+                
+                <a href="{% url 'dashboard:blog_list' %}" class="nav-item {% if 'blog' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-file-alt"></i>
+                    <span class="nav-label">Blog Posts</span>
+                </a>
+                
+                <a href="{% url 'email_campaign:campaign_list' %}" class="nav-item {% if request.resolver_match.url_name == 'campaign_list' or request.resolver_match.url_name == 'campaign_detail' or request.resolver_match.url_name == 'campaign_create' or request.resolver_match.url_name == 'campaign_create_with_group' %}active{% endif %}">
+                    <i class="fas fa-paper-plane"></i>
+                    <span class="nav-label">Campaigns</span>
+                </a>
+                
+                <a href="{% url 'email_campaign:target_group_list' %}" class="nav-item {% if 'target_group' in request.resolver_match.url_name %}active{% endif %}">
+                    <i class="fas fa-layer-group"></i>
+                    <span class="nav-label">Target Groups</span>
+                </a>
+
+                <div class="nav-divider"></div>
+
+                <a href="#" class="nav-item">
+                    <i class="fas fa-chart-bar"></i>
+                    <span class="nav-label">Analytics</span>
+                </a>
+                
+                <a href="#" class="nav-item">
+                    <i class="fas fa-cog"></i>
+                    <span class="nav-label">Settings</span>
+                </a>
+            </nav>
+
+            <!-- Footer -->
+            <div class="sidebar-footer">
+                <div class="storage-info">
+                    <div class="storage-bar">
+                        <div class="storage-used" style="width: 35%"></div>
+                    </div>
+                    <span class="storage-text">3.5 GB of 10 GB used</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="gmail-main">
+            <div class="content-wrapper">
+                {% block dashboard_content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+</div>
+
+<!-- Logout Confirmation Modal -->
+<div id="logoutModal" class="modal-backdrop" style="display: none;">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Sign Out</h3>
+                <button type="button" class="modal-close" onclick="hideLogoutModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to sign out?</p>
+                <p class="modal-subtitle">You'll need to sign in again to access your dashboard.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn-secondary" onclick="hideLogoutModal()">Cancel</button>
+                <form method="post" action="{% url 'account_logout' %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" class="btn-danger">
+                        <i class="fas fa-sign-out-alt"></i>
+                        Sign Out
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Gmail-style Dashboard Layout */
+.gmail-dashboard {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    background-color: #fff;
+}
+
+/* Header Bar */
+.dashboard-header {
+    display: grid;
+    grid-template-columns: 250px 1fr 250px;
+    align-items: center;
+    height: 64px;
+    padding: 0 16px;
+    border-bottom: 1px solid #e0e0e0;
+    background-color: #fff;
+    gap: 16px;
+}
+
+.menu-toggle {
+    width: 48px;
+    height: 48px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+    color: #5f6368;
+}
+
+.menu-toggle:hover {
+    background-color: rgba(60, 64, 67, 0.08);
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+}
+
+.header-brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: 24px;
+    font-size: 20px;
+    color: #5f6368;
+}
+
+.header-brand i {
+    font-size: 24px;
+}
+
+.header-search {
+    flex: 1;
+    width: 100%;
+    max-width: 100%;
+    height: 46px;
+    display: flex;
+    align-items: center;
+    background-color: #f1f3f4;
+    border-radius: 8px;
+    padding: 0 16px;
+    margin: 0 20px;
+    transition: box-shadow 0.2s, background-color 0.2s;
+}
+
+.search-form {
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.header-search:focus-within {
+    background-color: #fff;
+    box-shadow: 0 1px 1px 0 rgba(65,69,73,0.3), 0 1px 3px 1px rgba(65,69,73,0.15);
+}
+
+.header-search .search-icon {
+    color: #5f6368;
+    margin-right: 12px;
+}
+
+.header-search input {
+    flex: 1;
+    border: none;
+    background: none;
+    outline: none;
+    font-size: 16px;
+    color: #202124;
+}
+
+.mobile-close-search {
+    display: none;
+    background: none;
+    border: none;
+    padding: 8px;
+    margin: -8px -8px -8px -16px;
+    cursor: pointer;
+    color: #5f6368;
+}
+
+.header-actions {
+    display: flex;
+    gap: 4px;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.icon-btn {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+    color: #5f6368;
+    position: relative;
+}
+
+.icon-btn:hover {
+    background-color: rgba(60, 64, 67, 0.08);
+}
+
+/* Notification Badge */
+.notification-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background-color: #ea4335;
+    color: white;
+    font-size: 11px;
+    font-weight: bold;
+    padding: 2px 4px;
+    border-radius: 10px;
+    min-width: 16px;
+    text-align: center;
+    line-height: 1;
+}
+
+/* Dashboard Body */
+.dashboard-body {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* Sidebar */
+.gmail-sidebar {
+    width: 256px;
+    background-color: #fff;
+    display: flex;
+    flex-direction: column;
+    transition: margin-left 0.2s;
+    border-right: 1px solid #e0e0e0;
+}
+
+.gmail-sidebar.collapsed {
+    margin-left: -256px;
+}
+
+/* Compose Section */
+.compose-section {
+    padding: 8px 8px 16px;
+}
+
+.compose-btn {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 24px 0 16px;
+    height: 56px;
+    border: none;
+    border-radius: 16px;
+    background-color: #c2e7ff;
+    color: #001d35;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: box-shadow 0.2s;
+    width: 100%;
+}
+
+.compose-btn:hover {
+    box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 1px 3px 1px rgba(60,64,67,0.15);
+}
+
+.compose-btn i {
+    font-size: 20px;
+}
+
+/* Navigation */
+.sidebar-nav {
+    flex: 1;
+    padding: 0 8px;
+    overflow-y: auto;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    height: 32px;
+    padding: 0 12px 0 26px;
+    margin: 0 -8px;
+    text-decoration: none;
+    color: #202124;
+    font-size: 14px;
+    font-weight: 400;
+    border-radius: 0 16px 16px 0;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+.nav-item:hover {
+    background-color: #f1f3f4;
+}
+
+.nav-item.active {
+    background-color: #fce8e6;
+    color: #d33b27;
+    font-weight: 600;
+}
+
+.nav-item i {
+    width: 20px;
+    margin-right: 18px;
+    font-size: 20px;
+    opacity: 0.7;
+}
+
+.nav-item.active i {
+    opacity: 1;
+}
+
+.nav-label {
+    flex: 1;
+}
+
+.nav-count {
+    font-size: 12px;
+    color: #5f6368;
+}
+
+.nav-indicator {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background-color: #d33b27;
+    border-radius: 0 3px 3px 0;
+}
+
+.nav-divider {
+    height: 1px;
+    background-color: #e0e0e0;
+    margin: 8px 0;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+    padding: 16px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.storage-info {
+    font-size: 12px;
+    color: #5f6368;
+}
+
+.storage-bar {
+    height: 4px;
+    background-color: #e0e0e0;
+    border-radius: 2px;
+    margin-bottom: 8px;
+    overflow: hidden;
+}
+
+.storage-used {
+    height: 100%;
+    background-color: #1a73e8;
+    transition: width 0.3s;
+}
+
+/* Main Content */
+.gmail-main {
+    flex: 1;
+    overflow: auto;
+    background-color: #f8f9fa;
+    padding-left: 16px;
+}
+
+.content-wrapper {
+    height: 100%;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .dashboard-header {
+        grid-template-columns: auto 1fr auto;
+        height: 56px;
+        padding: 0 8px;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 1001;
+    }
+    
+    .header-brand {
+        margin-left: 8px;
+        font-size: 16px;
+    }
+    
+    .header-brand span {
+        display: block;
+    }
+    
+    .header-search {
+        margin: 0 8px;
+        height: 40px;
+        display: none; /* Hide search on mobile by default */
+    }
+    
+    .header-search.mobile-active {
+        display: flex;
+        position: absolute;
+        top: 8px;
+        left: 8px;
+        right: 8px;
+        z-index: 10;
+        background-color: #fff;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    
+    .header-search.mobile-active .mobile-close-search {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .header-search.mobile-active .search-icon {
+        margin-left: 8px;
+    }
+    
+    .header-actions {
+        gap: 0;
+    }
+    
+    .icon-btn {
+        width: 36px;
+        height: 36px;
+    }
+    
+    .notification-menu {
+        margin-right: 4px;
+    }
+    
+    .notification-dropdown {
+        width: calc(100vw - 16px);
+        right: -8px;
+        max-width: 360px;
+    }
+    
+    .user-dropdown {
+        width: calc(100vw - 16px);
+        right: -8px;
+        max-width: 280px;
+    }
+    
+    .gmail-sidebar {
+        position: fixed;
+        left: 0;
+        top: 56px;
+        bottom: 0;
+        z-index: 1000;
+        box-shadow: 0 0 16px rgba(0,0,0,0.28);
+        transform: translateX(0);
+        transition: transform 0.3s ease;
+        width: 256px;
+        background-color: #fff;
+    }
+    
+    .gmail-sidebar.collapsed {
+        transform: translateX(-100%);
+    }
+    
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background-color: rgba(0,0,0,0.5);
+        z-index: 999;
+    }
+    
+    .sidebar-overlay.active {
+        display: block;
+    }
+    
+    .gmail-main {
+        padding-left: 0;
+        margin-left: 0;
+    }
+    
+    .dashboard-body {
+        margin-top: 56px;
+    }
+    
+    /* Show mobile search button */
+    .mobile-search-btn {
+        display: flex;
+    }
+    
+    /* Modal adjustments */
+    .modal-dialog {
+        width: 95%;
+        max-width: 400px;
+    }
+}
+
+@media (max-width: 480px) {
+    .dashboard-header {
+        grid-template-columns: 40px 1fr auto;
+    }
+    
+    .header-brand {
+        font-size: 14px;
+    }
+    
+    .notification-badge {
+        font-size: 10px;
+        padding: 1px 3px;
+        min-width: 14px;
+        top: 4px;
+        right: 4px;
+    }
+    
+    .user-avatar {
+        width: 32px;
+        height: 32px;
+    }
+    
+    .user-avatar .avatar-circle {
+        width: 28px;
+        height: 28px;
+        font-size: 12px;
+        margin: 2px;
+    }
+}
+
+/* Hide mobile search button on desktop */
+.mobile-search-btn {
+    display: none;
+}
+
+
+/* Scrollbar styling */
+.sidebar-nav::-webkit-scrollbar {
+    width: 8px;
+}
+
+.sidebar-nav::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb {
+    background: #dadce0;
+    border-radius: 4px;
+}
+
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+    background: #bdc1c6;
+}
+
+/* Notification Menu */
+.notification-menu {
+    position: relative;
+    margin-right: 8px;
+}
+
+.notification-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    width: 360px;
+    max-height: 480px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 2px 6px 2px rgba(60,64,67,0.15);
+    z-index: 1000;
+    overflow: hidden;
+    flex-direction: column;
+}
+
+.notification-dropdown.show {
+    display: flex;
+}
+
+.notification-dropdown h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 500;
+    color: #202124;
+}
+
+.mark-all-read {
+    background: none;
+    border: none;
+    color: #1a73e8;
+    font-size: 14px;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+}
+
+.mark-all-read:hover {
+    background-color: rgba(26, 115, 232, 0.08);
+}
+
+.notification-list {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 320px;
+}
+
+.notification-item {
+    padding: 16px;
+    border-bottom: 1px solid #f1f3f4;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    position: relative;
+}
+
+.notification-item:hover {
+    background-color: #f8f9fa;
+}
+
+.notification-item.unread {
+    background-color: #e8f0fe;
+}
+
+.notification-item.unread:hover {
+    background-color: #d2e3fc;
+}
+
+.notification-content {
+    display: flex;
+    gap: 12px;
+}
+
+.notification-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.notification-icon.info {
+    background-color: #e8f0fe;
+    color: #1a73e8;
+}
+
+.notification-icon.success {
+    background-color: #e6f4ea;
+    color: #1e8e3e;
+}
+
+.notification-icon.warning {
+    background-color: #fef7e0;
+    color: #f9ab00;
+}
+
+.notification-icon.error {
+    background-color: #fce8e6;
+    color: #d33b27;
+}
+
+.notification-details {
+    flex: 1;
+}
+
+.notification-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #202124;
+    margin: 0 0 4px;
+}
+
+.notification-message {
+    font-size: 13px;
+    color: #5f6368;
+    margin: 0 0 4px;
+}
+
+.notification-time {
+    font-size: 12px;
+    color: #80868b;
+}
+
+.notification-empty {
+    padding: 48px 24px;
+    text-align: center;
+    color: #80868b;
+}
+
+.notification-empty i {
+    font-size: 48px;
+    margin-bottom: 16px;
+}
+
+.notification-empty p {
+    margin: 0;
+    font-size: 14px;
+}
+
+.view-all-link {
+    display: block;
+    padding: 12px;
+    text-align: center;
+    color: #1a73e8;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.view-all-link:hover {
+    background-color: rgba(26, 115, 232, 0.08);
+}
+
+/* User Menu */
+.user-menu {
+    position: relative;
+    margin-left: 8px;
+}
+
+.user-avatar {
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    padding: 0;
+    border-radius: 50%;
+    transition: box-shadow 0.2s;
+}
+
+.user-avatar:hover {
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.user-avatar .avatar-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background-color: #1a73e8;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 500;
+    margin: 4px;
+}
+
+.user-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    margin-top: 8px;
+    width: 280px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 1px 2px 0 rgba(60,64,67,0.3), 0 2px 6px 2px rgba(60,64,67,0.15);
+    z-index: 1000;
+}
+
+.user-dropdown.show {
+    display: block;
+}
+
+.dropdown-header {
+    padding: 16px;
+    text-align: center;
+}
+
+.user-info {
+    margin-top: 8px;
+}
+
+.user-name {
+    font-size: 16px;
+    font-weight: 500;
+    color: #202124;
+    margin-bottom: 4px;
+}
+
+.user-email {
+    font-size: 14px;
+    color: #5f6368;
+}
+
+.dropdown-divider {
+    height: 1px;
+    background-color: #e0e0e0;
+    margin: 0;
+}
+
+.dropdown-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    color: #202124;
+    text-decoration: none;
+    font-size: 14px;
+    transition: background-color 0.2s;
+}
+
+.dropdown-item:hover {
+    background-color: #f1f3f4;
+}
+
+.dropdown-item i {
+    width: 20px;
+    margin-right: 12px;
+    color: #5f6368;
+    text-align: center;
+}
+
+.dropdown-item span {
+    flex: 1;
+}
+
+/* Modal Styles */
+.modal-backdrop {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 2000;
+    animation: fadeIn 0.2s ease-out;
+}
+
+.modal-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;
+    max-width: 400px;
+    animation: slideIn 0.2s ease-out;
+}
+
+.modal-content {
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1), 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-title {
+    font-size: 20px;
+    font-weight: 500;
+    color: #202124;
+    margin: 0;
+}
+
+.modal-close {
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+    color: #5f6368;
+}
+
+.modal-close:hover {
+    background-color: rgba(60, 64, 67, 0.08);
+}
+
+.modal-body {
+    padding: 24px;
+}
+
+.modal-body p {
+    margin: 0 0 8px;
+    color: #202124;
+}
+
+.modal-subtitle {
+    font-size: 14px;
+    color: #5f6368;
+}
+
+.modal-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 16px 24px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.btn-secondary {
+    padding: 8px 24px;
+    border: 1px solid #dadce0;
+    background-color: #fff;
+    color: #5f6368;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-secondary:hover {
+    background-color: #f8f9fa;
+    border-color: #5f6368;
+}
+
+.btn-danger {
+    padding: 8px 24px;
+    border: none;
+    background-color: #d33b27;
+    color: #fff;
+    border-radius: 4px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-danger:hover {
+    background-color: #b02a1f;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translate(-50%, -50%) scale(0.95);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+</style>
+
+<script>
+function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    const isMobile = window.innerWidth <= 768;
+    
+    sidebar.classList.toggle('collapsed');
+    
+    // Handle mobile overlay
+    if (isMobile) {
+        if (!sidebar.classList.contains('collapsed')) {
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden';
+        } else {
+            overlay.classList.remove('active');
+            document.body.style.overflow = '';
+        }
+    }
+    
+    // Save state to localStorage (only for desktop)
+    if (!isMobile) {
+        if (sidebar.classList.contains('collapsed')) {
+            localStorage.setItem('sidebarCollapsed', 'true');
+        } else {
+            localStorage.setItem('sidebarCollapsed', 'false');
+        }
+    }
+}
+
+function closeSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebarOverlay');
+    
+    sidebar.classList.add('collapsed');
+    overlay.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+function toggleMobileSearch() {
+    const headerSearch = document.getElementById('headerSearch');
+    headerSearch.classList.add('mobile-active');
+    const searchInput = headerSearch.querySelector('input');
+    if (searchInput) {
+        searchInput.focus();
+    }
+}
+
+function closeMobileSearch() {
+    const headerSearch = document.getElementById('headerSearch');
+    headerSearch.classList.remove('mobile-active');
+}
+
+// Toggle user dropdown
+function toggleUserDropdown(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('userDropdown');
+    if (dropdown) {
+        dropdown.classList.toggle('show');
+    } else {
+        console.error('Dropdown element not found');
+    }
+}
+
+
+// Logout Modal Functions
+function showLogoutModal() {
+    const modal = document.getElementById('logoutModal');
+    const dropdown = document.getElementById('userDropdown');
+    
+    // Close the dropdown first
+    if (dropdown) {
+        dropdown.classList.remove('show');
+    }
+    
+    // Show the modal
+    modal.style.display = 'block';
+    
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+}
+
+function hideLogoutModal() {
+    const modal = document.getElementById('logoutModal');
+    modal.style.display = 'none';
+    
+    // Restore body scroll
+    document.body.style.overflow = '';
+}
+
+// Close modal when clicking outside
+document.addEventListener('click', function(event) {
+    const modal = document.getElementById('logoutModal');
+    if (event.target === modal) {
+        hideLogoutModal();
+    }
+});
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        hideLogoutModal();
+    }
+});
+
+// Toggle notifications dropdown
+function toggleNotifications(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById('notificationDropdown');
+    const userDropdown = document.getElementById('userDropdown');
+    
+    // Close user dropdown if open
+    if (userDropdown) {
+        userDropdown.classList.remove('show');
+    }
+    
+    if (dropdown) {
+        dropdown.classList.toggle('show');
+        
+        // If opening, check for new notifications
+        if (dropdown.classList.contains('show')) {
+            checkForNotifications();
+        }
+    }
+}
+
+// Check for new notifications
+function checkForNotifications() {
+    // This is where you would make an AJAX call to check for new notifications
+    // Example implementation:
+    // fetch('/api/notifications/')
+    //     .then(response => response.json())
+    //     .then(data => {
+    //         if (data.notifications && data.notifications.length > 0) {
+    //             showNotificationBadge(data.unread_count);
+    //             displayNotifications(data.notifications);
+    //         } else {
+    //             displayEmptyState();
+    //         }
+    //     });
+    
+    // For now, just show empty state
+    displayEmptyState();
+}
+
+// Display empty notification state
+function displayEmptyState() {
+    const notificationList = document.getElementById('notificationList');
+    if (notificationList) {
+        notificationList.innerHTML = `
+            <div class="notification-empty">
+                <i class="fas fa-bell-slash"></i>
+                <p>No new notifications</p>
+            </div>
+        `;
+    }
+}
+
+// Show notification badge with count
+function showNotificationBadge(count) {
+    const badge = document.getElementById('notificationBadge');
+    if (badge && count > 0) {
+        badge.textContent = count > 99 ? '99+' : count;
+        badge.style.display = 'block';
+    }
+}
+
+// Hide notification badge
+function hideNotificationBadge() {
+    const badge = document.getElementById('notificationBadge');
+    if (badge) {
+        badge.style.display = 'none';
+    }
+}
+
+// Display notifications (to be implemented with actual data)
+function displaySampleNotifications() {
+    const notificationList = document.getElementById('notificationList');
+    if (notificationList) {
+        // This function should be replaced with actual notification fetching logic
+        // For now, just show empty state
+        notificationList.innerHTML = `
+            <div class="notification-empty">
+                <i class="fas fa-bell-slash"></i>
+                <p>No new notifications</p>
+            </div>
+        `;
+    }
+}
+
+// Mark notification as read
+function markAsRead(element) {
+    element.classList.remove('unread');
+    
+    // Update badge count
+    const unreadCount = document.querySelectorAll('.notification-item.unread').length;
+    if (unreadCount === 0) {
+        hideNotificationBadge();
+    } else {
+        showNotificationBadge(unreadCount);
+    }
+}
+
+// Mark all notifications as read
+function markAllAsRead() {
+    const notifications = document.querySelectorAll('.notification-item.unread');
+    const notificationList = document.getElementById('notificationList');
+    
+    if (notifications.length > 0) {
+        notifications.forEach(notification => {
+            notification.classList.remove('unread');
+        });
+        hideNotificationBadge();
+    } else if (notificationList && !notificationList.querySelector('.notification-empty')) {
+        // If there are no unread notifications but we have notifications, just hide the badge
+        hideNotificationBadge();
+    }
+}
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', function(event) {
+    const userDropdown = document.getElementById('userDropdown');
+    const notificationDropdown = document.getElementById('notificationDropdown');
+    const userMenu = document.querySelector('.user-menu');
+    const notificationMenu = document.querySelector('.notification-menu');
+    
+    // Close user dropdown if clicked outside
+    if (userDropdown && userMenu && !userMenu.contains(event.target)) {
+        userDropdown.classList.remove('show');
+    }
+    
+    // Close notification dropdown if clicked outside
+    if (notificationDropdown && notificationMenu && !notificationMenu.contains(event.target)) {
+        notificationDropdown.classList.remove('show');
+    }
+});
+
+// Restore sidebar state on page load
+document.addEventListener('DOMContentLoaded', function() {
+    const sidebar = document.getElementById('sidebar');
+    const isMobile = window.innerWidth <= 768;
+    
+    if (isMobile) {
+        // Always start with sidebar collapsed on mobile
+        sidebar.classList.add('collapsed');
+    } else {
+        // Restore saved state for desktop
+        const isCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+        if (isCollapsed) {
+            sidebar.classList.add('collapsed');
+        }
+    }
+    
+    // Handle window resize
+    let resizeTimer;
+    window.addEventListener('resize', function() {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(function() {
+            const newIsMobile = window.innerWidth <= 768;
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.getElementById('sidebarOverlay');
+            
+            if (newIsMobile && !sidebar.classList.contains('collapsed')) {
+                sidebar.classList.add('collapsed');
+                overlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        }, 250);
+    });
+    
+    // Optional: Check for notifications on page load (uncomment if needed)
+    // setTimeout(checkForNotifications, 1000);
+});
+</script>
+{% endblock %}
+{% endblock %}

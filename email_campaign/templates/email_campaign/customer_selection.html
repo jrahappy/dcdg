@@ -1,0 +1,254 @@
+{% extends 'dashboard/base.html' %}
+
+{% block page_title %}Select Customers for Target Group{% endblock %}
+
+{% block dashboard_content %}
+<div class="h-full flex flex-col bg-gray-50">
+    <!-- Header -->
+    <div class="bg-white border-b border-gray-200 px-6 py-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-2xl font-semibold text-gray-800">Build Your Target Group</h2>
+                <p class="text-sm text-gray-600 mt-1">Filter and select customers to add to your email campaign target group</p>
+            </div>
+            <a href="{% url 'email_campaign:target_group_cart' %}" 
+               class="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 transition-colors duration-200">
+                <i class="fas fa-shopping-cart"></i>
+                Target Group Cart
+                <span id="cart-count" class="inline-flex items-center justify-center px-2 py-0.5 ml-2 text-xs font-bold text-blue-600 bg-white rounded-full">{{ cart_count }}</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters Section -->
+    <div class="bg-white border-b border-gray-200 px-6 py-4">
+        <form method="get" action="" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div class="md:col-span-1">
+                    <label for="search" class="sr-only">Search</label>
+                    <input type="text" 
+                           id="search"
+                           name="search" 
+                           placeholder="Search by name, email, or company..." 
+                           value="{{ search_query }}"
+                           class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                </div>
+                
+                <div>
+                    <label for="city" class="sr-only">City</label>
+                    <select name="city" id="city" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option value="">All Cities</option>
+                        {% for city in cities %}
+                            <option value="{{ city }}" {% if city == city_filter %}selected{% endif %}>{{ city }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label for="state" class="sr-only">State</label>
+                    <select name="state" id="state" class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        <option value="">All States</option>
+                        {% for state in states %}
+                            <option value="{{ state }}" {% if state == state_filter %}selected{% endif %}>{{ state }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <button type="submit" class="w-full inline-flex items-center justify-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <i class="fas fa-filter mr-2"></i> Apply Filters
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Selection Controls -->
+    <div class="bg-white border-b border-gray-200 px-6 py-3">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <button onclick="selectAll()" class="text-sm text-gray-600 hover:text-gray-900 font-medium">
+                    Select All
+                </button>
+                <span class="text-gray-400">|</span>
+                <button onclick="selectNone()" class="text-sm text-gray-600 hover:text-gray-900 font-medium">
+                    Select None
+                </button>
+            </div>
+            <button onclick="addSelected()" class="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 transition-colors duration-200">
+                <i class="fas fa-plus"></i> Add Selected to Cart
+            </button>
+        </div>
+    </div>
+
+    <!-- Customer Table -->
+    <div class="flex-1 overflow-auto bg-white">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th class="w-12 px-6 py-3 text-left">
+                        <input type="checkbox" id="select-all-checkbox" onchange="toggleAll(this)" 
+                               class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Name
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Company
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Email
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        City
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        State
+                    </th>
+                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                        Status
+                    </th>
+                </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+                {% for customer in customers %}
+                <tr class="hover:bg-gray-50">
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <input type="checkbox" 
+                               class="customer-checkbox h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" 
+                               value="{{ customer.id }}"
+                               {% if customer.id in cart_customer_ids %}disabled{% endif %}>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="flex items-center">
+                            <div class="flex-shrink-0 h-10 w-10">
+                                <div class="h-10 w-10 rounded-full bg-blue-500 flex items-center justify-center text-white text-sm font-medium">
+                                    {{ customer.first_name.0|upper }}{{ customer.last_name.0|upper }}
+                                </div>
+                            </div>
+                            <div class="ml-4">
+                                <div class="text-sm font-medium text-gray-900">
+                                    {{ customer.get_full_name }}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ customer.company_name|default:"—" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ customer.email }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ customer.city|default:"—" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {{ customer.state|default:"—" }}
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        {% if customer.id in cart_customer_ids %}
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                <i class="fas fa-check mr-1"></i> In Cart
+                            </span>
+                        {% else %}
+                            <span class="text-sm text-gray-500">—</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7" class="px-6 py-12 text-center">
+                        <div class="text-gray-500">
+                            <i class="fas fa-users text-4xl mb-3"></i>
+                            <p class="text-lg font-medium">No customers found</p>
+                            <p class="text-sm">Try adjusting your filters to see more results</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% csrf_token %}
+
+<style>
+.customer-checkbox:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+</style>
+
+<script>
+function toggleAll(checkbox) {
+    const checkboxes = document.querySelectorAll('.customer-checkbox:not(:disabled)');
+    checkboxes.forEach(cb => cb.checked = checkbox.checked);
+}
+
+function selectAll() {
+    const checkboxes = document.querySelectorAll('.customer-checkbox:not(:disabled)');
+    checkboxes.forEach(cb => cb.checked = true);
+    document.getElementById('select-all-checkbox').checked = true;
+}
+
+function selectNone() {
+    const checkboxes = document.querySelectorAll('.customer-checkbox');
+    checkboxes.forEach(cb => cb.checked = false);
+    document.getElementById('select-all-checkbox').checked = false;
+}
+
+function addSelected() {
+    const selected = [];
+    document.querySelectorAll('.customer-checkbox:checked').forEach(cb => {
+        selected.push(cb.value);
+    });
+    
+    if (selected.length === 0) {
+        alert('Please select at least one customer');
+        return;
+    }
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    fetch("{% url 'email_campaign:add_to_cart' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'customer_ids[]=' + selected.join('&customer_ids[]=')
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            document.getElementById('cart-count').textContent = data.total_count;
+            // Disable added checkboxes
+            selected.forEach(id => {
+                const checkbox = document.querySelector(`input[value="${id}"]`);
+                checkbox.disabled = true;
+                checkbox.checked = false;
+                const row = checkbox.closest('tr');
+                const statusCell = row.querySelector('td:last-child');
+                statusCell.innerHTML = '<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800"><i class="fas fa-check mr-1"></i> In Cart</span>';
+            });
+            
+            // Show success message
+            const message = document.createElement('div');
+            message.className = 'fixed top-4 right-4 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-md shadow-lg z-50';
+            message.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-check-circle mr-2"></i>
+                    <span>Added ${data.added_count} customer${data.added_count > 1 ? 's' : ''} to cart</span>
+                </div>
+            `;
+            document.body.appendChild(message);
+            
+            setTimeout(() => {
+                message.remove();
+            }, 3000);
+        }
+    });
+}
+</script>
+{% endblock %}
