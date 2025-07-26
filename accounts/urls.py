@@ -10,6 +10,7 @@ urlpatterns = [
     path('manage/profile/', views.account_profile, name='account-profile'),
     path('manage/info/', views.account_info, name='account-info'),
     path('manage/security/', views.account_security, name='account-security'),
+    path('manage/sender/', views.sender_information, name='sender-information'),
     
     # Logout confirmation
     path('logout/', views.logout_confirm, name='logout-confirm'),

@@ -32,7 +32,9 @@
       "Bash(\"D:/Dev/dcdg/dcdg/venv/Scripts/python.exe\" manage.py startapp email_campaign)",
       "Bash(\"D:/Dev/dcdg/dcdg/venv/Scripts/python.exe\" manage.py makemigrations email_campaign)",
       "Bash(\"D:/Dev/dcdg/dcdg/venv/Scripts/python.exe\" manage.py migrate email_campaign)",
-      "Bash(curl:*)"
+      "Bash(curl:*)",
+      "Bash(find:*)",
+      "Bash(git add:*)"
     ],
     "deny": []
   }
