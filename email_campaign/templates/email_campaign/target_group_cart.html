@@ -1,0 +1,426 @@
+{% extends 'dashboard/base.html' %}
+
+{% block page_title %}Target Group Cart{% endblock %}
+
+{% block dashboard_content %}
+<div class="cart-header">
+    <h2>Target Group Cart</h2>
+    <p>Review and finalize your target group before creating an email campaign</p>
+</div>
+
+<div class="cart-actions">
+    <a href="{% url 'email_campaign:customer_selection' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left"></i> Continue Adding
+    </a>
+    {% if cart_count > 0 %}
+    <a href="{% url 'email_campaign:clear_cart' %}" class="btn btn-danger" 
+       onclick="return confirm('Are you sure you want to clear the cart?')">
+        <i class="fas fa-trash"></i> Clear Cart
+    </a>
+    {% endif %}
+</div>
+
+{% if cart_count > 0 %}
+<!-- Filter Section -->
+<div class="filters-section">
+    <form method="get" action="" class="filter-form">
+        <div class="filter-row">
+            <input type="text" 
+                   name="search" 
+                   placeholder="Search by name, email, or company..." 
+                   value="{{ search_query }}"
+                   class="search-input">
+            
+            <select name="city" class="filter-select">
+                <option value="">All Cities</option>
+                {% for city in cities %}
+                    <option value="{{ city }}" {% if city == city_filter %}selected{% endif %}>{{ city }}</option>
+                {% endfor %}
+            </select>
+            
+            <select name="state" class="filter-select">
+                <option value="">All States</option>
+                {% for state in states %}
+                    <option value="{{ state }}" {% if state == state_filter %}selected{% endif %}>{{ state }}</option>
+                {% endfor %}
+            </select>
+            
+            <button type="submit" class="btn btn-secondary">
+                <i class="fas fa-filter"></i> Apply Filters
+            </button>
+            
+            {% if search_query or city_filter or state_filter %}
+            <a href="{% url 'email_campaign:target_group_cart' %}" class="btn btn-outline">
+                <i class="fas fa-times"></i> Clear Filters
+            </a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<div class="cart-summary">
+    <div class="summary-card">
+        <h3>{{ cart_count }}</h3>
+        <p>Total Customers in Cart</p>
+    </div>
+    {% if search_query or city_filter or state_filter %}
+    <div class="summary-card secondary">
+        <h3>{{ customers.count }}</h3>
+        <p>Filtered Results</p>
+    </div>
+    {% endif %}
+</div>
+
+<div class="cart-table">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Company</th>
+                <th>Email</th>
+                <th>City</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for customer in customers %}
+            <tr id="customer-{{ customer.id }}">
+                <td>{{ customer.get_full_name }}</td>
+                <td>{{ customer.company_name|default:"-" }}</td>
+                <td>{{ customer.email }}</td>
+                <td>{{ customer.city|default:"-" }}, {{ customer.state|default:"" }}</td>
+                <td>
+                    <button onclick="removeFromCart({{ customer.id }})" 
+                            class="btn btn-sm btn-danger"
+                            title="Remove from cart">
+                        <i class="fas fa-times"></i> Remove
+                    </button>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center">
+                    {% if search_query or city_filter or state_filter %}
+                        No customers match your filter criteria.
+                    {% else %}
+                        No customers in cart.
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    {% if customers.count < cart_count and (search_query or city_filter or state_filter) %}
+    <div class="filter-note">
+        <i class="fas fa-info-circle"></i>
+        Showing {{ customers.count }} of {{ cart_count }} customers based on your filters.
+    </div>
+    {% endif %}
+</div>
+
+<div class="create-group-section">
+    <h3>Create Target Group</h3>
+    <p class="text-muted">This will create a target group with all {{ cart_count }} customers in your cart.</p>
+    <form method="post" action="">
+        {% csrf_token %}
+        <input type="hidden" name="create_group" value="1">
+        <div class="form-group">
+            <label for="group_name">Target Group Name</label>
+            <input type="text" 
+                   id="group_name" 
+                   name="group_name" 
+                   class="form-control" 
+                   placeholder="e.g., Seattle Medical Clinics Q1 2024"
+                   required>
+        </div>
+        
+        <div class="form-group">
+            <label for="description">Description (optional)</label>
+            <textarea id="description" 
+                      name="description" 
+                      class="form-control" 
+                      rows="3"
+                      placeholder="Describe the purpose or criteria for this target group..."></textarea>
+        </div>
+        
+        <button type="submit" class="btn btn-primary btn-lg">
+            <i class="fas fa-check"></i> Create Target Group & Start Campaign
+        </button>
+    </form>
+</div>
+
+{% else %}
+<div class="empty-cart">
+    <i class="fas fa-shopping-cart"></i>
+    <h3>Your target group cart is empty</h3>
+    <p>Start by selecting customers to add to your email campaign</p>
+    <a href="{% url 'email_campaign:customer_selection' %}" class="btn btn-primary">
+        <i class="fas fa-users"></i> Select Customers
+    </a>
+</div>
+{% endif %}
+
+{% csrf_token %}
+
+<style>
+.cart-header {
+    margin-bottom: 30px;
+}
+
+.cart-actions {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.filters-section {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+}
+
+.filter-form {
+    width: 100%;
+}
+
+.filter-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.search-input {
+    flex: 1;
+    min-width: 250px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+}
+
+.filter-select {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    min-width: 150px;
+}
+
+.btn-outline {
+    background-color: transparent;
+    border: 1px solid #95a5a6;
+    color: #7f8c8d;
+}
+
+.btn-outline:hover {
+    background-color: #95a5a6;
+    color: white;
+}
+
+.cart-summary {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.summary-card {
+    background-color: #3498db;
+    color: white;
+    padding: 20px;
+    border-radius: 10px;
+    text-align: center;
+    min-width: 200px;
+}
+
+.summary-card.secondary {
+    background-color: #9b59b6;
+}
+
+.summary-card h3 {
+    font-size: 2.5rem;
+    margin: 0;
+}
+
+.summary-card p {
+    margin: 0;
+    opacity: 0.9;
+    font-size: 14px;
+}
+
+.cart-table {
+    background-color: white;
+    border-radius: 5px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+
+.filter-note {
+    padding: 15px;
+    background-color: #f8f9fa;
+    border-top: 1px solid #e9ecef;
+    color: #7f8c8d;
+    text-align: center;
+}
+
+.filter-note i {
+    color: #3498db;
+}
+
+.create-group-section {
+    background-color: #f8f9fa;
+    padding: 30px;
+    border-radius: 10px;
+    max-width: 600px;
+}
+
+.create-group-section h3 {
+    margin-bottom: 10px;
+}
+
+.create-group-section .text-muted {
+    color: #7f8c8d;
+    font-size: 14px;
+    margin-bottom: 20px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.form-control {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    font-size: 14px;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #3498db;
+}
+
+.btn-lg {
+    padding: 12px 30px;
+    font-size: 16px;
+}
+
+.empty-cart {
+    text-align: center;
+    padding: 60px 20px;
+}
+
+.empty-cart i {
+    font-size: 64px;
+    color: #bdc3c7;
+    margin-bottom: 20px;
+}
+
+.empty-cart h3 {
+    color: #7f8c8d;
+    margin-bottom: 10px;
+}
+
+.btn-danger {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c0392b;
+}
+
+.text-center {
+    text-align: center;
+}
+
+@media (max-width: 768px) {
+    .filter-row {
+        flex-direction: column;
+    }
+    
+    .search-input, .filter-select {
+        width: 100%;
+    }
+    
+    .cart-summary {
+        flex-direction: column;
+    }
+    
+    .summary-card {
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+function removeFromCart(customerId) {
+    if (!confirm('Remove this customer from the target group?')) {
+        return;
+    }
+    
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    fetch("{% url 'email_campaign:remove_from_cart' %}", {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrfToken,
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: 'customer_id=' + customerId
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove the row with animation
+            const row = document.getElementById('customer-' + customerId);
+            row.style.transition = 'opacity 0.3s';
+            row.style.opacity = '0';
+            
+            setTimeout(() => {
+                row.remove();
+                
+                // Update count display
+                updateCartCount(data.total_count);
+                
+                // Reload if cart is empty
+                if (data.total_count === 0) {
+                    window.location.reload();
+                }
+            }, 300);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Failed to remove customer. Please try again.');
+    });
+}
+
+function updateCartCount(count) {
+    // Update all elements showing cart count
+    const countElements = document.querySelectorAll('.summary-card h3');
+    if (countElements.length > 0) {
+        countElements[0].textContent = count;
+    }
+    
+    // Update the text showing total customers
+    const noteElements = document.querySelectorAll('.filter-note');
+    noteElements.forEach(el => {
+        el.innerHTML = el.innerHTML.replace(/of \d+ customers/, `of ${count} customers`);
+    });
+    
+    const groupText = document.querySelector('.create-group-section .text-muted');
+    if (groupText) {
+        groupText.innerHTML = groupText.innerHTML.replace(/all \d+ customers/, `all ${count} customers`);
+    }
+}
+</script>
+{% endblock %}

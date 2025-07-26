@@ -5,6 +5,7 @@ from django.views import View
 from django.urls import reverse
 from django.contrib.auth.forms import PasswordChangeForm
 from django.contrib.auth import update_session_auth_hash
+from django.contrib.auth import logout
 from .models import Profile
 from .forms import ProfileUpdateForm, UserUpdateForm
 
@@ -133,3 +134,19 @@ def profile_edit(request):
         'profile_form': profile_form
     }
     return render(request, 'accounts/profile_edit.html', context)
+
+
+@login_required
+def logout_confirm(request):
+    """Display logout confirmation page"""
+    if request.method == 'POST':
+        logout(request)
+        messages.success(request, 'You have been successfully logged out.')
+        return redirect('landing:home')
+    
+    # Clear any existing messages to prevent confusion
+    storage = messages.get_messages(request)
+    for _ in storage:
+        pass  # This clears the messages
+    
+    return render(request, 'accounts/logout_confirm.html')

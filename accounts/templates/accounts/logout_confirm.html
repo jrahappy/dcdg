@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+
+{% block title %}Sign Out Confirmation{% endblock %}
+
+{% block main %}
+<main class="container mx-auto py-6 px-4">
+    <!-- No messages displayed on this page -->
+    {% block content %}
+<div class="min-h-screen flex items-center justify-center">
+    <div class="card w-full max-w-md bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-2xl mb-4 justify-center">Sign Out</h2>
+            
+            <div class="text-center mb-6">
+                <p class="text-base-content/70">Are you sure you want to sign out?</p>
+                <p class="text-sm text-base-content/50 mt-2">You'll need to sign in again to access your dashboard.</p>
+            </div>
+            
+            <div class="card-actions justify-center gap-4">
+                <form method="POST" action="{% url 'logout-confirm' %}">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-error">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Sign Out
+                    </button>
+                </form>
+                
+                <a href="{% url 'dashboard:home' %}" class="btn btn-ghost">
+                    Cancel
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+</main>
+{% endblock %}
