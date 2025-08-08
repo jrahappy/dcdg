@@ -1,0 +1,309 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% load breadcrumbs %}
+
+{% block page_title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Purchase Order{% endblock %}
+
+{% block dashboard_content %}
+<div class="h-full flex flex-col bg-white">
+    <!-- Breadcrumb -->
+    <div class="px-4 py-2 border-b border-gray-200 bg-gray-50">
+        <nav class="flex items-center space-x-2 text-sm">
+            {% if form.instance.pk %}
+                {% breadcrumb "Dashboard" "dashboard:home" "Purchase Orders" "purchases:purchase_order_list" form.instance.order_number "purchases:purchase_order_detail" form.instance.pk "Edit" %}
+            {% else %}
+                {% breadcrumb "Dashboard" "dashboard:home" "Purchase Orders" "purchases:purchase_order_list" "Create New" %}
+            {% endif %}
+        </nav>
+    </div>
+    
+    <!-- Header -->
+    <div class="border-b border-gray-200 bg-white px-6 py-4">
+        <div class="flex items-center">
+            <button onclick="window.location.href='{% url 'purchases:purchase_order_list' %}'" class="mr-4 text-gray-600 hover:text-gray-900">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h1 class="text-2xl font-semibold text-gray-900">
+                {% if form.instance.pk %}Edit Purchase Order{% else %}Create New Purchase Order{% endif %}
+            </h1>
+        </div>
+    </div>
+
+    <!-- Form Content -->
+    <div class="flex-1 overflow-y-auto p-6">
+        <form method="post" class="max-w-6xl mx-auto" id="purchaseOrderForm">
+            {% csrf_token %}
+            
+            <!-- Basic Information -->
+            <div class="bg-white border border-gray-200 rounded-lg mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Basic Information</h2>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Order Number <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.order_number }}
+                            {% if form.order_number.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.order_number.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Status
+                            </label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.status.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Order Date <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.order_date }}
+                            {% if form.order_date.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.order_date.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Expected Delivery Date
+                            </label>
+                            {{ form.expected_delivery_date }}
+                            {% if form.expected_delivery_date.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.expected_delivery_date.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Reference Number
+                            </label>
+                            {{ form.reference_number }}
+                            {% if form.reference_number.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.reference_number.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Supplier <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.supplier }}
+                            {% if form.supplier.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.supplier.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Order Items -->
+            <div class="bg-white border border-gray-200 rounded-lg mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Order Items</h2>
+                </div>
+                <div class="p-6">
+                    {{ formset.management_form }}
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Cost</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Delete</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="formset-body">
+                                {% for form in formset %}
+                                <tr class="formset-row">
+                                    <td class="px-4 py-4">
+                                        {{ form.product }}
+                                        {% if form.product.errors %}
+                                            <p class="mt-1 text-xs text-red-600">{{ form.product.errors.0 }}</p>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        {{ form.description }}
+                                        {% if form.description.errors %}
+                                            <p class="mt-1 text-xs text-red-600">{{ form.description.errors.0 }}</p>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        {{ form.quantity }}
+                                        {% if form.quantity.errors %}
+                                            <p class="mt-1 text-xs text-red-600">{{ form.quantity.errors.0 }}</p>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        {{ form.unit_cost }}
+                                        {% if form.unit_cost.errors %}
+                                            <p class="mt-1 text-xs text-red-600">{{ form.unit_cost.errors.0 }}</p>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-4 text-center">
+                                        {{ form.DELETE }}
+                                    </td>
+                                    {% for hidden in form.hidden_fields %}
+                                        {{ hidden }}
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200" onclick="addFormsetRow()">
+                        <i class="fas fa-plus mr-2"></i> Add Item
+                    </button>
+                </div>
+            </div>
+
+
+            <!-- Pricing & Costs -->
+            <div class="bg-white border border-gray-200 rounded-lg mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Pricing & Costs</h2>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Discount Percentage
+                            </label>
+                            {{ form.discount_percent }}
+                            {% if form.discount_percent.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.discount_percent.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Tax Rate (%)
+                            </label>
+                            {{ form.tax_rate }}
+                            {% if form.tax_rate.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.tax_rate.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Shipping Cost
+                            </label>
+                            {{ form.shipping_cost }}
+                            {% if form.shipping_cost.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.shipping_cost.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Information -->
+            <div class="bg-white border border-gray-200 rounded-lg mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Additional Information</h2>
+                </div>
+                <div class="p-6">
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Notes
+                        </label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.notes.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Internal Notes
+                        </label>
+                        {{ form.internal_notes }}
+                        {% if form.internal_notes.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.internal_notes.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex gap-4 justify-end">
+                <button type="button" onclick="window.location.href='{% if form.instance.pk %}{% url 'purchases:purchase_order_detail' form.instance.pk %}{% else %}{% url 'purchases:purchase_order_list' %}{% endif %}'" 
+                        class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                    Cancel
+                </button>
+                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    {% if form.instance.pk %}Update{% else %}Create{% endif %} Purchase Order
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+<script>
+// Dynamic formset handling
+function addFormsetRow() {
+    const formsetBody = document.getElementById('formset-body');
+    const totalForms = document.getElementById('id_items-TOTAL_FORMS');
+    const currentFormCount = parseInt(totalForms.value);
+    
+    // Clone the last row
+    const lastRow = formsetBody.querySelector('.formset-row:last-child');
+    const newRow = lastRow.cloneNode(true);
+    
+    // Update the form index
+    const formRegex = RegExp(`items-(\\d+)-`, 'g');
+    newRow.innerHTML = newRow.innerHTML.replace(formRegex, `items-${currentFormCount}-`);
+    
+    // Clear input values
+    newRow.querySelectorAll('input[type="text"], input[type="number"], select').forEach(input => {
+        if (input.type === 'checkbox') {
+            input.checked = false;
+        } else {
+            input.value = '';
+        }
+    });
+    
+    // Append the new row
+    formsetBody.appendChild(newRow);
+    
+    // Update the TOTAL_FORMS count
+    totalForms.value = currentFormCount + 1;
+}
+
+// Auto-populate order number if empty
+document.addEventListener('DOMContentLoaded', function() {
+    const orderNumberInput = document.getElementById('id_order_number');
+    if (orderNumberInput && !orderNumberInput.value) {
+        const date = new Date();
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        orderNumberInput.value = `PO-${year}${month}-${random}`;
+    }
+    
+    // Auto-populate expected delivery date if empty (30 days from order date)
+    const orderDateInput = document.getElementById('id_order_date');
+    const expectedDateInput = document.getElementById('id_expected_delivery_date');
+    
+    if (orderDateInput && expectedDateInput && !expectedDateInput.value) {
+        orderDateInput.addEventListener('change', function() {
+            if (this.value && !expectedDateInput.value) {
+                const orderDate = new Date(this.value);
+                orderDate.setDate(orderDate.getDate() + 30);
+                expectedDateInput.value = orderDate.toISOString().split('T')[0];
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

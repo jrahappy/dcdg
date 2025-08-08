@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import TargetGroup, EmailCampaign, EmailLog
+from .models import TargetGroup, EmailCampaign, EmailLog, PeriodicCampaign, PeriodicCampaignLog
 
 
 @admin.register(TargetGroup)
@@ -44,3 +44,37 @@ class EmailLogAdmin(admin.ModelAdmin):
     list_filter = ['status', 'sent_at', 'campaign']
     search_fields = ['customer__email', 'customer__first_name', 'customer__last_name', 'campaign__name']
     readonly_fields = ['campaign', 'customer', 'status', 'sent_at', 'error_message']
+
+
+@admin.register(PeriodicCampaign)
+class PeriodicCampaignAdmin(admin.ModelAdmin):
+    list_display = ['name', 'target_group', 'frequency', 'status', 'next_run', 'last_run', 'total_sent']
+    list_filter = ['status', 'frequency', 'created_at']
+    search_fields = ['name', 'description']
+    readonly_fields = ['created_at', 'updated_at', 'last_run', 'total_sent']
+    
+    fieldsets = (
+        ('Campaign Information', {
+            'fields': ('name', 'description', 'target_group', 'email_template')
+        }),
+        ('Target Link Configuration', {
+            'fields': ('target_link', 'target_link_parameter')
+        }),
+        ('Schedule', {
+            'fields': ('frequency', 'start_date', 'end_date', 'next_run', 'last_run')
+        }),
+        ('Status', {
+            'fields': ('status', 'total_sent')
+        }),
+        ('Metadata', {
+            'fields': ('created_by', 'created_at', 'updated_at')
+        }),
+    )
+
+
+@admin.register(PeriodicCampaignLog)
+class PeriodicCampaignLogAdmin(admin.ModelAdmin):
+    list_display = ['periodic_campaign', 'started_at', 'status', 'recipients_count', 'sent_count', 'failed_count']
+    list_filter = ['status', 'started_at']
+    search_fields = ['periodic_campaign__name', 'error_message']
+    readonly_fields = ['periodic_campaign', 'started_at', 'completed_at', 'status', 'recipients_count', 'sent_count', 'failed_count', 'error_message', 'email_campaign']

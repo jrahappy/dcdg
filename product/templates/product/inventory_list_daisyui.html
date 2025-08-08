@@ -1,0 +1,254 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block dashboard_content %}
+<div class="space-y-4">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold">Inventory Management</h1>
+            <div class="text-sm breadcrumbs">
+                <ul>
+                    <li><a href="{% url 'dashboard:home' %}" class="link link-hover">Dashboard</a></li>
+                    <li>Inventory</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex gap-2">
+            <button class="btn btn-outline btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Export
+            </button>
+            <a href="{% url 'product:inventory_create' %}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Inventory
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Current Inventory Count</div>
+                <div class="stat-value text-primary">{{ current_count|default:0 }}</div>
+                <div class="stat-desc">Available items in stock</div>
+            </div>
+        </div>
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Total Inventory Cost</div>
+                <div class="stat-value text-success">${{ total_cost|default:"0"|floatformat:2 }}</div>
+                <div class="stat-desc">Value of available inventory</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body p-4">
+            <form method="get" class="flex flex-col lg:flex-row gap-4">
+                <div class="form-control flex-1">
+                    <input type="text" name="search" value="{{ search_query }}" 
+                           placeholder="Search by product name, SKU, or serial number..." 
+                           class="input input-bordered" />
+                </div>
+                
+                <select name="status" class="select select-bordered">
+                    <option value="">All Status</option>
+                    <option value="available" {% if status_filter == 'available' %}selected{% endif %}>Available</option>
+                    <option value="reserved" {% if status_filter == 'reserved' %}selected{% endif %}>Reserved</option>
+                    <option value="sold" {% if status_filter == 'sold' %}selected{% endif %}>Sold</option>
+                    <option value="damaged" {% if status_filter == 'damaged' %}selected{% endif %}>Damaged</option>
+                    <option value="in_transit" {% if status_filter == 'in_transit' %}selected{% endif %}>In Transit</option>
+                </select>
+                
+                <select name="location" class="select select-bordered">
+                    <option value="">All Locations</option>
+                    {% for location in locations %}
+                    <option value="{{ location }}" {% if location_filter == location %}selected{% endif %}>{{ location }}</option>
+                    {% endfor %}
+                </select>
+                
+                <button type="submit" class="btn btn-primary">Filter</button>
+                
+                {% if search_query or status_filter or location_filter %}
+                <a href="{% url 'product:inventory_list' %}" class="btn btn-ghost">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Inventory Table -->
+    {% if page_obj %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="overflow-x-auto">
+            <table class="table table-zebra">
+                <thead>
+                    <tr>
+                        <th>
+                            <label>
+                                <input type="checkbox" class="checkbox" />
+                            </label>
+                        </th>
+                        <th>Product</th>
+                        <th>Serial Number</th>
+                        <th>Location</th>
+                        <th>Status</th>
+                        <th>Purchase Order</th>
+                        <th>Warranty</th>
+                        <th>Cost</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in page_obj %}
+                    <tr class="hover">
+                        <th>
+                            <label>
+                                <input type="checkbox" class="checkbox" value="{{ item.id }}" />
+                            </label>
+                        </th>
+                        <td>
+                            <div class="flex items-center space-x-3">
+                                {% if item.product.image %}
+                                <div class="avatar">
+                                    <div class="mask mask-squircle w-12 h-12">
+                                        <img src="{{ item.product.image.url }}" alt="{{ item.product.name }}" />
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="avatar placeholder">
+                                    <div class="bg-neutral text-neutral-content rounded-btn w-12">
+                                        <span>{{ item.product.name.0|upper }}</span>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <div class="font-bold">{{ item.product.name }}</div>
+                                    <div class="text-sm opacity-50">SKU: {{ item.product.sku }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="font-mono text-sm">{{ item.serial_number|default:"-" }}</div>
+                        </td>
+                        <td>
+                            <div class="badge badge-outline">{{ item.current_location|default:"Main Warehouse" }}</div>
+                        </td>
+                        <td>
+                            {% if item.status == 'available' %}
+                                <div class="badge badge-success">Available</div>
+                            {% elif item.status == 'reserved' %}
+                                <div class="badge badge-warning">Reserved</div>
+                            {% elif item.status == 'sold' %}
+                                <div class="badge badge-info">Sold</div>
+                            {% elif item.status == 'damaged' %}
+                                <div class="badge badge-error">Damaged</div>
+                            {% elif item.status == 'in_transit' %}
+                                <div class="badge badge-ghost">In Transit</div>
+                            {% else %}
+                                <div class="badge">{{ item.get_status_display }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.purchase_order_number %}
+                            <span class="font-mono text-sm">PO#{{ item.purchase_order_number }}</span>
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if item.warranty_end_date %}
+                                {% if item.is_under_warranty %}
+                                <div class="text-success">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                                    </svg>
+                                    {{ item.warranty_end_date|date:"M d, Y" }}
+                                </div>
+                                {% else %}
+                                <div class="text-error">
+                                    Expired
+                                </div>
+                                {% endif %}
+                            {% else %}
+                            -
+                            {% endif %}
+                        </td>
+                        <td class="font-semibold">${{ item.unit_cost|floatformat:2 }}</td>
+                        <td>
+                            <div class="dropdown dropdown-end">
+                                <label tabindex="0" class="btn btn-ghost btn-xs">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                    </svg>
+                                </label>
+                                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                    <li><a href="{% url 'product:inventory_detail' item.id %}">View Details</a></li>
+                                    <li><a href="{% url 'product:inventory_update' item.id %}">Edit</a></li>
+                                    <li><a href="#">Transfer Location</a></li>
+                                    <li><a href="#">Update Status</a></li>
+                                    <li><a href="#">Print Label</a></li>
+                                    <div class="divider my-0"></div>
+                                    <li><a href="{% url 'product:inventory_delete' item.id %}" class="text-error">Delete</a></li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body text-center py-16">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto mb-4 text-base-content/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+            </svg>
+            <h3 class="text-xl font-semibold">No inventory items found</h3>
+            <p class="text-base-content/60">Start tracking your inventory</p>
+            <div class="card-actions justify-center mt-4">
+                <a href="{% url 'product:inventory_create' %}" class="btn btn-primary">
+                    Add Inventory Item
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="flex justify-center">
+        <div class="btn-group">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="btn">«</a>
+            {% else %}
+                <button class="btn btn-disabled">«</button>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <button class="btn btn-active">{{ num }}</button>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}" class="btn">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="btn">»</a>
+            {% else %}
+                <button class="btn btn-disabled">»</button>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,139 @@
+{% extends 'customer_portal/base.html' %}
+
+{% block title %}My Chats{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <div class="sm:flex sm:items-center">
+        <div class="sm:flex-auto">
+            <h1 class="text-2xl font-bold text-gray-900">Chat Support</h1>
+            <p class="mt-2 text-sm text-gray-700">
+                {% if user.is_staff %}
+                    Manage customer support chats
+                {% else %}
+                    Get help from our support team
+                {% endif %}
+            </p>
+        </div>
+        {% if not user.is_staff %}
+        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
+            <a href="{% url 'chat:create_chat' %}" class="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                Start New Chat
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% if chat_rooms %}
+<div class="bg-white shadow overflow-hidden sm:rounded-md">
+    <ul role="list" class="divide-y divide-gray-200">
+        {% for chat_room in chat_rooms %}
+        <li>
+            <a href="{% url 'chat:chat_room' chat_room.pk %}" class="block hover:bg-gray-50">
+                <div class="px-4 py-4 sm:px-6">
+                    <div class="flex items-center justify-between">
+                        <div class="flex-1 min-w-0">
+                            <p class="text-sm font-medium text-gray-900 truncate">
+                                {{ chat_room.subject }}
+                            </p>
+                            {% if chat_room.last_message %}
+                            <p class="mt-1 text-sm text-gray-600 truncate">
+                                <span class="font-medium">
+                                    {% if chat_room.last_message.sender %}
+                                        {{ chat_room.last_message.sender.get_full_name }}:
+                                    {% else %}
+                                        System:
+                                    {% endif %}
+                                </span>
+                                {{ chat_room.last_message.content|truncatechars:50 }}
+                            </p>
+                            {% endif %}
+                        </div>
+                        <div class="ml-4 flex items-center">
+                            {% if chat_room.unread_count > 0 %}
+                            <span class="inline-flex items-center justify-center px-2 py-1 mr-2 text-xs font-bold leading-none text-white bg-red-600 rounded-full">
+                                {{ chat_room.unread_count }}
+                            </span>
+                            {% endif %}
+                            <div class="text-sm text-gray-500">
+                                {{ chat_room.updated_at|date:"M d, Y" }}
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-2 flex items-center text-sm text-gray-500">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium
+                            {% if chat_room.status == 'active' %}bg-green-100 text-green-800
+                            {% elif chat_room.status == 'closed' %}bg-gray-100 text-gray-800
+                            {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                            {{ chat_room.get_status_display }}
+                        </span>
+                        {% if user.is_staff %}
+                        <span class="ml-2">
+                            Customer: {{ chat_room.customer.get_full_name }}
+                        </span>
+                        {% elif chat_room.manager %}
+                        <span class="ml-2">
+                            Support: {{ chat_room.manager.get_full_name }}
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </a>
+        </li>
+        {% endfor %}
+    </ul>
+</div>
+
+<!-- Pagination -->
+{% if is_paginated %}
+<nav class="mt-8 flex items-center justify-between px-4 sm:px-0" aria-label="Pagination">
+    <div class="hidden sm:block">
+        <p class="text-sm text-gray-700">
+            Showing <span class="font-medium">{{ page_obj.start_index }}</span> to 
+            <span class="font-medium">{{ page_obj.end_index }}</span> of 
+            <span class="font-medium">{{ paginator.count }}</span> chats
+        </p>
+    </div>
+    <div class="flex flex-1 justify-between sm:justify-end">
+        {% if page_obj.has_previous %}
+        <a href="?page={{ page_obj.previous_page_number }}" class="relative inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-offset-0">
+            Previous
+        </a>
+        {% endif %}
+        {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}" class="relative ml-3 inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-offset-0">
+            Next
+        </a>
+        {% endif %}
+    </div>
+</nav>
+{% endif %}
+
+{% else %}
+<div class="text-center py-12 bg-white rounded-lg shadow">
+    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+    </svg>
+    <h3 class="mt-2 text-sm font-medium text-gray-900">No chats yet</h3>
+    <p class="mt-1 text-sm text-gray-500">
+        {% if user.is_staff %}
+            No customer chats require your attention.
+        {% else %}
+            Start a conversation to get help from our support team.
+        {% endif %}
+    </p>
+    {% if not user.is_staff %}
+    <div class="mt-6">
+        <a href="{% url 'chat:create_chat' %}" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+            <svg class="-ml-0.5 mr-1.5 h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                <path d="M3 4a2 2 0 00-2 2v1.161l8.441 4.221a1.25 1.25 0 001.118 0L19 7.162V6a2 2 0 00-2-2H3z" />
+                <path d="M19 8.839l-7.77 3.885a2.75 2.75 0 01-2.46 0L1 8.839V14a2 2 0 002 2h14a2 2 0 002-2V8.839z" />
+            </svg>
+            Start Your First Chat
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,121 @@
+{% extends "dashboard/base.html" %}
+
+{% block title %}Notes - {{ customer.get_full_name }}{% endblock %}
+
+{% block breadcrumb %}
+<nav class="flex mb-8" aria-label="Breadcrumb">
+    <ol class="inline-flex items-center space-x-1 md:space-x-3">
+        <li class="inline-flex items-center">
+            <a href="{% url 'dashboard:index' %}" class="inline-flex items-center text-sm font-medium text-gray-700 hover:text-gray-900">
+                <svg class="w-3 h-3 mr-2.5" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="m19.707 9.293-2-2-7-7a1 1 0 0 0-1.414 0l-7 7-2 2a1 1 0 0 0 1.414 1.414L2 10.414V18a2 2 0 0 0 2 2h3a1 1 0 0 0 1-1v-4a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v4a1 1 0 0 0 1 1h3a2 2 0 0 0 2-2v-7.586l.293.293a1 1 0 0 0 1.414-1.414Z"/>
+                </svg>
+                Dashboard
+            </a>
+        </li>
+        <li>
+            <div class="flex items-center">
+                <svg class="w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+                </svg>
+                <a href="{% url 'customer:customer_list' %}" class="ml-1 text-sm font-medium text-gray-700 hover:text-gray-900 md:ml-2">Customers</a>
+            </div>
+        </li>
+        <li>
+            <div class="flex items-center">
+                <svg class="w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
+                    <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+                </svg>
+                <a href="{% url 'customer:customer_detail' customer.pk %}" class="ml-1 text-sm font-medium text-gray-700 hover:text-gray-900 md:ml-2">{{ customer.get_full_name }}</a>
+            </div>
+        </li>
+        <li>
+            <div class="flex items-center">
+                <svg class="w-3 h-3 text-gray-400 mx-1" aria-hidden="true" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m1 9 4-4-4-4"/>
+                </svg>
+                <span class="ml-1 text-sm font-medium text-gray-500 md:ml-2">Notes</span>
+            </div>
+        </li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4">
+    <div class="flex justify-between items-center mb-6">
+        <h1 class="text-3xl font-bold text-gray-800">Notes for {{ customer.get_full_name }}</h1>
+        <a href="{% url 'customer:note_create' customer.pk %}" class="btn btn-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            Add Note
+        </a>
+    </div>
+
+    {% if notes %}
+        <div class="space-y-4">
+            {% for note in notes %}
+                <div class="card">
+                    <div class="card-body">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <p class="text-gray-700 whitespace-pre-wrap">{{ note.note }}</p>
+                                <p class="text-sm text-gray-500 mt-2">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4 inline">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                                    </svg>
+                                    {{ note.created_at|date:"F d, Y g:i A" }}
+                                </p>
+                            </div>
+                            <div class="dropdown dropdown-end">
+                                <label tabindex="0" class="btn btn-ghost btn-sm">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 12.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5ZM12 18.75a.75.75 0 1 1 0-1.5.75.75 0 0 1 0 1.5Z" />
+                                    </svg>
+                                </label>
+                                <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
+                                    <li>
+                                        <a href="{% url 'customer:note_delete' customer.pk note.pk %}" class="text-error">
+                                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                                <path stroke-linecap="round" stroke-linejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
+                                            </svg>
+                                            Delete
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+            <div class="flex justify-center mt-8">
+                <div class="join">
+                    {% if page_obj.has_previous %}
+                        <a href="?page={{ page_obj.previous_page_number }}" class="join-item btn">«</a>
+                    {% endif %}
+                    
+                    <button class="join-item btn">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</button>
+                    
+                    {% if page_obj.has_next %}
+                        <a href="?page={{ page_obj.next_page_number }}" class="join-item btn">»</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+        <div class="card">
+            <div class="card-body text-center py-8">
+                <p class="text-gray-500">No notes have been added for this customer yet.</p>
+                <a href="{% url 'customer:note_create' customer.pk %}" class="btn btn-primary mt-4">
+                    Add First Note
+                </a>
+            </div>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

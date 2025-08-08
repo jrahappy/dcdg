@@ -1,0 +1,211 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}{{ category.name }} - Category Details{% endblock %}
+
+{% block dashboard_content %}
+<div class="space-y-4">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold">{{ category.name }}</h1>
+            <div class="text-sm breadcrumbs">
+                <ul>
+                    <li><a href="{% url 'dashboard:home' %}" class="link link-hover">Dashboard</a></li>
+                    <li><a href="{% url 'product:category_list' %}" class="link link-hover">Categories</a></li>
+                    {% for ancestor in ancestors %}
+                    <li><a href="{% url 'product:category_detail' ancestor.pk %}" class="link link-hover">{{ ancestor.name }}</a></li>
+                    {% endfor %}
+                    <li>{{ category.name }}</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex gap-2">
+            <a href="{% url 'product:category_update' category.pk %}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit
+            </a>
+            <a href="{% url 'product:category_delete' category.pk %}" class="btn btn-error">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete
+            </a>
+        </div>
+    </div>
+
+    <!-- Category Info -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title mb-4">Category Information</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="text-sm font-medium text-base-content/60">Name</label>
+                    <p class="font-medium">{{ category.name }}</p>
+                </div>
+                
+                <div>
+                    <label class="text-sm font-medium text-base-content/60">Status</label>
+                    <p>
+                        {% if category.is_active %}
+                        <span class="badge badge-success">Active</span>
+                        {% else %}
+                        <span class="badge badge-ghost">Inactive</span>
+                        {% endif %}
+                    </p>
+                </div>
+                
+                {% if category.parent %}
+                <div>
+                    <label class="text-sm font-medium text-base-content/60">Parent Category</label>
+                    <p>
+                        <a href="{% url 'product:category_detail' category.parent.pk %}" class="link link-primary">
+                            {{ category.parent.name }}
+                        </a>
+                    </p>
+                </div>
+                {% endif %}
+                
+                <div>
+                    <label class="text-sm font-medium text-base-content/60">Display Order</label>
+                    <p>{{ category.order }}</p>
+                </div>
+                
+                {% if category.icon %}
+                <div>
+                    <label class="text-sm font-medium text-base-content/60">Icon</label>
+                    <p><i class="{{ category.icon }} text-2xl"></i> <code class="text-xs">{{ category.icon }}</code></p>
+                </div>
+                {% endif %}
+                
+                {% if category.description %}
+                <div class="md:col-span-2">
+                    <label class="text-sm font-medium text-base-content/60">Description</label>
+                    <p>{{ category.description }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Subcategories -->
+    {% if subcategories %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="card-title">Subcategories</h2>
+                <a href="{% url 'product:category_create' %}?parent={{ category.pk }}" class="btn btn-sm btn-primary">
+                    Add Subcategory
+                </a>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Products</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for subcategory in subcategories %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'product:category_detail' subcategory.pk %}" class="link link-primary">
+                                    {% if subcategory.icon %}
+                                    <i class="{{ subcategory.icon }} mr-2"></i>
+                                    {% endif %}
+                                    {{ subcategory.name }}
+                                </a>
+                            </td>
+                            <td>{{ subcategory.products.count }}</td>
+                            <td>
+                                {% if subcategory.is_active %}
+                                <span class="badge badge-success badge-sm">Active</span>
+                                {% else %}
+                                <span class="badge badge-ghost badge-sm">Inactive</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="flex gap-2">
+                                    <a href="{% url 'product:category_update' subcategory.pk %}" class="btn btn-ghost btn-xs">Edit</a>
+                                    <a href="{% url 'product:category_delete' subcategory.pk %}" class="btn btn-ghost btn-xs text-error">Delete</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Products in Category -->
+    {% if products %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="card-title">Products in This Category</h2>
+                <span class="badge badge-lg">{{ products.count }} product{{ products.count|pluralize }}</span>
+            </div>
+            
+            <div class="overflow-x-auto">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>SKU</th>
+                            <th>Product Name</th>
+                            <th>Brand</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in products %}
+                        <tr>
+                            <td>{{ product.sku }}</td>
+                            <td>
+                                <a href="{% url 'product:product_detail' product.pk %}" class="link link-primary">
+                                    {{ product.name }}
+                                </a>
+                            </td>
+                            <td>{{ product.brand|default:"-" }}</td>
+                            <td>${{ product.price|floatformat:2 }}</td>
+                            <td>{{ product.quantity_in_stock }}</td>
+                            <td>
+                                {% if product.status == 'active' %}
+                                <span class="badge badge-success badge-sm">Active</span>
+                                {% elif product.status == 'discontinued' %}
+                                <span class="badge badge-error badge-sm">Discontinued</span>
+                                {% else %}
+                                <span class="badge badge-warning badge-sm">Out of Stock</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'product:product_update' product.pk %}" class="btn btn-ghost btn-xs">Edit</a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body text-center">
+            <p class="text-base-content/60">No products in this category yet.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

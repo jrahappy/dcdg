@@ -1,0 +1,424 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% load breadcrumbs %}
+
+{% block page_title %}Inventory Item: {{ inventory.serial_number }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="h-full flex flex-col bg-white">
+    <!-- Breadcrumb -->
+    <div class="px-4 py-2 border-b border-gray-200 bg-gray-50">
+        <nav class="flex items-center space-x-2 text-sm">
+            {% breadcrumb "Dashboard" "dashboard:home" "Inventory" "product:inventory_list" inventory.serial_number %}
+        </nav>
+    </div>
+    
+    <!-- Header -->
+    <div class="border-b border-gray-200 bg-white px-6 py-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <button onclick="window.location.href='{% url 'product:inventory_list' %}'" class="mr-4 text-gray-600 hover:text-gray-900">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h1 class="text-2xl font-semibold text-gray-900">{{ inventory.serial_number }}</h1>
+                <span class="ml-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium 
+                    {% if inventory.status == 'available' %}bg-green-100 text-green-800
+                    {% elif inventory.status == 'sold' %}bg-blue-100 text-blue-800
+                    {% elif inventory.status == 'reserved' %}bg-yellow-100 text-yellow-800
+                    {% elif inventory.status == 'returned' %}bg-indigo-100 text-indigo-800
+                    {% elif inventory.status == 'defective' %}bg-red-100 text-red-800
+                    {% elif inventory.status == 'in_repair' %}bg-orange-100 text-orange-800
+                    {% elif inventory.status == 'lost' %}bg-gray-100 text-gray-800
+                    {% elif inventory.status == 'disposed' %}bg-gray-100 text-gray-600
+                    {% endif %}">
+                    {{ inventory.get_status_display }}
+                </span>
+                <span class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium 
+                    {% if inventory.warranty_status == 'active' %}bg-green-100 text-green-800
+                    {% elif inventory.warranty_status == 'expired' %}bg-red-100 text-red-800
+                    {% elif inventory.warranty_status == 'extended' %}bg-blue-100 text-blue-800
+                    {% elif inventory.warranty_status == 'void' %}bg-gray-100 text-gray-600
+                    {% else %}bg-gray-50 text-gray-600
+                    {% endif %}">
+                    {% if inventory.warranty_status == 'active' %}<i class="fas fa-shield-alt mr-1"></i>{% endif %}
+                    {{ inventory.get_warranty_status_display }}
+                </span>
+            </div>
+            <div class="flex gap-2">
+                {% if inventory.status == 'available' %}
+                <button class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
+                    <i class="fas fa-shopping-cart mr-2"></i>
+                    Sell Item
+                </button>
+                {% endif %}
+                {% if inventory.status in 'available,reserved' %}
+                <button class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    <i class="fas fa-user-tag mr-2"></i>
+                    Reserve
+                </button>
+                {% endif %}
+                <button onclick="window.print()" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200">
+                    <i class="fas fa-print mr-2"></i>
+                    Print Label
+                </button>
+                <button onclick="window.location.href='{% url 'product:inventory_update' inventory.pk %}'" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    <i class="fas fa-edit mr-2"></i>
+                    Edit
+                </button>
+                <button onclick="showDeleteModal({{ inventory.id }}, '{{ inventory.serial_number|escapejs }}')" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200">
+                    <i class="fas fa-trash mr-2"></i>
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto p-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Basic Information -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Basic Information</h2>
+                        </div>
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Product</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">
+                                        <a href="{% url 'product:product_detail' inventory.product.pk %}" class="text-blue-600 hover:text-blue-800">
+                                            {{ inventory.product.name }}
+                                        </a>
+                                        <br><span class="text-xs text-gray-500">SKU: {{ inventory.product.sku }}</span>
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Serial Number</dt>
+                                    <dd class="mt-1 text-sm text-gray-900 font-mono">{{ inventory.serial_number }}</dd>
+                                </div>
+                                {% if inventory.batch_number %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Batch Number</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ inventory.batch_number }}</dd>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Condition</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ inventory.condition|default:"Not specified" }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Current Location</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ inventory.current_location|default:"Not specified" }}</dd>
+                                </div>
+                                {% if inventory.assigned_to %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Assigned To</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ inventory.assigned_to }}</dd>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Purchase Information -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Purchase Information</h2>
+                        </div>
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                {% if inventory.purchase_date %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Purchase Date</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ inventory.purchase_date|date:"F d, Y" }}</dd>
+                                </div>
+                                {% endif %}
+                                {% if inventory.purchase_price %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Purchase Price</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">${{ inventory.purchase_price|floatformat:2 }}</dd>
+                                </div>
+                                {% endif %}
+                                {% if inventory.supplier %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Supplier</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ inventory.supplier }}</dd>
+                                </div>
+                                {% endif %}
+                                {% if inventory.purchase_order_number %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Purchase Order</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">
+                                        {% if purchase_order %}
+                                            <a href="{% url 'purchases:purchase_order_detail' purchase_order.pk %}" class="text-blue-600 hover:text-blue-800">
+                                                <i class="fas fa-file-invoice mr-1"></i>{{ inventory.purchase_order_number }}
+                                            </a>
+                                        {% else %}
+                                            {{ inventory.purchase_order_number }}
+                                        {% endif %}
+                                    </dd>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Sale Information -->
+                    {% if inventory.customer %}
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Sale Information</h2>
+                        </div>
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Customer</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">
+                                        <a href="{% url 'customer:customer_detail' inventory.customer.pk %}" class="text-blue-600 hover:text-blue-800">
+                                            {{ inventory.customer.get_full_name }}
+                                        </a>
+                                    </dd>
+                                </div>
+                                {% if inventory.sale_date %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Sale Date</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ inventory.sale_date|date:"F d, Y" }}</dd>
+                                </div>
+                                {% endif %}
+                                {% if inventory.sale_price %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Sale Price</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">${{ inventory.sale_price|floatformat:2 }}</dd>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Related Invoices -->
+                    {% if invoice_items %}
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Related Invoices</h2>
+                        </div>
+                        <div class="p-6">
+                            <div class="space-y-3">
+                                {% for item in invoice_items %}
+                                <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                    <div>
+                                        <a href="{% url 'sales:invoice_detail' item.invoice.pk %}" class="text-blue-600 hover:text-blue-800 font-medium">
+                                            <i class="fas fa-file-invoice mr-1"></i>{{ item.invoice.invoice_number }}
+                                        </a>
+                                        <div class="text-sm text-gray-600 mt-1">
+                                            Date: {{ item.invoice.invoice_date|date:"F d, Y" }} • 
+                                            Customer: {{ item.invoice.customer.get_full_name }}
+                                        </div>
+                                    </div>
+                                    <div class="text-right">
+                                        <div class="text-sm font-medium text-gray-900">${{ item.unit_price|floatformat:2 }}</div>
+                                        <div class="text-xs text-gray-500">Qty: {{ item.quantity|floatformat:"-2" }}</div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Service History -->
+                    {% if inventory.service_history or inventory.last_service_date or inventory.next_service_date %}
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Service & Maintenance</h2>
+                        </div>
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                                {% if inventory.last_service_date %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Last Service Date</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ inventory.last_service_date|date:"F d, Y" }}</dd>
+                                </div>
+                                {% endif %}
+                                {% if inventory.next_service_date %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Next Service Date</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ inventory.next_service_date|date:"F d, Y" }}</dd>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% if inventory.service_history %}
+                            <div>
+                                <dt class="text-sm font-medium text-gray-500 mb-2">Service History</dt>
+                                <dd class="text-sm text-gray-700 whitespace-pre-wrap">{{ inventory.service_history }}</dd>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Notes -->
+                    {% if inventory.notes %}
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Notes</h2>
+                        </div>
+                        <div class="p-6">
+                            <div class="text-sm text-gray-700 whitespace-pre-wrap">{{ inventory.notes }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="space-y-6">
+                    <!-- Warranty Information -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Warranty Information</h2>
+                        </div>
+                        <div class="p-6">
+                            <div class="space-y-4">
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Status</dt>
+                                    <dd class="mt-1">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                            {% if inventory.warranty_status == 'active' %}bg-green-100 text-green-800
+                                            {% elif inventory.warranty_status == 'expired' %}bg-red-100 text-red-800
+                                            {% elif inventory.warranty_status == 'extended' %}bg-blue-100 text-blue-800
+                                            {% elif inventory.warranty_status == 'void' %}bg-gray-100 text-gray-600
+                                            {% else %}bg-gray-50 text-gray-600
+                                            {% endif %}">
+                                            {{ inventory.get_warranty_status_display }}
+                                        </span>
+                                    </dd>
+                                </div>
+                                {% if inventory.warranty_start_date %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Start Date</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ inventory.warranty_start_date|date:"F d, Y" }}</dd>
+                                </div>
+                                {% endif %}
+                                {% if inventory.warranty_end_date %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">End Date</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ inventory.warranty_end_date|date:"F d, Y" }}</dd>
+                                </div>
+                                {% endif %}
+                                {% if inventory.is_under_warranty and inventory.warranty_days_remaining %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Days Remaining</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ inventory.warranty_days_remaining }} days</dd>
+                                </div>
+                                {% endif %}
+                                {% if inventory.warranty_provider %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Provider</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ inventory.warranty_provider }}</dd>
+                                </div>
+                                {% endif %}
+                                {% if inventory.warranty_terms %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Terms</dt>
+                                    <dd class="mt-1 text-sm text-gray-700 text-xs">{{ inventory.warranty_terms|truncatewords:20 }}</dd>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Tracking Information -->
+                    {% if inventory.barcode or inventory.qr_code %}
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Tracking Information</h2>
+                        </div>
+                        <div class="p-6">
+                            <div class="space-y-4">
+                                {% if inventory.barcode %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Barcode</dt>
+                                    <dd class="mt-1 text-sm text-gray-900 font-mono">{{ inventory.barcode }}</dd>
+                                </div>
+                                {% endif %}
+                                {% if inventory.qr_code %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">QR Code</dt>
+                                    <dd class="mt-1 text-sm text-gray-900 font-mono">{{ inventory.qr_code }}</dd>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Record Information -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Record Information</h2>
+                        </div>
+                        <div class="p-6">
+                            <div class="space-y-4">
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Created By</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ inventory.created_by.get_full_name|default:"System" }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Created At</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ inventory.created_at|date:"F d, Y g:i A" }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Last Updated</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ inventory.updated_at|date:"F d, Y g:i A" }}</dd>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div id="deleteModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div class="p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Delete Inventory Item</h2>
+                <p class="text-gray-600 mb-6">Are you sure you want to delete inventory item <strong id="itemSerial"></strong>? This action cannot be undone.</p>
+                <div class="flex justify-end gap-3">
+                    <button onclick="closeDeleteModal()" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors duration-200">
+                        Cancel
+                    </button>
+                    <form method="POST" id="deleteForm" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200">
+                            Delete Item
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showDeleteModal(itemId, serialNumber) {
+    const modal = document.getElementById('deleteModal');
+    const form = document.getElementById('deleteForm');
+    const serialElement = document.getElementById('itemSerial');
+    
+    form.action = `{% url 'product:inventory_delete' 0 %}`.replace('0', itemId);
+
+    console.log(`Setting form action to: ${form.action}`);
+    serialElement.textContent = serialNumber;
+    modal.classList.remove('hidden');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+}
+</script>
+{% endblock %}

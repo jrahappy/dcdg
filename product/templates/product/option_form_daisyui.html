@@ -1,0 +1,247 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs mb-6">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </a></li>
+            <li><a href="{% url 'product:option_list' %}">Product Options</a></li>
+            {% if option %}
+                <li><a href="{% url 'product:option_detail' option.pk %}">{{ option.name }}</a></li>
+                <li>Edit</li>
+            {% else %}
+                <li>Create</li>
+            {% endif %}
+        </ul>
+    </div>
+
+    <!-- Header Card -->
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div class="flex-1">
+                    <h1 class="text-3xl font-bold">{{ title }}</h1>
+                    <p class="text-base-content/60 mt-2">
+                        Create product options that can be assigned to products for customization
+                    </p>
+                </div>
+                <a href="{% url 'product:option_list' %}" class="btn btn-ghost btn-square">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Option Information -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Option Information
+                </h2>
+                
+                <div class="space-y-4">
+                    <div class="form-control">
+                        <label class="label" for="name">
+                            <span class="label-text font-semibold">Name <span class="text-error">*</span></span>
+                        </label>
+                        <input type="text" id="name" name="name" required
+                               value="{% if option %}{{ option.name }}{% endif %}"
+                               class="input input-bordered w-full"
+                               placeholder="e.g., Color, Size, Material">
+                        <label class="label">
+                            <span class="label-text-alt">The name of the option type</span>
+                        </label>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label" for="description">
+                            <span class="label-text font-semibold">Description</span>
+                        </label>
+                        <textarea id="description" name="description" rows="3"
+                                  class="textarea textarea-bordered w-full"
+                                  placeholder="Optional description for this option">{% if option %}{{ option.description }}{% endif %}</textarea>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <input type="checkbox" name="is_active" class="checkbox checkbox-primary"
+                                   {% if option %}{% if option.is_active %}checked{% endif %}{% else %}checked{% endif %}>
+                            <span class="label-text ml-3">Active</span>
+                        </label>
+                        <label class="label">
+                            <span class="label-text-alt">Active options can be assigned to products</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Option Items -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        Option Items
+                    </h2>
+                    <button type="button" onclick="addItemRow()" class="btn btn-success btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Item
+                    </button>
+                </div>
+                
+                <div id="itemsContainer" class="space-y-3">
+                    {% if items %}
+                        {% for item in items %}
+                        <div class="item-row flex flex-col sm:flex-row gap-3">
+                            <input type="hidden" name="existing_item_id[]" value="{{ item.pk }}">
+                            <div class="flex-1">
+                                <input type="text" name="item_value[]" value="{{ item.value }}" required
+                                       class="input input-bordered w-full"
+                                       placeholder="Item value">
+                            </div>
+                            <div class="w-full sm:w-32">
+                                <input type="number" name="item_ordering[]" value="{{ item.ordering }}"
+                                       class="input input-bordered w-full"
+                                       placeholder="Order">
+                            </div>
+                            <div class="form-control">
+                                <label class="label cursor-pointer">
+                                    <input type="checkbox" name="item_active[]" value="{{ item.pk }}"
+                                           {% if item.is_active %}checked{% endif %}
+                                           class="checkbox checkbox-primary">
+                                    <span class="label-text ml-2">Active</span>
+                                </label>
+                            </div>
+                            <button type="button" onclick="removeItemRow(this)" 
+                                    class="btn btn-ghost btn-square text-error">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="item-row flex flex-col sm:flex-row gap-3">
+                            <div class="flex-1">
+                                <input type="text" name="item_value[]" 
+                                       class="input input-bordered w-full"
+                                       placeholder="Item value (e.g., Red, Large)">
+                            </div>
+                            <div class="w-full sm:w-32">
+                                <input type="number" name="item_ordering[]" value="0"
+                                       class="input input-bordered w-full"
+                                       placeholder="Order">
+                            </div>
+                            <button type="button" onclick="removeItemRow(this)" 
+                                    class="btn btn-ghost btn-square text-error">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Container for new items -->
+                <div id="newItemsContainer" class="space-y-3"></div>
+                
+                <div class="alert alert-info mt-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div class="text-sm">
+                        Add individual option values that will be available for selection (e.g., for Color: Red, Blue, Green)
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <a href="{% if option %}{% url 'product:option_detail' option.pk %}{% else %}{% url 'product:option_list' %}{% endif %}" 
+                       class="btn btn-ghost">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {{ button_text }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+function addItemRow() {
+    const container = document.getElementById('newItemsContainer');
+    const itemRow = document.createElement('div');
+    itemRow.className = 'item-row flex flex-col sm:flex-row gap-3';
+    itemRow.innerHTML = `
+        <div class="flex-1">
+            <input type="text" name="new_item_value[]" 
+                   class="input input-bordered w-full"
+                   placeholder="Item value">
+        </div>
+        <div class="w-full sm:w-32">
+            <input type="number" name="new_item_ordering[]" value="0"
+                   class="input input-bordered w-full"
+                   placeholder="Order">
+        </div>
+        <button type="button" onclick="removeItemRow(this)" 
+                class="btn btn-ghost btn-square text-error">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+        </button>
+    `;
+    container.appendChild(itemRow);
+    
+    // Focus on the new input
+    itemRow.querySelector('input[type="text"]').focus();
+}
+
+function removeItemRow(button) {
+    const row = button.closest('.item-row');
+    const container = row.parentElement;
+    
+    // Don't remove if it's the last row and it's in the main container
+    if (container.id === 'itemsContainer' && container.querySelectorAll('.item-row').length === 1) {
+        // Just clear the input instead
+        const inputs = row.querySelectorAll('input[type="text"], input[type="number"]');
+        inputs.forEach(input => input.value = '');
+        return;
+    }
+    
+    row.remove();
+}
+</script>
+{% endblock %}

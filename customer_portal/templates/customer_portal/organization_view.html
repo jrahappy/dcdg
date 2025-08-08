@@ -1,0 +1,119 @@
+{% extends 'customer_portal/base.html' %}
+
+{% block title %}Organization - {{ organization.name }}{% endblock %}
+
+{% block customer_content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold">{{ organization.name }}</h1>
+        <div class="text-sm breadcrumbs">
+            <ul>
+                <li><a href="{% url 'customer_portal:dashboard' %}">Dashboard</a></li>
+                <li>Organization</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Organization Details Card -->
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <h2 class="card-title mb-4">Organization Information</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="label">
+                        <span class="label-text font-semibold">Organization Type</span>
+                    </label>
+                    <p>{{ organization.get_organization_type_display }}</p>
+                </div>
+                
+                {% if organization.tax_id %}
+                <div>
+                    <label class="label">
+                        <span class="label-text font-semibold">Tax ID</span>
+                    </label>
+                    <p>{{ organization.tax_id }}</p>
+                </div>
+                {% endif %}
+                
+                {% if organization.website %}
+                <div>
+                    <label class="label">
+                        <span class="label-text font-semibold">Website</span>
+                    </label>
+                    <p><a href="{{ organization.website }}" target="_blank" class="link link-primary">{{ organization.website }}</a></p>
+                </div>
+                {% endif %}
+                
+                {% if organization.email %}
+                <div>
+                    <label class="label">
+                        <span class="label-text font-semibold">Email</span>
+                    </label>
+                    <p>{{ organization.email }}</p>
+                </div>
+                {% endif %}
+                
+                {% if organization.phone %}
+                <div>
+                    <label class="label">
+                        <span class="label-text font-semibold">Phone</span>
+                    </label>
+                    <p>{{ organization.phone }}</p>
+                </div>
+                {% endif %}
+                
+                {% if organization.full_address %}
+                <div class="md:col-span-2">
+                    <label class="label">
+                        <span class="label-text font-semibold">Address</span>
+                    </label>
+                    <p>{{ organization.full_address }}</p>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="mt-4">
+                <p class="text-sm text-base-content/60">
+                    Your role: <span class="badge badge-primary">{{ customer.get_role_display }}</span>
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Members Card -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title mb-4">Organization Members</h2>
+            
+            <div class="overflow-x-auto">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Joined</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for member in members %}
+                        <tr>
+                            <td>{{ member.get_full_name }}</td>
+                            <td>{{ member.email }}</td>
+                            <td>
+                                <span class="badge {% if member.role == 'owner' %}badge-error{% elif member.role == 'admin' %}badge-warning{% else %}badge-ghost{% endif %}">
+                                    {{ member.get_role_display }}
+                                </span>
+                            </td>
+                            <td>{{ member.date_joined|date:"M d, Y" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

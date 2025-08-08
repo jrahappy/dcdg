@@ -1,596 +1,233 @@
-{% extends 'dashboard/base.html' %}
+{% extends 'dashboard/base_daisyui.html' %}
 
-{% block page_title %}Edit Target Group{% endblock %}
+{% block title %}Edit {{ target_group.name }} - Target Group{% endblock %}
 
 {% block dashboard_content %}
-<div class="gmail-list-container">
+<div class="max-w-6xl mx-auto">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs mb-6">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+            <li><a href="{% url 'email_campaign:target_group_list' %}">Target Groups</a></li>
+            <li><a href="{% url 'email_campaign:target_group_detail' target_group.pk %}">{{ target_group.name }}</a></li>
+            <li>Edit</li>
+        </ul>
+    </div>
+    
     <!-- Header -->
-    <div class="gmail-toolbar">
-        <div class="toolbar-left">
-            <button class="toolbar-btn" onclick="window.history.back()">
-                <i class="fas fa-arrow-left"></i>
-            </button>
-            <h2 class="toolbar-title">Edit Target Group</h2>
-        </div>
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold">Edit Target Group</h1>
+        <p class="text-base-content/60 mt-2">Update target group information and manage customers</p>
     </div>
 
     <!-- Form -->
-    <div class="detail-container">
-        <form method="POST" id="edit-form">
-            {% csrf_token %}
-            
-            <!-- Target Group Header -->
-            <div class="detail-header">
-                <div class="detail-avatar">
-                    <div class="avatar-circle-large">
-                        <i class="fas fa-users"></i>
+    <form method="POST" id="edit-form" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Target Group Header -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex items-center gap-4">
+                    <div class="avatar placeholder">
+                        <div class="bg-primary text-primary-content rounded-full w-16">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                        </div>
                     </div>
-                </div>
-                <div class="detail-header-info">
-                    <h1 class="detail-name">{{ target_group.name }}</h1>
-                    {% if target_group.description %}
-                        <p class="detail-company">{{ target_group.description }}</p>
-                    {% endif %}
-                    <div class="detail-status">
-                        <span class="status-badge customers">
-                            <i class="fas fa-users"></i> {{ target_group.customer_count }} customer{{ target_group.customer_count|pluralize }}
-                        </span>
-                        {% if target_group.is_active %}
-                            <span class="status-badge active">Active</span>
-                        {% else %}
-                            <span class="status-badge inactive">Inactive</span>
+                    <div class="flex-1">
+                        <h2 class="text-2xl font-bold">{{ target_group.name }}</h2>
+                        {% if target_group.description %}
+                            <p class="text-base-content/60 mt-1">{{ target_group.description }}</p>
                         {% endif %}
+                        <div class="flex items-center gap-2 mt-2">
+                            <div class="badge badge-outline gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 515.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                                <span id="current-count">{{ target_group.customer_count }}</span> customers
+                            </div>
+                            {% if target_group.is_active %}
+                                <div class="badge badge-success">Active</div>
+                            {% else %}
+                                <div class="badge badge-error">Inactive</div>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
             </div>
+        </div>
             
-            <div class="detail-sections">
-                <!-- Basic Information -->
-                <div class="detail-section">
-                    <h3 class="section-title">Basic Information</h3>
+        <!-- Basic Information -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Basic Information</h2>
                 
-                    <div class="detail-grid">
-                        <div class="form-group full-width">
-                            <label for="name">Target Group Name *</label>
-                            <input type="text" 
-                                   id="name" 
-                                   name="name" 
-                                   class="form-control" 
-                                   value="{{ target_group.name }}"
-                                   placeholder="e.g., Seattle Medical Clinics Q1 2024"
-                                   required>
-                        </div>
-                        
-                        <div class="form-group full-width">
-                            <label for="description">Description</label>
-                            <textarea id="description" 
-                                      name="description" 
-                                      class="form-control" 
-                                      rows="4"
-                                      placeholder="Describe the purpose or criteria for this target group...">{{ target_group.description }}</textarea>
-                        </div>
+                <div class="space-y-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Target Group Name <span class="text-error">*</span></span>
+                        </label>
+                        <input type="text" 
+                               id="name" 
+                               name="name" 
+                               class="input input-bordered" 
+                               value="{{ target_group.name }}"
+                               placeholder="e.g., Seattle Medical Clinics Q1 2024"
+                               required>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Description</span>
+                        </label>
+                        <textarea id="description" 
+                                  name="description" 
+                                  class="textarea textarea-bordered h-24" 
+                                  placeholder="Describe the purpose or criteria for this target group...">{{ target_group.description }}</textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+                
+        <!-- Customer Selection -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Customer Selection</h2>
+                <p class="text-base-content/60 mb-4">Select customers to include in this target group</p>
+                
+                <div class="flex justify-between items-center gap-4 mb-4">
+                    <div class="flex-1">
+                        <input type="text" 
+                               id="customer-search" 
+                               class="input input-bordered w-full" 
+                               placeholder="Search customers by name, email, or company...">
+                    </div>
+                    <div class="badge badge-primary badge-lg">
+                        <span id="selected-count">{{ current_customer_ids|length }}</span> customers selected
                     </div>
                 </div>
                 
-                <!-- Customer Selection -->
-                <div class="detail-section">
-                    <h3 class="section-title">Customer Selection</h3>
-                    <p class="section-description">Select customers to include in this target group</p>
-                    
-                    <div class="customer-controls">
-                        <div class="search-box">
-                            <input type="text" 
-                                   id="customer-search" 
-                                   class="form-control" 
-                                   placeholder="Search customers by name, email, or company...">
-                        </div>
-                        <div class="selection-info">
-                            <span id="selected-count">{{ current_customer_ids|length }}</span> customers selected
+                <div class="border border-base-300 rounded-lg overflow-hidden">
+                    <div class="bg-base-200 p-3 border-b border-base-300">
+                        <div class="btn-group">
+                            <button type="button" class="btn btn-sm btn-ghost" onclick="selectAll()">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Select All
+                            </button>
+                            <button type="button" class="btn btn-sm btn-ghost" onclick="selectNone()">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                Deselect All
+                            </button>
+                            <button type="button" class="btn btn-sm btn-ghost" onclick="toggleSelection()">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+                                </svg>
+                                Toggle Selection
+                            </button>
                         </div>
                     </div>
-                    
-                    <div class="customer-selection">
-                        <div class="selection-actions">
-                            <button type="button" class="btn btn-sm btn-secondary" onclick="selectAll()">
-                                <i class="fas fa-check-square"></i> Select All
-                            </button>
-                            <button type="button" class="btn btn-sm btn-secondary" onclick="selectNone()">
-                                <i class="fas fa-square"></i> Deselect All
-                            </button>
-                            <button type="button" class="btn btn-sm btn-secondary" onclick="toggleSelection()">
-                                <i class="fas fa-exchange-alt"></i> Toggle Selection
-                            </button>
-                        </div>
                         
-                        <div class="customer-list">
-                            {% for customer in all_customers %}
-                            <div class="customer-item" data-search="{{ customer.get_full_name|lower }} {{ customer.email|lower }} {{ customer.company_name|lower }}" data-customer-id="{{ customer.id }}">
-                                <label class="customer-label">
-                                    <input type="checkbox" 
-                                           name="customers" 
-                                           value="{{ customer.id }}"
-                                           {% if customer.id in current_customer_ids %}checked{% endif %}
-                                           onchange="updateCount()">
-                                    <div class="customer-info">
-                                        <strong>{{ customer.get_full_name }}</strong>
-                                        {% if customer.company_name %}
-                                            <span class="company">{{ customer.company_name }}</span>
-                                        {% endif %}
-                                        <span class="email">{{ customer.email }}</span>
+                    <div class="max-h-96 overflow-y-auto">
+                        {% for customer in all_customers %}
+                        <div class="customer-item flex items-center gap-3 p-3 border-b border-base-300 hover:bg-base-200" data-search="{{ customer.get_full_name|lower }} {{ customer.email|lower }} {{ customer.company_name|lower }}" data-customer-id="{{ customer.id }}">
+                            <label class="flex items-center gap-3 flex-1 cursor-pointer">
+                                <input type="checkbox" 
+                                       name="customers" 
+                                       value="{{ customer.id }}"
+                                       {% if customer.id in current_customer_ids %}checked{% endif %}
+                                       onchange="updateCount()"
+                                       class="checkbox checkbox-primary">
+                                <div class="avatar placeholder">
+                                    <div class="bg-primary text-primary-content rounded-full w-10">
+                                        <span class="text-sm">{{ customer.first_name.0|upper }}{{ customer.last_name.0|upper }}</span>
+                                    </div>
+                                </div>
+                                <div class="flex-1 grid grid-cols-1 md:grid-cols-4 gap-2">
+                                    <div class="font-medium">{{ customer.get_full_name }}</div>
+                                    <div class="text-primary text-sm">{{ customer.company_name|default:"—" }}</div>
+                                    <div class="text-base-content/60 text-sm">{{ customer.email }}</div>
+                                    <div class="text-base-content/60 text-sm">
                                         {% if customer.city %}
-                                            <span class="location">{{ customer.city }}, {{ customer.state|default:"" }}</span>
+                                            {{ customer.city }}, {{ customer.state|default:"" }}
+                                        {% else %}
+                                            —
                                         {% endif %}
                                     </div>
-                                </label>
-                                <button type="button" 
-                                        class="btn btn-sm btn-danger kick-out-btn" 
-                                        onclick="kickOutCustomer(this, {{ customer.id }})"
-                                        title="Remove from group">
-                                    <i class="fas fa-user-times"></i> Remove
-                                </button>
-                            </div>
-                            {% endfor %}
+                                </div>
+                            </label>
+                            <button type="button" 
+                                    class="btn btn-sm btn-error btn-outline" 
+                                    onclick="kickOutCustomer(this, {{ customer.id }})"
+                                    title="Remove from group">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                </svg>
+                                Remove
+                            </button>
                         </div>
+                        {% endfor %}
                     </div>
                 </div>
+            </div>
+        </div>
                 
-                <!-- Group Information -->
-                <div class="detail-section">
-                    <h3 class="section-title">Group Information</h3>
-                    
-                    <div class="detail-grid">
-                        <div class="detail-item">
-                            <label>Current Customers</label>
-                            <div class="detail-value">{{ target_group.customer_count }}</div>
-                        </div>
-                        <div class="detail-item">
-                            <label>Created At</label>
-                            <div class="detail-value">{{ target_group.created_at|date:"F d, Y g:i A" }}</div>
-                        </div>
-                        <div class="detail-item">
-                            <label>Last Updated</label>
-                            <div class="detail-value">{{ target_group.updated_at|date:"F d, Y g:i A" }}</div>
-                        </div>
-                        <div class="detail-item">
-                            <label>Created By</label>
-                            <div class="detail-value">{{ target_group.created_by.get_full_name|default:target_group.created_by.username }}</div>
-                        </div>
+        <!-- Group Information -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Group Information</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="label">
+                            <span class="label-text font-semibold">Current Customers</span>
+                        </label>
+                        <p class="text-lg">{{ target_group.customer_count }}</p>
+                    </div>
+                    <div>
+                        <label class="label">
+                            <span class="label-text font-semibold">Created At</span>
+                        </label>
+                        <p>{{ target_group.created_at|date:"F d, Y g:i A" }}</p>
+                    </div>
+                    <div>
+                        <label class="label">
+                            <span class="label-text font-semibold">Last Updated</span>
+                        </label>
+                        <p>{{ target_group.updated_at|date:"F d, Y g:i A" }}</p>
+                    </div>
+                    <div>
+                        <label class="label">
+                            <span class="label-text font-semibold">Created By</span>
+                        </label>
+                        <p>{{ target_group.created_by.get_full_name|default:target_group.created_by.username }}</p>
                     </div>
                 </div>
             </div>
-            
-            <!-- Form Actions at Bottom -->
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i>
-                    Save Changes
-                </button>
-                <button type="button" class="btn btn-secondary" onclick="window.history.back()">
-                    Cancel
-                </button>
-            </div>
-        </form>
-    </div>
+        </div>
+        
+        <!-- Form Actions -->
+        <div class="flex justify-end gap-3">
+            <button type="button" class="btn btn-ghost" onclick="window.history.back()">
+                Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Save Changes
+            </button>
+        </div>
+    </form>
 </div>
 
 <style>
-.toolbar-left {
-    display: flex;
-    align-items: center;
-    flex-direction: row;
-    gap: 4px;
-}
-
-.toolbar-btn {
-    width: 40px;
-    height: 40px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: background-color 0.2s;
-    color: #5f6368;
-}
-
-.toolbar-btn:hover {
-    background-color: rgba(60, 64, 67, 0.08);
-}
-
-.toolbar-title {
-    font-size: 20px;
-    font-weight: 500;
-    color: #202124;
-    margin: 0 0 0 16px;
-}
-
-.detail-container {
-    max-width: 1000px;
-    margin: 0 auto;
-    padding: 24px;
-}
-
-.detail-header {
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    padding: 24px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    margin-bottom: 24px;
-}
-
-.detail-avatar {
-    flex-shrink: 0;
-}
-
-.avatar-circle-large {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background-color: #4285f4;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32px;
-    font-weight: 500;
-}
-
-.detail-header-info {
-    flex: 1;
-}
-
-.detail-name {
-    font-size: 28px;
-    font-weight: 400;
-    color: #202124;
-    margin: 0 0 4px;
-}
-
-.detail-company {
-    font-size: 16px;
-    color: #5f6368;
-    margin: 0 0 12px;
-}
-
-.detail-status {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-
-.status-badge {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.status-badge.customers {
-    background-color: #e8f0fe;
-    color: #1a73e8;
-}
-
-.status-badge.active {
-    background-color: #e6f4ea;
-    color: #1e8e3e;
-}
-
-.status-badge.inactive {
-    background-color: #f1f3f4;
-    color: #5f6368;
-}
-
-.detail-sections {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-
-.detail-section {
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    padding: 24px;
-}
-
-.section-title {
-    font-size: 18px;
-    font-weight: 500;
-    color: #202124;
-    margin: 0 0 20px;
-}
-
-.section-description {
-    color: #5f6368;
-    margin-bottom: 20px;
-    font-size: 14px;
-}
-
-.detail-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.form-group.full-width {
-    grid-column: 1 / -1;
-}
-
-.form-group label {
-    font-size: 14px;
-    font-weight: 500;
-    color: #5f6368;
-}
-
-.detail-item {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.detail-item label {
-    font-size: 14px;
-    font-weight: 500;
-    color: #5f6368;
-}
-
-.detail-value {
-    font-size: 14px;
-    color: #202124;
-}
-
-.form-control {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #dadce0;
-    border-radius: 4px;
-    font-size: 14px;
-    color: #202124;
-    transition: border-color 0.2s;
-}
-
-.form-control:focus {
-    outline: none;
-    border-color: #1a73e8;
-    box-shadow: 0 0 0 2px rgba(26,115,232,0.1);
-}
-
-textarea.form-control {
-    min-height: 100px;
-    resize: vertical;
-}
-
-.customer-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    gap: 20px;
-}
-
-.search-box {
-    flex: 1;
-}
-
-.selection-info {
-    background-color: #1a73e8;
-    color: white;
-    padding: 8px 16px;
-    border-radius: 12px;
-    font-weight: 500;
-    font-size: 14px;
-}
-
-#selected-count {
-    font-weight: 600;
-}
-
-.customer-selection {
-    border: 1px solid #dadce0;
-    border-radius: 8px;
-    overflow: hidden;
-    background: #fff;
-}
-
-.selection-actions {
-    background-color: #f8f9fa;
-    padding: 12px;
-    border-bottom: 1px solid #e0e0e0;
-    display: flex;
-    gap: 8px;
-}
-
-.customer-list {
-    max-height: 400px;
-    overflow-y: auto;
-}
-
-.customer-item {
-    display: flex;
-    align-items: center;
-    border-bottom: 1px solid #f1f3f4;
-    transition: background-color 0.2s;
-}
-
-.customer-item:hover {
-    background-color: #f8f9fa;
-}
-
-.customer-item:last-child {
-    border-bottom: none;
-}
-
 .customer-item.hidden {
-    display: none;
-}
-
-.customer-label {
-    display: flex;
-    align-items: center;
-    padding: 12px 16px;
-    cursor: pointer;
-    margin: 0;
-    flex: 1;
-}
-
-.customer-label input[type="checkbox"] {
-    margin-right: 12px;
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-    accent-color: #1a73e8;
-}
-
-.customer-info {
-    flex: 1;
-    display: grid;
-    grid-template-columns: minmax(150px, 1fr) minmax(150px, 1fr) minmax(200px, 1fr) auto;
-    gap: 12px;
-    align-items: center;
-}
-
-.customer-info strong {
-    color: #202124;
-    font-weight: 500;
-}
-
-.customer-info .company {
-    color: #1a73e8;
-    font-weight: 400;
-}
-
-.customer-info .email {
-    color: #5f6368;
-    font-size: 13px;
-}
-
-.customer-info .location {
-    color: #5f6368;
-    font-size: 13px;
-}
-
-.kick-out-btn {
-    margin: 0 12px;
-    background-color: #d33b27;
-    color: white;
-    white-space: nowrap;
-    border: none;
-    padding: 6px 12px;
-    border-radius: 4px;
-    font-size: 13px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-}
-
-.kick-out-btn:hover {
-    background-color: #b92d21;
-}
-
-.form-actions {
-    margin-top: 24px;
-    padding: 24px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-}
-
-.btn {
-    padding: 10px 24px;
-    border: none;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-}
-
-.btn-primary {
-    background-color: #1a73e8;
-    color: #fff;
-}
-
-.btn-primary:hover {
-    background-color: #1557b0;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-}
-
-.btn-secondary {
-    background-color: #fff;
-    color: #5f6368;
-    border: 1px solid #dadce0;
-}
-
-.btn-secondary:hover {
-    background-color: #f8f9fa;
-    border-color: #5f6368;
-}
-
-.btn-sm {
-    padding: 6px 12px;
-    font-size: 13px;
-}
-
-.btn-danger {
-    background-color: #d33b27;
-    color: white;
-}
-
-.btn-danger:hover {
-    background-color: #b92d21;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-    .detail-header {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    .detail-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .customer-controls {
-        flex-direction: column;
-        align-items: stretch;
-    }
-    
-    .customer-info {
-        grid-template-columns: 1fr;
-        gap: 4px;
-    }
-    
-    .selection-actions {
-        flex-wrap: wrap;
-    }
-    
-    .form-actions {
-        flex-direction: column-reverse;
-    }
-    
-    .btn {
-        width: 100%;
-        justify-content: center;
-    }
+    display: none !important;
 }
 </style>
 

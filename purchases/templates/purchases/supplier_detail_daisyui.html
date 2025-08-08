@@ -1,0 +1,443 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}{{ supplier.name }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="space-y-6">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </a></li>
+            <li><a href="{% url 'purchases:supplier_list' %}">Suppliers</a></li>
+            <li>{{ supplier.name }}</li>
+        </ul>
+    </div>
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <h1 class="text-3xl font-bold">{{ supplier.name }}</h1>
+            {% if supplier.is_active %}
+                <div class="badge badge-success">Active</div>
+            {% else %}
+                <div class="badge badge-ghost">Inactive</div>
+            {% endif %}
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'purchases:purchase_order_create_step1' %}?supplier={{ supplier.pk }}" class="btn btn-success">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                New Order
+            </a>
+            <a href="{% url 'purchases:supplier_update' supplier.pk %}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit
+            </a>
+            <button onclick="document.getElementById('delete_modal').showModal()" class="btn btn-error">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Basic Information -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Basic Information
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <div class="text-sm text-base-content/60">Company Name</div>
+                            <div class="font-medium">{{ supplier.name }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-base-content/60">Contact Person</div>
+                            <div class="font-medium">{{ supplier.contact_person|default:"Not specified" }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-base-content/60">Email</div>
+                            <div class="font-medium">
+                                {% if supplier.email %}
+                                    <a href="mailto:{{ supplier.email }}" class="link link-primary">{{ supplier.email }}</a>
+                                {% else %}
+                                    Not specified
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-base-content/60">Phone</div>
+                            <div class="font-medium">
+                                {% if supplier.phone %}
+                                    <a href="tel:{{ supplier.phone }}" class="link link-primary">{{ supplier.phone }}</a>
+                                {% else %}
+                                    Not specified
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Address -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Address
+                    </h2>
+                    <address class="not-italic mt-4">
+                        {% if supplier.address_line1 or supplier.address_line2 or supplier.city or supplier.state %}
+                            {{ supplier.address_line1 }}<br>
+                            {% if supplier.address_line2 %}{{ supplier.address_line2 }}<br>{% endif %}
+                            {{ supplier.city }}{% if supplier.city and supplier.state %}, {% endif %}{{ supplier.state }} {{ supplier.postal_code }}<br>
+                            {{ supplier.get_country_display }}
+                        {% else %}
+                            <span class="text-base-content/60">No address specified</span>
+                        {% endif %}
+                    </address>
+                </div>
+            </div>
+
+            <!-- Recent Purchase Orders -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <div class="flex items-center justify-between">
+                        <h2 class="card-title">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                            </svg>
+                            Recent Purchase Orders
+                        </h2>
+                        <a href="{% url 'purchases:purchase_order_list' %}?supplier={{ supplier.pk }}" class="link link-primary text-sm">
+                            View all
+                        </a>
+                    </div>
+                    <div class="divide-y divide-base-200 mt-4">
+                        {% for order in recent_orders %}
+                        <a href="{% url 'purchases:purchase_order_detail' order.pk %}" class="block py-3 hover:bg-base-200/50 transition-colors -mx-3 px-3 rounded">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <div class="font-medium">{{ order.order_number }}</div>
+                                    <div class="text-sm text-base-content/60">{{ order.order_date|date:"F d, Y" }}</div>
+                                </div>
+                                <div class="text-right">
+                                    <div class="font-semibold">${{ order.total_amount|floatformat:2 }}</div>
+                                    {% if order.status == 'draft' %}
+                                        <div class="badge badge-ghost badge-sm">Draft</div>
+                                    {% elif order.status == 'sent' %}
+                                        <div class="badge badge-info badge-sm">Sent</div>
+                                    {% elif order.status == 'confirmed' %}
+                                        <div class="badge badge-secondary badge-sm">Confirmed</div>
+                                    {% elif order.status == 'partially_received' %}
+                                        <div class="badge badge-warning badge-sm">Partially Received</div>
+                                    {% elif order.status == 'received' %}
+                                        <div class="badge badge-success badge-sm">Received</div>
+                                    {% elif order.status == 'cancelled' %}
+                                        <div class="badge badge-error badge-sm">Cancelled</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </a>
+                        {% empty %}
+                        <div class="py-8 text-center text-base-content/60">
+                            No purchase orders yet
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Internal Notes -->
+            {% if supplier.internal_notes %}
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Internal Notes
+                    </h2>
+                    <div class="whitespace-pre-wrap mt-4">{{ supplier.internal_notes }}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="space-y-6">
+            <!-- Statistics -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                        </svg>
+                        Statistics
+                    </h2>
+                    <div class="stats stats-vertical shadow mt-4">
+                        <div class="stat">
+                            <div class="stat-title">Total Orders</div>
+                            <div class="stat-value text-primary">{{ supplier.purchase_orders.count }}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-title">Total Purchase Value</div>
+                            <div class="stat-value text-success">${{ total_purchase_value|floatformat:2 }}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-title">Pending Orders</div>
+                            <div class="stat-value text-warning">{{ pending_orders_count }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contacts -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <div class="flex items-center justify-between">
+                        <h2 class="card-title">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            Contacts
+                        </h2>
+                        <button onclick="document.getElementById('contact_modal').showModal()" class="btn btn-ghost btn-xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add
+                        </button>
+                    </div>
+                    <div id="contactsList" class="space-y-2 mt-4">
+                        {% if supplier.contacts.exists %}
+                            {% for contact in supplier.contacts.all %}
+                            <div class="card bg-base-200 relative group" id="contact-{{ contact.id }}">
+                                <button onclick="deleteContact({{ contact.id }})" class="btn btn-ghost btn-xs btn-circle absolute top-2 right-2 opacity-0 group-hover:opacity-100">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                </button>
+                                <div class="card-body p-3">
+                                    <div class="font-semibold">{{ contact.name }}</div>
+                                    {% if contact.position %}<div class="text-xs text-base-content/60">{{ contact.position }}</div>{% endif %}
+                                    {% if contact.email %}<div class="text-sm">{{ contact.email }}</div>{% endif %}
+                                    {% if contact.phone %}<div class="text-sm">{{ contact.phone }}</div>{% endif %}
+                                    {% if contact.notes %}<div class="text-xs text-base-content/60 mt-1">{{ contact.notes }}</div>{% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p id="noContactsMessage" class="text-base-content/60">No additional contacts</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Record Information -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        Record Information
+                    </h2>
+                    <div class="space-y-3 mt-4">
+                        <div>
+                            <div class="text-sm text-base-content/60">Created By</div>
+                            <div class="font-medium">{{ supplier.created_by.get_full_name|default:"System" }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-base-content/60">Created At</div>
+                            <div class="font-medium">{{ supplier.created_at|date:"F d, Y g:i A" }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-base-content/60">Last Updated</div>
+                            <div class="font-medium">{{ supplier.updated_at|date:"F d, Y g:i A" }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<dialog id="delete_modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Delete Supplier</h3>
+        <p class="py-4">Are you sure you want to delete supplier <strong>{{ supplier.name }}</strong>? This action cannot be undone.</p>
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Cancel</button>
+            </form>
+            <form method="POST" action="{% url 'purchases:supplier_delete' supplier.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-error">Delete Supplier</button>
+            </form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<!-- Add Contact Modal -->
+<dialog id="contact_modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Add Contact</h3>
+        <form id="contactForm" class="mt-4">
+            <div class="space-y-4">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Name <span class="text-error">*</span></span>
+                    </label>
+                    <input type="text" id="contactName" required class="input input-bordered">
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Position</span>
+                    </label>
+                    <input type="text" id="contactPosition" class="input input-bordered">
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Email</span>
+                    </label>
+                    <input type="email" id="contactEmail" class="input input-bordered">
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Phone</span>
+                    </label>
+                    <input type="text" id="contactPhone" class="input input-bordered">
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Notes</span>
+                    </label>
+                    <textarea id="contactNotes" rows="2" class="textarea textarea-bordered"></textarea>
+                </div>
+            </div>
+            <div class="modal-action">
+                <button type="button" onclick="document.getElementById('contact_modal').close()" class="btn">Cancel</button>
+                <button type="submit" class="btn btn-primary">Add Contact</button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<script>
+// Add contact form submission
+document.getElementById('contactForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    
+    const data = {
+        name: document.getElementById('contactName').value,
+        position: document.getElementById('contactPosition').value,
+        email: document.getElementById('contactEmail').value,
+        phone: document.getElementById('contactPhone').value,
+        notes: document.getElementById('contactNotes').value
+    };
+    
+    try {
+        const response = await fetch(`{% url 'purchases:supplier_contact_add' supplier.pk %}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            // Add the new contact to the list
+            const contactsList = document.getElementById('contactsList');
+            const noContactsMessage = document.getElementById('noContactsMessage');
+            
+            if (noContactsMessage) {
+                noContactsMessage.remove();
+            }
+            
+            const contactHtml = `
+                <div class="card bg-base-200 relative group" id="contact-${result.contact.id}">
+                    <button onclick="deleteContact(${result.contact.id})" class="btn btn-ghost btn-xs btn-circle absolute top-2 right-2 opacity-0 group-hover:opacity-100">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                    <div class="card-body p-3">
+                        <div class="font-semibold">${result.contact.name}</div>
+                        ${result.contact.position ? `<div class="text-xs text-base-content/60">${result.contact.position}</div>` : ''}
+                        ${result.contact.email ? `<div class="text-sm">${result.contact.email}</div>` : ''}
+                        ${result.contact.phone ? `<div class="text-sm">${result.contact.phone}</div>` : ''}
+                        ${result.contact.notes ? `<div class="text-xs text-base-content/60 mt-1">${result.contact.notes}</div>` : ''}
+                    </div>
+                </div>
+            `;
+            
+            contactsList.insertAdjacentHTML('beforeend', contactHtml);
+            document.getElementById('contact_modal').close();
+            document.getElementById('contactForm').reset();
+        } else {
+            alert('Error adding contact: ' + (result.error || 'Unknown error'));
+        }
+    } catch (error) {
+        alert('Error adding contact: ' + error.message);
+    }
+});
+
+async function deleteContact(contactId) {
+    if (!confirm('Are you sure you want to delete this contact?')) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`{% url 'purchases:supplier_contact_delete' supplier.pk 0 %}`.replace('0', contactId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}'
+            }
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            document.getElementById(`contact-${contactId}`).remove();
+            
+            // Check if there are no more contacts
+            const contactsList = document.getElementById('contactsList');
+            if (contactsList.children.length === 0) {
+                contactsList.innerHTML = '<p id="noContactsMessage" class="text-base-content/60">No additional contacts</p>';
+            }
+        } else {
+            alert('Error deleting contact');
+        }
+    } catch (error) {
+        alert('Error deleting contact: ' + error.message);
+    }
+}
+</script>
+{% endblock %}

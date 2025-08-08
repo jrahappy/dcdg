@@ -1,0 +1,371 @@
+{% extends 'shop/base.html' %}
+{% load static %}
+
+{% block title %}{{ product.name }} - Shop{% endblock %}
+
+{% block content %}
+<div class="bg-white">
+    <div class="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12 lg:max-w-7xl lg:px-8">
+        <!-- Breadcrumb -->
+        <nav aria-label="Breadcrumb">
+            <ol role="list" class="mx-auto flex max-w-2xl items-center space-x-2 px-4 sm:px-6 lg:max-w-7xl lg:px-0">
+                <li>
+                    <div class="flex items-center">
+                        <a href="{% url 'shop:product_list' %}" class="mr-2 text-sm font-medium text-gray-900">Products</a>
+                        <svg width="16" height="20" viewBox="0 0 16 20" fill="currentColor" aria-hidden="true" class="h-5 w-4 text-gray-300">
+                            <path d="M5.697 4.34L8.98 16.532h1.327L7.025 4.341H5.697z" />
+                        </svg>
+                    </div>
+                </li>
+                {% if product.category %}
+                <li>
+                    <div class="flex items-center">
+                        <a href="{% url 'shop:product_list' %}?category={{ product.category.id }}" class="mr-2 text-sm font-medium text-gray-900">{{ product.category.name }}</a>
+                        <svg width="16" height="20" viewBox="0 0 16 20" fill="currentColor" aria-hidden="true" class="h-5 w-4 text-gray-300">
+                            <path d="M5.697 4.34L8.98 16.532h1.327L7.025 4.341H5.697z" />
+                        </svg>
+                    </div>
+                </li>
+                {% endif %}
+                <li class="text-sm">
+                    <span class="font-medium text-gray-500">{{ product.name }}</span>
+                </li>
+            </ol>
+        </nav>
+
+        <!-- Product - 2 Column Layout -->
+        <div class="mx-auto mt-6 lg:grid lg:grid-cols-2 lg:gap-x-8">
+            <!-- Left Column - Images -->
+            <div class="flex flex-col gap-4" x-data="{ selectedImage: 0 }">
+                <!-- Main Image Display -->
+                <div class="aspect-h-1 aspect-w-1 overflow-hidden rounded-lg bg-gray-200 relative">
+                    {% if product.main_image or product.images.exists %}
+                        <!-- Main product image -->
+                        <img x-show="selectedImage === 0" 
+                             {% if product.main_image %}
+                             src="{{ product.main_image.url }}" 
+                             {% else %}
+                             src="{{ product.images.first.image.url }}"
+                             {% endif %}
+                             alt="{{ product.name }}" 
+                             class="h-full w-full object-cover object-center">
+                        
+                        <!-- Additional images -->
+                        {% for image in product.images.all %}
+                        <img x-show="selectedImage === {{ forloop.counter }}" 
+                             src="{{ image.image.url }}" 
+                             alt="{{ image.caption|default:product.name }}" 
+                             class="h-full w-full object-cover object-center"
+                             style="display: none;">
+                        {% endfor %}
+                    {% else %}
+                    <div class="h-full w-full flex items-center justify-center bg-gray-200">
+                        <svg class="h-24 w-24 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Thumbnail Images Grid -->
+                {% if product.main_image or product.images.exists %}
+                <div class="grid grid-cols-4 gap-2">
+                    <!-- Main image thumbnail -->
+                    {% if product.main_image %}
+                    <button @click="selectedImage = 0" 
+                            :class="selectedImage === 0 ? 'ring-2 ring-indigo-500' : 'ring-1 ring-gray-200'"
+                            class="relative aspect-h-1 aspect-w-1 overflow-hidden rounded-lg bg-gray-100 hover:opacity-75 transition-opacity">
+                        <img src="{{ product.main_image.url }}" 
+                             alt="{{ product.name }}" 
+                             class="h-full w-full object-cover object-center">
+                    </button>
+                    {% endif %}
+                    
+                    <!-- Additional image thumbnails -->
+                    {% for image in product.images.all %}
+                    <button @click="selectedImage = {{ forloop.counter }}" 
+                            :class="selectedImage === {{ forloop.counter }} ? 'ring-2 ring-indigo-500' : 'ring-1 ring-gray-200'"
+                            class="relative aspect-h-1 aspect-w-1 overflow-hidden rounded-lg bg-gray-100 hover:opacity-75 transition-opacity">
+                        <img src="{{ image.image.url }}" 
+                             alt="{{ image.caption|default:product.name }}" 
+                             class="h-full w-full object-cover object-center">
+                    </button>
+                    {% endfor %}
+                </div>
+                {% endif %}
+                
+                <!-- Image Navigation Dots (for mobile) -->
+                {% if product.images.count > 0 %}
+                <div class="flex justify-center gap-2 lg:hidden">
+                    <button @click="selectedImage = 0" 
+                            :class="selectedImage === 0 ? 'bg-indigo-600' : 'bg-gray-300'"
+                            class="h-2 w-2 rounded-full transition-colors"></button>
+                    {% for image in product.images.all %}
+                    <button @click="selectedImage = {{ forloop.counter }}" 
+                            :class="selectedImage === {{ forloop.counter }} ? 'bg-indigo-600' : 'bg-gray-300'"
+                            class="h-2 w-2 rounded-full transition-colors"></button>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Right Column - Product Info -->
+            <div class="mt-4 px-4 sm:mt-8 sm:px-0 lg:mt-0">
+                <h1 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">{{ product.name }}</h1>
+                
+                <div class="mt-3">
+                    <h2 class="sr-only">Product information</h2>
+                    <p class="text-3xl tracking-tight text-gray-900">${{ product.price|floatformat:2 }}</p>
+                </div>
+
+                <!-- Reviews -->
+                <div class="mt-3">
+                    <h3 class="sr-only">Reviews</h3>
+                    <div class="flex items-center">
+                        <div class="flex items-center">
+                            {% for i in "12345" %}
+                            <svg class="h-5 w-5 flex-shrink-0 text-gray-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401z" clip-rule="evenodd" />
+                            </svg>
+                            {% endfor %}
+                        </div>
+                        <p class="sr-only">0 out of 5 stars</p>
+                    </div>
+                </div>
+
+                <!-- SKU and Stock -->
+                <div class="mt-4 space-y-2">
+                    {% if product.sku %}
+                    <p class="text-sm text-gray-500">SKU: {{ product.sku }}</p>
+                    {% endif %}
+                    <p class="text-sm {% if product.quantity_in_stock > 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                        {% if product.quantity_in_stock > 0 %}
+                            In Stock ({{ product.quantity_in_stock }} available)
+                        {% else %}
+                            Out of Stock
+                        {% endif %}
+                    </p>
+                </div>
+
+                <form class="mt-6" onsubmit="event.preventDefault(); addToCartFromDetail();">
+                    <!-- Product Options -->
+                    {% if product_options %}
+                    <div class="space-y-4">
+                        {% for option_data in product_options %}
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-900 mb-3">{{ option_data.name }}</h3>
+                            <div class="flex flex-wrap gap-2" id="option-{{ option_data.name|slugify }}">
+                                {% for item in option_data.items %}
+                                <button type="button" 
+                                        onclick="selectOption('{{ option_data.name }}', '{{ item.value }}')"
+                                        data-option-name="{{ option_data.name }}"
+                                        data-option-value="{{ item.value }}"
+                                        class="option-button px-4 py-2 border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors">
+                                    {{ item.value }}
+                                </button>
+                                {% endfor %}
+                            </div>
+                            <input type="hidden" id="selected-{{ option_data.name|slugify }}" name="option_{{ option_data.name|slugify }}" value="">
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Quantity -->
+                    <div class="mt-6">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-sm font-medium text-gray-900">Quantity</h3>
+                        </div>
+
+                        <div class="mt-4">
+                            <select id="quantity" name="quantity" class="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6">
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5</option>
+                                <option value="6">6</option>
+                                <option value="7">7</option>
+                                <option value="8">8</option>
+                                <option value="9">9</option>
+                                <option value="10">10</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="mt-6 flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-8 py-3 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                        Add to cart
+                    </button>
+                </form>
+
+                <!-- Product highlights -->
+                {% if product.feature_list %}
+                <div class="mt-6">
+                    <h3 class="text-sm font-medium text-gray-900">Highlights</h3>
+                    <div class="mt-4">
+                        <ul role="list" class="list-disc space-y-2 pl-4 text-sm">
+                            {% for feature in product.feature_list %}
+                            <li class="text-gray-400"><span class="text-gray-600">{{ feature }}</span></li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Product Description Section - Full Width Below -->
+        <div class="mt-10 border-t border-gray-200 pt-10">
+            <!-- Description -->
+            <div>
+                <h3 class="text-lg font-medium text-gray-900">Description</h3>
+                <div class="mt-4 space-y-6">
+                    <p class="text-base text-gray-600">{{ product.short_description }}</p>
+                </div>
+            </div>
+
+            <!-- Details -->
+            {% if product.long_description %}
+            <div class="mt-8">
+                <h3 class="text-lg font-medium text-gray-900">Details</h3>
+                <div class="mt-4 space-y-4">
+                    <div class="text-sm text-gray-600">{{ product.long_description|linebreaks }}</div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Specifications -->
+            {% if product.specifications %}
+            <div class="mt-8">
+                <h3 class="text-lg font-medium text-gray-900">Specifications</h3>
+                <div class="mt-4">
+                    <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
+                        {% for key, value in product.specifications.items %}
+                        <div class="border-b border-gray-200 pb-4">
+                            <dt class="text-sm font-medium text-gray-500">{{ key }}</dt>
+                            <dd class="mt-1 text-sm text-gray-900">{{ value }}</dd>
+                        </div>
+                        {% endfor %}
+                    </dl>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Related products -->
+        {% if related_products %}
+        <section aria-labelledby="related-products-heading" class="mt-16 border-t border-gray-200 pt-16">
+            <h2 id="related-products-heading" class="text-2xl font-bold tracking-tight text-gray-900">Customers also purchased</h2>
+
+            <div class="mt-6 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8">
+                {% for related in related_products %}
+                <div class="group relative">
+                    <div class="relative h-64 w-full overflow-hidden rounded-lg bg-gray-200 group-hover:opacity-75">
+                        {% if related.main_image %}
+                        <img src="{{ related.main_image.url }}" alt="{{ related.name }}" class="h-full w-full object-cover object-center">
+                        {% else %}
+                        <div class="h-full w-full flex items-center justify-center">
+                            <svg class="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                        </div>
+                        {% endif %}
+                    </div>
+                    <div class="mt-4 flex justify-between">
+                        <div>
+                            <h3 class="text-sm text-gray-700">
+                                <a href="{% url 'shop:product_detail' related.pk %}">
+                                    <span aria-hidden="true" class="absolute inset-0"></span>
+                                    {{ related.name }}
+                                </a>
+                            </h3>
+                            <p class="mt-1 text-sm text-gray-500">{{ related.category.name|default:"" }}</p>
+                        </div>
+                        <p class="text-sm font-medium text-gray-900">${{ related.price|floatformat:2 }}</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Store selected options
+let selectedOptions = {};
+
+function selectOption(optionName, optionValue) {
+    // Update selected options
+    selectedOptions[optionName] = optionValue;
+    
+    // Update hidden input
+    const hiddenInput = document.getElementById(`selected-${optionName.toLowerCase().replace(/\s+/g, '-')}`);
+    if (hiddenInput) {
+        hiddenInput.value = optionValue;
+    }
+    
+    // Update button styles
+    const container = document.getElementById(`option-${optionName.toLowerCase().replace(/\s+/g, '-')}`);
+    if (container) {
+        // Remove selected class from all buttons in this option group
+        container.querySelectorAll('.option-button').forEach(btn => {
+            btn.classList.remove('border-indigo-600', 'bg-indigo-50', 'text-indigo-600');
+            btn.classList.add('border-gray-300', 'text-gray-700');
+        });
+        
+        // Add selected class to clicked button
+        const selectedButton = container.querySelector(`[data-option-value="${optionValue}"]`);
+        if (selectedButton) {
+            selectedButton.classList.remove('border-gray-300', 'text-gray-700');
+            selectedButton.classList.add('border-indigo-600', 'bg-indigo-50', 'text-indigo-600');
+        }
+    }
+}
+
+function addToCartFromDetail() {
+    const quantity = document.getElementById('quantity').value;
+    const productId = {{ product.pk }};
+    
+    // Prepare the body with options
+    let bodyParams = `quantity=${quantity}`;
+    
+    // Add selected options as JSON
+    if (Object.keys(selectedOptions).length > 0) {
+        bodyParams += `&selected_options=${encodeURIComponent(JSON.stringify(selectedOptions))}`;
+    }
+    
+    fetch(`/shop/cart/add/${productId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: bodyParams
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update cart counter
+            document.getElementById('cart-count').textContent = data.cart_total_items;
+            // Show success message
+            showNotification(data.message, 'success');
+        } else {
+            showNotification(data.error || 'Failed to add to cart', 'error');
+        }
+    })
+    .catch(error => {
+        showNotification('An error occurred', 'error');
+    });
+}
+</script>
+
+<style>
+.option-button {
+    transition: all 0.2s ease;
+}
+.option-button:hover {
+    transform: translateY(-1px);
+}
+</style>
+{% endblock %}

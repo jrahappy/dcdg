@@ -1,0 +1,160 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}Organizations - Admin{% endblock %}
+
+{% block dashboard_content %}
+<div class="space-y-4">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold">Organizations</h1>
+            <div class="text-sm breadcrumbs">
+                <ul>
+                    <li><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+                    <li>Organizations</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex gap-2">
+            <a href="{% url 'account-organization' %}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                My Organization
+            </a>
+            <a href="{% url 'customer:organization_create' %}" class="btn btn-outline">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add New Organization
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body p-4">
+            <form method="get" class="flex flex-col lg:flex-row gap-4">
+                <div class="form-control flex-1">
+                    <input type="text" name="search" value="{{ search_query }}" 
+                           placeholder="Search by name, email, or tax ID..." 
+                           class="input input-bordered" />
+                </div>
+                
+                <select name="type" class="select select-bordered">
+                    <option value="">All Types</option>
+                    {% for value, label in organization_types %}
+                    <option value="{{ value }}" {% if selected_type == value %}selected{% endif %}>
+                        {{ label }}
+                    </option>
+                    {% endfor %}
+                </select>
+                
+                <select name="status" class="select select-bordered">
+                    <option value="">All Status</option>
+                    <option value="active" {% if selected_status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if selected_status == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+                
+                <button type="submit" class="btn btn-primary">Search</button>
+                
+                {% if search_query or selected_type or selected_status %}
+                <a href="{% url 'customer:organization_list' %}" class="btn btn-ghost">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Organizations Table -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="overflow-x-auto">
+            <table class="table table-zebra">
+                <thead>
+                    <tr>
+                        <th>Organization</th>
+                        <th>Type</th>
+                        <th>Contact</th>
+                        <th>Members</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for organization in organizations %}
+                    <tr class="hover">
+                        <td>
+                            <div>
+                                <div class="font-bold">{{ organization.name }}</div>
+                                {% if organization.tax_id %}
+                                <div class="text-sm opacity-50">Tax ID: {{ organization.tax_id }}</div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="badge badge-ghost">{{ organization.get_organization_type_display }}</div>
+                        </td>
+                        <td>
+                            <div class="text-sm">
+                                {% if organization.email %}
+                                <div>{{ organization.email }}</div>
+                                {% endif %}
+                                {% if organization.phone %}
+                                <div class="opacity-50">{{ organization.phone }}</div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="badge badge-primary">{{ organization.member_count }}</div>
+                        </td>
+                        <td>
+                            {% if organization.is_active %}
+                            <div class="badge badge-success">Active</div>
+                            {% else %}
+                            <div class="badge badge-error">Inactive</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="text-sm">{{ organization.created_at|date:"M d, Y" }}</div>
+                        </td>
+                        <td>
+                            <div class="dropdown dropdown-end">
+                                <label tabindex="0" class="btn btn-ghost btn-xs">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                    </svg>
+                                </label>
+                                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                    <li><a href="{% url 'customer:organization_detail' organization.pk %}">View Details</a></li>
+                                    <li><a href="{% url 'customer:organization_update' organization.pk %}">Edit</a></li>
+                                    <li><a href="{% url 'customer:organization_add_member' organization.pk %}">Add Member</a></li>
+                                    <div class="divider my-0"></div>
+                                    <li><a href="{% url 'customer:organization_delete' organization.pk %}" class="text-error">Delete</a></li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="7" class="text-center">
+                            <div class="py-8">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                </svg>
+                                <p class="text-lg font-semibold">No organizations found</p>
+                                <p class="text-sm text-base-content/60 mb-4">Get started by creating your first organization</p>
+                                <a href="{% url 'customer:organization_create' %}" class="btn btn-primary">
+                                    Create Organization
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

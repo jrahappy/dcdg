@@ -1,0 +1,97 @@
+{% extends 'dashboard/base.html' %}
+{% load breadcrumbs %}
+
+{% block title %}Receive Items - {{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+    <!-- Breadcrumb -->
+    <div class="mb-4">
+        {% breadcrumb "Dashboard" "dashboard:dashboard" "Purchase Orders" "purchases:purchase_order_list" order.order_number "purchases:purchase_order_detail" order.pk "Receive Items" %}
+    </div>
+
+    <!-- Page Header -->
+    <div class="mb-4">
+        <h1 class="h3 mb-0">Receive Items for {{ order.order_number }}</h1>
+        <p class="text-muted">{{ order.supplier_name }}</p>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-bottom">
+                <h5 class="mb-0">Items to Receive</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Product</th>
+                                <th>Description</th>
+                                <th>Ordered</th>
+                                <th>Already Received</th>
+                                <th>Pending</th>
+                                <th>Receive Now</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in order.items.all %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'product:product_detail' item.product.pk %}" class="text-decoration-none">
+                                        {{ item.product.name }}
+                                    </a>
+                                    {% if item.product.is_serial_number_managed %}
+                                    <br><small class="text-info"><i class="fas fa-barcode"></i> Serial Number Managed</small>
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.description }}</td>
+                                <td>{{ item.quantity|floatformat:"-2" }}</td>
+                                <td>
+                                    {{ item.quantity_received|floatformat:"-2" }}
+                                    {% if item.is_fully_received %}
+                                    <span class="text-success"><i class="fas fa-check"></i></span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ item.quantity_pending|floatformat:"-2" }}</td>
+                                <td>
+                                    {% if not item.is_fully_received %}
+                                    <input type="number" 
+                                           name="received_{{ item.id }}" 
+                                           class="form-control" 
+                                           min="0" 
+                                           max="{{ item.quantity_pending }}"
+                                           step="0.01"
+                                           value="0"
+                                           {% if item.is_fully_received %}disabled{% endif %}>
+                                    {% else %}
+                                    <span class="text-muted">Fully received</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <i class="fas fa-info-circle"></i> 
+                    Enter the quantity you are receiving for each item. For products with serial number management, 
+                    you'll be able to create inventory items after receiving.
+                </div>
+            </div>
+        </div>
+        
+        <div class="d-flex justify-content-end gap-2">
+            <a href="{% url 'purchases:purchase_order_detail' order.pk %}" class="btn btn-secondary">
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-success">
+                <i class="fas fa-check mr-2"></i>Receive Items
+            </button>
+        </div>
+    </form>
+</div>
+{% endblock %}

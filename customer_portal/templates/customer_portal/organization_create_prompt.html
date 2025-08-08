@@ -1,0 +1,108 @@
+{% extends 'customer_portal/base.html' %}
+
+{% block title %}Organization - Setup{% endblock %}
+
+{% block customer_content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold">Organization Setup</h1>
+        <div class="text-sm breadcrumbs">
+            <ul>
+                <li><a href="{% url 'customer_portal:dashboard' %}">Dashboard</a></li>
+                <li>Organization</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- No Organization Card -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body text-center py-12">
+            <div class="flex justify-center mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 text-base-content/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+            </div>
+            
+            <h2 class="text-xl font-semibold mb-2">You're not part of an organization yet</h2>
+            <p class="text-base-content/60 mb-6 max-w-md mx-auto">
+                Organizations allow multiple users from the same company to share customer data, orders, and collaborate efficiently.
+            </p>
+            
+            <div class="card-actions justify-center">
+                <a href="{% url 'customer_portal:organization_create' %}" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Create Organization
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Benefits Card -->
+    <div class="card bg-base-100 shadow-xl mt-6">
+        <div class="card-body">
+            <h3 class="card-title mb-4">Benefits of Creating an Organization</h3>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div class="flex gap-3">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold">Team Collaboration</h4>
+                        <p class="text-sm text-base-content/60">Invite team members to share access to orders and customer data</p>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 rounded-full bg-success/10 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold">Centralized Management</h4>
+                        <p class="text-sm text-base-content/60">Manage all organization data from one central location</p>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 rounded-full bg-warning/10 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold">Role-Based Access</h4>
+                        <p class="text-sm text-base-content/60">Control who can view and manage different aspects of your account</p>
+                    </div>
+                </div>
+                
+                <div class="flex gap-3">
+                    <div class="flex-shrink-0">
+                        <div class="w-10 h-10 rounded-full bg-info/10 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 class="font-semibold">Shared History</h4>
+                        <p class="text-sm text-base-content/60">View complete order history and customer interactions</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

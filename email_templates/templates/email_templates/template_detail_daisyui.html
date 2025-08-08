@@ -1,0 +1,383 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}{{ template.title }} - Email Template{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs mb-6">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </a></li>
+            <li><a href="{% url 'email_templates:template_list' %}">Email Templates</a></li>
+            <li>{{ template.title }}</li>
+        </ul>
+    </div>
+
+    <!-- Header with Actions -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold">{{ template.title }}</h1>
+            <p class="text-base-content/60 mt-1">{{ template.subject }}</p>
+            <div class="flex items-center gap-2 mt-2">
+                {% if template.status == 'active' %}
+                    <div class="badge badge-success">Active</div>
+                {% elif template.status == 'draft' %}
+                    <div class="badge badge-warning">Draft</div>
+                {% else %}
+                    <div class="badge badge-ghost">Archived</div>
+                {% endif %}
+                
+                <div class="badge badge-outline">
+                    {% if template.content_type == 'html' %}
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
+                        </svg>
+                        HTML
+                    {% elif template.content_type == 'plain' %}
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Plain Text
+                    {% else %}
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+                        </svg>
+                        Both
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'email_templates:template_preview' template.pk %}" target="_blank" class="btn btn-outline">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                Preview
+            </a>
+            <a href="{% url 'email_templates:template_edit' template.pk %}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit
+            </a>
+            <div class="dropdown dropdown-end">
+                <div tabindex="0" role="button" class="btn btn-ghost">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                    </svg>
+                </div>
+                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                    <li>
+                        <button onclick="duplicateModal.showModal()">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                            </svg>
+                            Duplicate
+                        </button>
+                    </li>
+                    <div class="divider my-0"></div>
+                    <li>
+                        <button onclick="deleteModal.showModal()" class="text-error">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete
+                        </button>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Content Preview -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        Email Content
+                    </h2>
+                    
+                    {% if template.has_html_content %}
+                    <div class="tabs tabs-boxed mb-4" role="tablist">
+                        <input type="radio" name="content_tab" role="tab" class="tab" aria-label="HTML" {% if template.content_type != 'plain' %}checked{% endif %} />
+                        <div role="tabpanel" class="tab-content pt-4">
+                            <div class="mockup-window border bg-base-300">
+                                <div class="flex justify-center px-4 py-2 bg-base-200">
+                                    <div class="text-sm">HTML Preview</div>
+                                </div>
+                                <div class="bg-white p-6 overflow-x-auto">
+                                    <div class="prose max-w-none break-words whitespace-pre-wrap">
+                                        {{ template.html_content|safe|truncatechars_html:500 }}
+                                    </div>
+                                    {% if template.html_content|length > 500 %}
+                                    <div class="text-center mt-4">
+                                        <a href="{% url 'email_templates:template_preview' template.pk %}" target="_blank" class="link link-primary">
+                                            View full preview →
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if template.has_plain_content %}
+                        <input type="radio" name="content_tab" role="tab" class="tab" aria-label="Plain Text" {% if template.content_type == 'plain' %}checked{% endif %} />
+                        <div role="tabpanel" class="tab-content pt-4">
+                            <div class="mockup-code overflow-x-auto">
+                                <pre data-prefix="1" class="whitespace-pre-wrap break-words"><code>{{ template.plain_content|truncatechars:500 }}</code></pre>
+                            </div>
+                            {% if template.plain_content|length > 500 %}
+                            <div class="text-center mt-4">
+                                <a href="{% url 'email_templates:template_preview' template.pk %}" target="_blank" class="link link-primary">
+                                    View full preview →
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% elif template.has_plain_content %}
+                    <div class="mockup-code overflow-x-auto">
+                        <pre data-prefix="1" class="whitespace-pre-wrap break-words"><code>{{ template.plain_content|truncatechars:500 }}</code></pre>
+                    </div>
+                    {% if template.plain_content|length > 500 %}
+                    <div class="text-center mt-4">
+                        <a href="{% url 'email_templates:template_preview' template.pk %}" target="_blank" class="link link-primary">
+                            View full preview →
+                        </a>
+                    </div>
+                    {% endif %}
+                    {% else %}
+                    <div class="text-center py-8 text-base-content/40">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <p>No content available</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Template Variables -->
+            {% if template.variables.exists %}
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
+                        </svg>
+                        Custom Variables
+                    </h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {% for variable in template.variables.all %}
+                        <div class="card bg-base-200 p-3">
+                            <div class="flex items-center gap-2">
+                                <code class="text-sm font-mono text-primary">{% templatetag openvariable %}{{ variable.name }}{% templatetag closevariable %}</code>
+                                <div class="badge badge-outline badge-sm">{{ variable.get_type_display }}</div>
+                                {% if variable.is_required %}
+                                    <div class="badge badge-error badge-sm">Required</div>
+                                {% endif %}
+                            </div>
+                            {% if variable.description %}
+                                <p class="text-xs opacity-70 mt-1">{{ variable.description }}</p>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Sidebar -->
+        <div class="lg:col-span-1 space-y-6">
+            <!-- Template Information -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Template Information</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="label">
+                                <span class="label-text font-semibold">Subject Line</span>
+                            </label>
+                            <p>{{ template.subject }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="label">
+                                <span class="label-text font-semibold">Sender</span>
+                            </label>
+                            {% if template.sender_email %}
+                                <p>{{ template.get_sender_display }}</p>
+                            {% else %}
+                                <p class="text-base-content/40">No sender configured</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="label">
+                                <span class="label-text font-semibold">Created By</span>
+                            </label>
+                            <p>{{ template.created_by.get_full_name|default:template.created_by.username }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="label">
+                                <span class="label-text font-semibold">Created</span>
+                            </label>
+                            <p>{{ template.created_at|date:"F d, Y g:i A" }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="label">
+                                <span class="label-text font-semibold">Last Updated</span>
+                            </label>
+                            <p>{{ template.updated_at|date:"F d, Y g:i A" }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tracking Settings -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Tracking Settings</h2>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="label-text">Track Opens</span>
+                            {% if template.track_opens %}
+                                <div class="badge badge-success gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Enabled
+                                </div>
+                            {% else %}
+                                <div class="badge badge-ghost gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                    Disabled
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="flex items-center justify-between">
+                            <span class="label-text">Track Clicks</span>
+                            {% if template.track_clicks %}
+                                <div class="badge badge-success gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                    </svg>
+                                    Enabled
+                                </div>
+                            {% else %}
+                                <div class="badge badge-ghost gap-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                                    </svg>
+                                    Disabled
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Variable Statistics -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Variable Statistics</h2>
+                    <div class="stats stats-vertical shadow">
+                        <div class="stat">
+                            <div class="stat-title">Custom Variables</div>
+                            <div class="stat-value text-primary">{{ template.variables.count }}</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-title">Default Variables</div>
+                            <div class="stat-value text-secondary">8</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Duplicate Confirmation Modal -->
+<dialog id="duplicateModal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Duplicate Template</h3>
+        <p class="py-4">Are you sure you want to duplicate "{{ template.title }}"?</p>
+        <p class="text-sm text-base-content/70">A copy will be created with all settings and variables.</p>
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Cancel</button>
+            </form>
+            <form method="post" action="{% url 'email_templates:template_duplicate' template.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                    Duplicate Template
+                </button>
+            </form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<!-- Delete Confirmation Modal -->
+<dialog id="deleteModal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Delete Template</h3>
+        <div class="py-4">
+            <div class="text-center mb-4">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-error/10 text-error mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+            </div>
+            <p class="text-center mb-4">Are you sure you want to delete "<strong>{{ template.title }}</strong>"?</p>
+            <div class="alert alert-error">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>This action cannot be undone.</span>
+            </div>
+        </div>
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Cancel</button>
+            </form>
+            <form method="post" action="{% url 'email_templates:template_delete' template.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-error">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Delete Template
+                </button>
+            </form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+{% endblock %}

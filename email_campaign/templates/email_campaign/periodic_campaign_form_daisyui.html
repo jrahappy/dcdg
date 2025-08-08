@@ -1,0 +1,364 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}{% if is_create %}Create{% else %}Edit{% endif %} Periodic Campaign{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs mb-6">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </a></li>
+            <li><a href="{% url 'email_campaign:periodic_campaign_list' %}">Periodic Campaigns</a></li>
+            {% if is_create %}
+                <li>Create New</li>
+            {% else %}
+                <li><a href="{% url 'email_campaign:periodic_campaign_detail' form.instance.pk %}">{{ form.instance.name }}</a></li>
+                <li>Edit</li>
+            {% endif %}
+        </ul>
+    </div>
+
+    <!-- Header Card -->
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div class="flex-1">
+                    <h1 class="text-3xl font-bold">
+                        {% if is_create %}Create New Periodic Campaign{% else %}Edit Periodic Campaign{% endif %}
+                    </h1>
+                    <p class="text-base-content/60 mt-2">
+                        Set up automated email campaigns that run on a regular schedule
+                    </p>
+                </div>
+                <a href="{% url 'email_campaign:periodic_campaign_list' %}" class="btn btn-ghost btn-square">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages -->
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %} mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    {% if message.tags == 'error' %}
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    {% elif message.tags == 'success' %}
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    {% else %}
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    {% endif %}
+                </svg>
+                <span>{{ message }}</span>
+            </div>
+        {% endfor %}
+    {% endif %}
+    
+    {% if form.non_field_errors %}
+        <div class="alert alert-error mb-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span>{{ form.non_field_errors }}</span>
+        </div>
+    {% endif %}
+
+    <!-- Form -->
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Basic Information -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Basic Information
+                </h2>
+                
+                <div class="space-y-4">
+                    <div class="form-control">
+                        <label class="label" for="{{ form.name.id_for_label }}">
+                            <span class="label-text font-semibold">Campaign Name <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.name }}
+                        {% if form.name.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.name.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label" for="{{ form.description.id_for_label }}">
+                            <span class="label-text font-semibold">Description</span>
+                        </label>
+                        {{ form.description }}
+                        {% if form.description.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.description.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label" for="{{ form.target_group.id_for_label }}">
+                                <span class="label-text font-semibold">Target Group <span class="text-error">*</span></span>
+                            </label>
+                            {{ form.target_group }}
+                            {% if form.target_group.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.target_group.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label" for="{{ form.email_template.id_for_label }}">
+                                <span class="label-text font-semibold">Email Template <span class="text-error">*</span></span>
+                            </label>
+                            {{ form.email_template }}
+                            {% if form.email_template.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.email_template.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                            <label class="label">
+                                <span class="label-text-alt">Only active templates are shown</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Target Link Configuration -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                    </svg>
+                    Target Link Configuration
+                </h2>
+                <p class="text-sm text-base-content/60 mb-4">Configure the {% templatetag openvariable %}target_link{% templatetag closevariable %} variable that will be used in your email template</p>
+                
+                <div class="space-y-4">
+                    <div class="form-control">
+                        <label class="label" for="{{ form.target_link.id_for_label }}">
+                            <span class="label-text font-semibold">Target URL <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.target_link }}
+                        {% if form.target_link.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.target_link.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                        <label class="label">
+                            <span class="label-text-alt">The base URL for your campaign (e.g., https://example.com/special-offer)</span>
+                        </label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label" for="{{ form.target_link_parameter.id_for_label }}">
+                            <span class="label-text font-semibold">URL Parameters (Optional)</span>
+                        </label>
+                        {{ form.target_link_parameter }}
+                        {% if form.target_link_parameter.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.target_link_parameter.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                        <label class="label">
+                            <span class="label-text-alt">Additional parameters to append (e.g., utm_source=email&utm_campaign=periodic)</span>
+                        </label>
+                    </div>
+
+                    <!-- URL Preview -->
+                    <div id="url-preview" class="hidden">
+                        <div class="alert alert-info">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <div class="flex-1">
+                                <div class="text-sm font-semibold">Full URL Preview:</div>
+                                <code id="full-url" class="text-xs break-all"></code>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Schedule Configuration -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Schedule Configuration
+                </h2>
+                
+                <div class="space-y-4">
+                    <div class="form-control">
+                        <label class="label" for="{{ form.frequency.id_for_label }}">
+                            <span class="label-text font-semibold">Frequency <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.frequency }}
+                        {% if form.frequency.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.frequency.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div class="form-control">
+                            <label class="label" for="{{ form.start_date.id_for_label }}">
+                                <span class="label-text font-semibold">Start Date <span class="text-error">*</span></span>
+                            </label>
+                            {{ form.start_date }}
+                            {% if form.start_date.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.start_date.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-control">
+                            <label class="label" for="{{ form.end_date.id_for_label }}">
+                                <span class="label-text font-semibold">End Date (Optional)</span>
+                            </label>
+                            {{ form.end_date }}
+                            {% if form.end_date.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.end_date.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                            <label class="label">
+                                <span class="label-text-alt">Leave blank for ongoing campaigns</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status (Edit Mode Only) -->
+        {% if not is_create %}
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Status
+                </h2>
+                
+                <div class="form-control">
+                    <label class="label" for="{{ form.status.id_for_label }}">
+                        <span class="label-text font-semibold">Campaign Status</span>
+                    </label>
+                    {{ form.status }}
+                    {% if form.status.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.status.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Form Actions -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <a href="{% url 'email_campaign:periodic_campaign_list' %}" class="btn btn-ghost">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Cancel
+                    </a>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {% if is_create %}Create Periodic Campaign{% else %}Save Changes{% endif %}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+// Add DaisyUI classes to form elements
+document.addEventListener('DOMContentLoaded', function() {
+    // Add classes to text inputs
+    const textInputs = document.querySelectorAll('input[type="text"], input[type="url"], input[type="date"], input[type="datetime-local"]');
+    textInputs.forEach(input => {
+        if (!input.classList.contains('input')) {
+            input.classList.add('input', 'input-bordered', 'w-full');
+        }
+    });
+    
+    // Add classes to select elements
+    const selects = document.querySelectorAll('select');
+    selects.forEach(select => {
+        if (!select.classList.contains('select')) {
+            select.classList.add('select', 'select-bordered', 'w-full');
+        }
+    });
+    
+    // Add classes to textareas
+    const textareas = document.querySelectorAll('textarea');
+    textareas.forEach(textarea => {
+        if (!textarea.classList.contains('textarea')) {
+            textarea.classList.add('textarea', 'textarea-bordered', 'w-full', 'h-24');
+        }
+    });
+    
+    // Preview the full target link
+    const targetLinkInput = document.getElementById('{{ form.target_link.id_for_label }}');
+    const parameterInput = document.getElementById('{{ form.target_link_parameter.id_for_label }}');
+    const previewDiv = document.getElementById('url-preview');
+    const fullUrlElement = document.getElementById('full-url');
+    
+    function updatePreview() {
+        const baseUrl = targetLinkInput.value;
+        const params = parameterInput.value;
+        
+        if (baseUrl) {
+            let fullUrl = baseUrl;
+            if (params) {
+                const separator = baseUrl.includes('?') ? '&' : '?';
+                fullUrl = baseUrl + separator + params;
+            }
+            
+            fullUrlElement.textContent = fullUrl;
+            previewDiv.classList.remove('hidden');
+        } else {
+            previewDiv.classList.add('hidden');
+        }
+    }
+    
+    if (targetLinkInput && parameterInput) {
+        targetLinkInput.addEventListener('input', updatePreview);
+        parameterInput.addEventListener('input', updatePreview);
+        updatePreview(); // Initial preview if values exist
+    }
+});
+</script>
+{% endblock %}

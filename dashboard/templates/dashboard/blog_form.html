@@ -1,548 +1,343 @@
-{% extends 'dashboard/base.html' %}
+{% extends 'dashboard/base_daisyui.html' %}
 
-{% block page_title %}{{ action }} Blog Post{% endblock %}
+{% block title %}{{ action }} Blog Post{% endblock %}
 
 {% block dashboard_content %}
-<div class="gmail-list-container">
+<div class="max-w-7xl mx-auto">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs mb-6">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+            <li><a href="{% url 'dashboard:blog_list' %}">Blog Posts</a></li>
+            {% if action == "Edit" %}
+                <li><a href="{% url 'dashboard:blog_detail' post.pk %}">{{ post.title }}</a></li>
+                <li>Edit</li>
+            {% else %}
+                <li>Create New</li>
+            {% endif %}
+        </ul>
+    </div>
+    
     <!-- Header -->
-    <div class="gmail-toolbar">
-        <div class="toolbar-left">
-            <button class="toolbar-btn" onclick="window.history.back()">
-                <i class="fas fa-arrow-left"></i>
-            </button>
-            <h2 class="toolbar-title">{{ action }} Blog Post</h2>
-        </div>
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold">{{ action }} Blog Post</h1>
+        <p class="text-base-content/60 mt-2">
+            {% if action == "Edit" %}
+                Update your blog post content and settings
+            {% else %}
+                Create a new blog post with rich content and SEO settings
+            {% endif %}
+        </p>
     </div>
 
     <!-- Form -->
-    <div class="detail-container">
-        <form method="POST" enctype="multipart/form-data">
-            {% csrf_token %}
-            
-            <!-- Post Header (for edit mode) -->
-            {% if action == "Edit" %}
-            <div class="detail-header">
-                <div class="detail-avatar">
-                    <div class="avatar-circle-large">
-                        <i class="fas fa-newspaper"></i>
-                    </div>
-                </div>
-                <div class="detail-header-info">
-                    <h1 class="detail-name">
-                        {% if post.title %}
-                            {{ post.title }}
-                        {% else %}
-                            Edit Blog Post
-                        {% endif %}
-                    </h1>
-                    {% if post.category %}
-                        <p class="detail-company">{{ post.category.name }}</p>
-                    {% endif %}
-                    <div class="detail-status">
-                        {% if post.status == 'published' %}
-                            <span class="status-badge published">Published</span>
-                        {% else %}
-                            <span class="status-badge draft">Draft</span>
-                        {% endif %}
-                        {% if post.featured %}
-                            <span class="status-badge featured">Featured</span>
-                        {% endif %}
-                    </div>
-                </div>
+    <form method="POST" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+        <div class="alert alert-error">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+                <h3 class="font-bold">There were errors with your submission</h3>
+                <div class="text-sm">{{ form.non_field_errors }}</div>
             </div>
-            {% endif %}
-            
-            <div class="detail-sections">
+        </div>
+        {% endif %}
+        
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Main Content Area -->
+            <div class="lg:col-span-2 space-y-6">
                 <!-- Post Information -->
-                <div class="detail-section">
-                    <h3 class="section-title">Post Information</h3>
-                
-                    <div class="detail-grid">
-                        <div class="form-group full-width">
-                            <label for="{{ form.title.id_for_label }}">Title *</label>
-                            {{ form.title }}
-                            {% if form.title.errors %}
-                                <div class="error-message">{{ form.title.errors.0 }}</div>
-                            {% endif %}
-                        </div>
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title mb-4">Post Information</h2>
                         
-                        <div class="form-group">
-                            <label for="{{ form.slug.id_for_label }}">Slug</label>
-                            {{ form.slug }}
-                            <small class="form-text">Leave empty to auto-generate from title</small>
-                            {% if form.slug.errors %}
-                                <div class="error-message">{{ form.slug.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="{{ form.category.id_for_label }}">Category</label>
-                            {{ form.category }}
-                            {% if form.category.errors %}
-                                <div class="error-message">{{ form.category.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="form-group">
-                            <label for="{{ form.status.id_for_label }}">Status</label>
-                            {{ form.status }}
-                            {% if form.status.errors %}
-                                <div class="error-message">{{ form.status.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="form-group full-width">
-                            <label for="{{ form.excerpt.id_for_label }}">Excerpt</label>
-                            {{ form.excerpt }}
-                            <small class="form-text">Brief summary of the post</small>
-                            {% if form.excerpt.errors %}
-                                <div class="error-message">{{ form.excerpt.errors.0 }}</div>
-                            {% endif %}
+                        <div class="space-y-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Title <span class="text-error">*</span></span>
+                                </label>
+                                {{ form.title }}
+                                {% if form.title.errors %}
+                                    <label class="label">
+                                        <span class="label-text-alt text-error">{{ form.title.errors.0 }}</span>
+                                    </label>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Slug</span>
+                                    <span class="label-text-alt">Leave empty to auto-generate from title</span>
+                                </label>
+                                {{ form.slug }}
+                                {% if form.slug.errors %}
+                                    <label class="label">
+                                        <span class="label-text-alt text-error">{{ form.slug.errors.0 }}</span>
+                                    </label>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text">Category</span>
+                                    </label>
+                                    {{ form.category }}
+                                    {% if form.category.errors %}
+                                        <label class="label">
+                                            <span class="label-text-alt text-error">{{ form.category.errors.0 }}</span>
+                                        </label>
+                                    {% endif %}
+                                </div>
+                                
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text">Status</span>
+                                    </label>
+                                    {{ form.status }}
+                                    {% if form.status.errors %}
+                                        <label class="label">
+                                            <span class="label-text-alt text-error">{{ form.status.errors.0 }}</span>
+                                        </label>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Excerpt</span>
+                                    <span class="label-text-alt">Brief summary of the post</span>
+                                </label>
+                                {{ form.excerpt }}
+                                {% if form.excerpt.errors %}
+                                    <label class="label">
+                                        <span class="label-text-alt text-error">{{ form.excerpt.errors.0 }}</span>
+                                    </label>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
                 
                 <!-- Content -->
-                <div class="detail-section">
-                    <h3 class="section-title">Content</h3>
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title mb-4">Content</h2>
+                        
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Post Content <span class="text-error">*</span></span>
+                            </label>
+                            {{ form.content }}
+                            {% if form.content.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.content.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+                
+            <!-- Sidebar -->
+            <div class="space-y-6">
+                <!-- Publish Settings -->
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title mb-4">Publish Settings</h2>
+                        
+                        <div class="space-y-4">
+                            <div class="form-control">
+                                <label class="label cursor-pointer justify-start gap-4">
+                                    {{ form.featured }}
+                                    <span class="label-text">Featured Post</span>
+                                </label>
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label cursor-pointer justify-start gap-4">
+                                    {{ form.allow_comments }}
+                                    <span class="label-text">Allow Comments</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
                     
-                    <div class="form-group">
-                        <label for="{{ form.content.id_for_label }}">Post Content *</label>
-                        {{ form.content }}
-                        {% if form.content.errors %}
-                            <div class="error-message">{{ form.content.errors.0 }}</div>
+                <!-- Featured Image -->
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title mb-4">Featured Image</h2>
+                        
+                        {% if post and post.featured_image %}
+                            <div class="mb-4">
+                                <figure class="rounded-lg overflow-hidden">
+                                    <img src="{{ post.featured_image.url }}" alt="Current featured image" class="w-full">
+                                </figure>
+                                <p class="text-sm text-base-content/60 mt-2">Current image</p>
+                            </div>
                         {% endif %}
-                    </div>
-                </div>
-                
-                <!-- Media & Tags -->
-                <div class="detail-section">
-                    <h3 class="section-title">Media & Tags</h3>
-                    
-                    <div class="detail-grid">
-                        <div class="form-group full-width">
-                            <label for="{{ form.featured_image.id_for_label }}">Featured Image</label>
-                            {% if post and post.featured_image %}
-                                <div class="current-image">
-                                    <img src="{{ post.featured_image.url }}" alt="Current featured image">
-                                    <p>Current image</p>
-                                </div>
-                            {% endif %}
-                            {{ form.featured_image }}
-                            <small class="form-text">Upload a featured image for the post</small>
+                        
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Upload Image</span>
+                                <span class="label-text-alt">Upload a featured image for the post</span>
+                            </label>
+                            <input type="file" name="{{ form.featured_image.name }}" class="file-input file-input-bordered w-full" {% if form.featured_image.value %}value="{{ form.featured_image.value }}"{% endif %}>
                             {% if form.featured_image.errors %}
-                                <div class="error-message">{{ form.featured_image.errors.0 }}</div>
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.featured_image.errors.0 }}</span>
+                                </label>
                             {% endif %}
                         </div>
+                    </div>
+                </div>
+                    
+                <!-- Tags -->
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title mb-4">Tags</h2>
                         
-                        <div class="form-group full-width">
-                            <label for="{{ form.tags.id_for_label }}">Tags</label>
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Select Tags</span>
+                                <span class="label-text-alt">Select relevant tags for the post</span>
+                            </label>
                             {{ form.tags }}
-                            <small class="form-text">Select relevant tags for the post</small>
                             {% if form.tags.errors %}
-                                <div class="error-message">{{ form.tags.errors.0 }}</div>
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.tags.errors.0 }}</span>
+                                </label>
                             {% endif %}
                         </div>
                     </div>
                 </div>
-                
-                <!-- Settings -->
-                <div class="detail-section">
-                    <h3 class="section-title">Post Settings</h3>
                     
-                    <div class="detail-grid">
-                        <div class="form-group checkbox-group">
-                            {{ form.allow_comments }}
-                            <label for="{{ form.allow_comments.id_for_label }}" class="checkbox-label">
-                                Allow Comments
-                            </label>
-                            {% if form.allow_comments.errors %}
-                                <div class="error-message">{{ form.allow_comments.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="form-group checkbox-group">
-                            {{ form.featured }}
-                            <label for="{{ form.featured.id_for_label }}" class="checkbox-label">
-                                Featured Post
-                            </label>
-                            {% if form.featured.errors %}
-                                <div class="error-message">{{ form.featured.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-                
                 <!-- SEO Settings -->
-                <div class="detail-section">
-                    <h3 class="section-title">SEO Settings</h3>
-                    
-                    <div class="detail-grid">
-                        <div class="form-group full-width">
-                            <label for="{{ form.meta_title.id_for_label }}">Meta Title</label>
-                            {{ form.meta_title }}
-                            <small class="form-text">SEO title (leave empty to use post title)</small>
-                            {% if form.meta_title.errors %}
-                                <div class="error-message">{{ form.meta_title.errors.0 }}</div>
-                            {% endif %}
-                        </div>
+                <div class="card bg-base-100 shadow-xl">
+                    <div class="card-body">
+                        <h2 class="card-title mb-4">SEO Settings</h2>
                         
-                        <div class="form-group full-width">
-                            <label for="{{ form.meta_description.id_for_label }}">Meta Description</label>
-                            {{ form.meta_description }}
-                            <small class="form-text">SEO description (leave empty to use excerpt)</small>
-                            {% if form.meta_description.errors %}
-                                <div class="error-message">{{ form.meta_description.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="form-group full-width">
-                            <label for="{{ form.meta_keywords.id_for_label }}">Meta Keywords</label>
-                            {{ form.meta_keywords }}
-                            <small class="form-text">Comma-separated keywords for SEO</small>
-                            {% if form.meta_keywords.errors %}
-                                <div class="error-message">{{ form.meta_keywords.errors.0 }}</div>
-                            {% endif %}
+                        <div class="space-y-4">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Meta Title</span>
+                                    <span class="label-text-alt">SEO title (leave empty to use post title)</span>
+                                </label>
+                                {{ form.meta_title }}
+                                {% if form.meta_title.errors %}
+                                    <label class="label">
+                                        <span class="label-text-alt text-error">{{ form.meta_title.errors.0 }}</span>
+                                    </label>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Meta Description</span>
+                                    <span class="label-text-alt">SEO description (leave empty to use excerpt)</span>
+                                </label>
+                                {{ form.meta_description }}
+                                {% if form.meta_description.errors %}
+                                    <label class="label">
+                                        <span class="label-text-alt text-error">{{ form.meta_description.errors.0 }}</span>
+                                    </label>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text">Meta Keywords</span>
+                                    <span class="label-text-alt">Comma-separated keywords for SEO</span>
+                                </label>
+                                {{ form.meta_keywords }}
+                                {% if form.meta_keywords.errors %}
+                                    <label class="label">
+                                        <span class="label-text-alt text-error">{{ form.meta_keywords.errors.0 }}</span>
+                                    </label>
+                                {% endif %}
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
             
-            <!-- Form Actions at Bottom -->
-            <div class="form-actions">
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-save"></i>
-                    Save Changes
-                </button>
-                <button type="button" class="btn btn-secondary" onclick="window.history.back()">
-                    Cancel
-                </button>
-            </div>
-        </form>
-    </div>
+        <!-- Form Actions -->
+        <div class="flex justify-end gap-3">
+            <button type="button" onclick="window.history.back()" class="btn btn-ghost">
+                Cancel
+            </button>
+            <button type="submit" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                {% if action == "Edit" %}Save Changes{% else %}Create Post{% endif %}
+            </button>
+        </div>
+    </form>
 </div>
 
 <style>
-.toolbar-left {
-    display: flex;
-    align-items: center;
-    flex-direction: row;
-    gap: 4px;
-}
-
-.toolbar-btn {
-    width: 40px;
-    height: 40px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: background-color 0.2s;
-    color: #5f6368;
-}
-
-.toolbar-btn:hover {
-    background-color: rgba(60, 64, 67, 0.08);
-}
-
-.toolbar-title {
-    font-size: 20px;
-    font-weight: 500;
-    color: #202124;
-    margin: 0 0 0 16px;
-}
-
-.detail-container {
-    max-width: 900px;
-    margin: 0 auto;
-    padding: 24px;
-}
-
-.detail-header {
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    padding: 24px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    margin-bottom: 24px;
-}
-
-.detail-avatar {
-    flex-shrink: 0;
-}
-
-.avatar-circle-large {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background-color: #1a73e8;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32px;
-    font-weight: 500;
-}
-
-.detail-header-info {
-    flex: 1;
-}
-
-.detail-name {
-    font-size: 28px;
-    font-weight: 400;
-    color: #202124;
-    margin: 0 0 4px;
-}
-
-.detail-company {
-    font-size: 16px;
-    color: #5f6368;
-    margin: 0 0 12px;
-}
-
-.detail-status {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-
-.status-badge {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.status-badge.published {
-    background-color: #e6f4ea;
-    color: #1e8e3e;
-}
-
-.status-badge.draft {
-    background-color: #fef7e0;
-    color: #f9ab00;
-}
-
-.status-badge.featured {
-    background-color: #fce8e6;
-    color: #d93025;
-}
-
-.detail-sections {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-
-.detail-section {
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    padding: 24px;
-}
-
-.section-title {
-    font-size: 18px;
-    font-weight: 500;
-    color: #202124;
-    margin: 0 0 20px;
-}
-
-.detail-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-}
-
-.form-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.form-group.full-width {
-    grid-column: 1 / -1;
-}
-
-.form-group label {
-    font-size: 14px;
-    font-weight: 500;
-    color: #5f6368;
-}
-
-.form-control {
-    width: 100%;
-    padding: 10px 12px;
-    border: 1px solid #dadce0;
-    border-radius: 4px;
-    font-size: 14px;
-    color: #202124;
-    transition: border-color 0.2s;
-}
-
-.form-control:focus {
-    outline: none;
-    border-color: #1a73e8;
-    box-shadow: 0 0 0 2px rgba(26,115,232,0.1);
-}
-
-textarea.form-control {
-    min-height: 100px;
-    resize: vertical;
-}
-
-select.form-control {
-    padding: 10px 12px;
-}
-
-.form-text {
-    font-size: 12px;
-    color: #5f6368;
-    margin-top: -4px;
-}
-
-.checkbox-group {
-    flex-direction: row;
-    align-items: center;
-    gap: 8px;
-}
-
-.checkbox-label {
-    font-size: 14px;
-    color: #202124;
-    margin-bottom: 0;
-    cursor: pointer;
-}
-
-.form-check-input {
-    width: 18px;
-    height: 18px;
-    cursor: pointer;
-}
-
-.error-message {
-    color: #d33b27;
-    font-size: 13px;
-}
-
-.current-image {
-    margin-bottom: 12px;
-}
-
-.current-image img {
-    max-width: 200px;
-    max-height: 150px;
-    border-radius: 4px;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-.current-image p {
-    font-size: 13px;
-    color: #5f6368;
-    margin-top: 8px;
-}
-
-.form-actions {
-    margin-top: 24px;
-    padding: 24px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-}
-
-.btn {
-    padding: 10px 24px;
-    border: none;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.btn-primary {
-    background-color: #1a73e8;
-    color: #fff;
-}
-
-.btn-primary:hover {
-    background-color: #1557b0;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-}
-
-.btn-secondary {
-    background-color: #fff;
-    color: #5f6368;
-    border: 1px solid #dadce0;
-}
-
-.btn-secondary:hover {
-    background-color: #f8f9fa;
-    border-color: #5f6368;
-}
-
-/* Override Summernote/Editor styles */
-.note-editor.note-frame {
-    border: 1px solid #dadce0;
-    border-radius: 4px;
-}
-
-.note-editor.note-frame .note-toolbar {
-    background-color: #f8f9fa;
-    border-bottom: 1px solid #e0e0e0;
-    border-radius: 4px 4px 0 0;
-}
-
-.note-editor.note-frame:focus-within {
-    border-color: #1a73e8;
-    box-shadow: 0 0 0 2px rgba(26,115,232,0.1);
-}
-
-/* Select2 override if used */
-.select2-container--default .select2-selection--multiple {
-    border: 1px solid #dadce0;
-    border-radius: 4px;
-    min-height: 38px;
-}
-
-.select2-container--default.select2-container--focus .select2-selection--multiple {
-    border-color: #1a73e8;
-    box-shadow: 0 0 0 2px rgba(26,115,232,0.1);
-}
-
-/* Responsive */
-@media (max-width: 640px) {
-    .detail-header {
-        flex-direction: column;
-        text-align: center;
+    /* Add DaisyUI styling to Django form fields */
+    input[type="text"]:not(.input),
+    input[type="email"]:not(.input),
+    input[type="tel"]:not(.input),
+    input[type="number"]:not(.input),
+    input[type="password"]:not(.input),
+    input[type="date"]:not(.input),
+    input[type="datetime-local"]:not(.input),
+    input[type="time"]:not(.input),
+    input[type="url"]:not(.input),
+    input[type="search"]:not(.input) {
+        @apply input input-bordered w-full;
     }
     
-    .detail-grid {
-        grid-template-columns: 1fr;
+    select:not(.select) {
+        @apply select select-bordered w-full;
     }
     
-    .form-actions {
-        flex-direction: column-reverse;
+    textarea:not(.textarea):not(.note-editable) {
+        @apply textarea textarea-bordered w-full h-24;
     }
     
-    .btn {
-        width: 100%;
-        justify-content: center;
+    input[type="checkbox"]:not(.checkbox) {
+        @apply checkbox checkbox-primary;
     }
-}
+    
+    input[type="radio"]:not(.radio) {
+        @apply radio radio-primary;
+    }
+    
+    /* Override Summernote styles */
+    .note-editor.note-frame {
+        @apply border border-base-300 rounded-lg !important;
+    }
+    
+    .note-editor.note-frame .note-toolbar {
+        @apply bg-base-200 border-b border-base-300 rounded-t-lg !important;
+    }
+    
+    .note-editor.note-frame:focus-within {
+        @apply border-primary ring-2 ring-primary/20 !important;
+    }
+    
+    .note-editable {
+        min-height: 400px !important;
+        @apply p-4 text-sm !important;
+    }
+    
+    /* Select2 override if used */
+    .select2-container--default .select2-selection--multiple {
+        @apply border border-base-300 rounded-lg min-h-[2.5rem] !important;
+    }
+    
+    .select2-container--default.select2-container--focus .select2-selection--multiple {
+        @apply border-primary ring-2 ring-primary/20 !important;
+    }
 </style>
 
 <script>
@@ -560,22 +355,8 @@ $(document).ready(function() {
             ['table', ['table']],
             ['insert', ['link', 'picture', 'video']],
             ['view', ['fullscreen', 'codeview', 'help']]
-        ],
-        callbacks: {
-            onFocus: function() {
-                $(this).parent().find('.note-editor').css('border-color', '#1a73e8');
-                $(this).parent().find('.note-editor').css('box-shadow', '0 0 0 2px rgba(26,115,232,0.1)');
-            },
-            onBlur: function() {
-                $(this).parent().find('.note-editor').css('border-color', '#dadce0');
-                $(this).parent().find('.note-editor').css('box-shadow', 'none');
-            }
-        }
+        ]
     });
-    
-    // Add form-control class to all form fields
-    $('input[type="text"], input[type="email"], input[type="url"], textarea, select').not('.note-editor *').addClass('form-control');
-    $('input[type="checkbox"]').addClass('form-check-input');
 });
 </script>
 {% endblock %}

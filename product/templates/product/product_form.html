@@ -1,0 +1,482 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block extra_head %}
+{{ form.media }}
+<style>
+    /* Customize Summernote to match DaisyUI theme */
+    .note-editor.note-frame {
+        border: 1px solid hsl(var(--b3));
+        border-radius: var(--rounded-btn, 0.5rem);
+    }
+    .note-toolbar {
+        background-color: hsl(var(--b2));
+        border-bottom: 1px solid hsl(var(--b3));
+    }
+    .note-btn {
+        background-color: hsl(var(--b1));
+        border: 1px solid hsl(var(--b3));
+    }
+    .note-btn:hover {
+        background-color: hsl(var(--b3));
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs mb-6">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+            <li><a href="{% url 'product:product_list' %}">Products</a></li>
+            {% if product %}
+                <li><a href="{% url 'product:product_detail' product.pk %}">{{ product.name }}</a></li>
+                <li>Edit</li>
+            {% else %}
+                <li>Create New</li>
+            {% endif %}
+        </ul>
+    </div>
+
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold">{{ title }}</h1>
+        <p class="text-base-content/60 mt-2">
+            {% if product %}
+                Update product information
+            {% else %}
+                Add a new product to your inventory
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Form -->
+    <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+        <div class="alert alert-error">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <div>
+                <h3 class="font-bold">There were errors with your submission</h3>
+                <div class="text-sm">{{ form.non_field_errors }}</div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Basic Information -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Basic Information</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Product Name <span class="text-error">*</span></span>
+                            </label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.name.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">SKU</span>
+                        </label>
+                        {{ form.sku }}
+                        {% if form.sku.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.sku.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Category <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.category }}
+                        {% if form.category.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.category.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Supplier</span>
+                        </label>
+                        {{ form.supplier }}
+                        {% if form.supplier.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.supplier.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Brand</span>
+                        </label>
+                        {{ form.brand }}
+                        {% if form.brand.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.brand.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Manufacturer</span>
+                        </label>
+                        {{ form.manufacturer }}
+                        {% if form.manufacturer.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.manufacturer.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Description -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Description</h2>
+                
+                <div class="space-y-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Short Description <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.short_description }}
+                        {% if form.short_description.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.short_description.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Long Description <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.long_description }}
+                        {% if form.long_description.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.long_description.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Features</span>
+                            <span class="label-text-alt">Enter one feature per line</span>
+                        </label>
+                        {{ form.features }}
+                        {% if form.features.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.features.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Technical Specifications</span>
+                        </label>
+                        {{ form.specifications }}
+                        {% if form.specifications.help_text %}
+                        <label class="label">
+                            <span class="label-text-alt">{{ form.specifications.help_text }}</span>
+                        </label>
+                        {% endif %}
+                        {% if form.specifications.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.specifications.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pricing Information -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Pricing Information</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Price <span class="text-error">*</span></span>
+                        </label>
+                        <label class="input-group">
+                            <span>$</span>
+                            {{ form.price }}
+                        </label>
+                        {% if form.price.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.price.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Cost Price</span>
+                        </label>
+                        <label class="input-group">
+                            <span>$</span>
+                            {{ form.cost }}
+                        </label>
+                        {% if form.cost.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.cost.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Discount Percentage</span>
+                        </label>
+                        <label class="input-group">
+                            {{ form.discount_percentage }}
+                            <span>%</span>
+                        </label>
+                        {% if form.discount_percentage.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.discount_percentage.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Inventory Information -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Inventory Information</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Quantity in Stock <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.quantity_in_stock }}
+                        {% if form.quantity_in_stock.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.quantity_in_stock.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Minimum Stock Level <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.minimum_stock_level }}
+                        {% if form.minimum_stock_level.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.minimum_stock_level.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Weight (kg)</span>
+                        </label>
+                        {{ form.weight }}
+                        {% if form.weight.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.weight.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Dimensions</span>
+                        </label>
+                        {{ form.dimensions }}
+                        {% if form.dimensions.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.dimensions.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Options -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Product Options</h2>
+                <p class="text-base-content/60 mb-4">Select which options should be available for this product</p>
+                
+                <div class="space-y-3">
+                    {% for choice in form.product_options %}
+                    <div class="form-control">
+                        <label class="label cursor-pointer flex flex-row justify-start gap-4">
+                            {{ choice.tag }}
+                            <div class="flex-1">
+                                <span class="label-text font-medium">{{ choice.choice_label }}</span>
+                                {% if choice.choice_label == "Color" %}
+                                <span class="label-text-alt block">Allow customers to choose from different colors</span>
+                                {% elif choice.choice_label == "Size" %}
+                                <span class="label-text-alt block">Allow customers to choose from different sizes</span>
+                                {% else %}
+                                <span class="label-text-alt block">Enable {{ choice.choice_label|lower }} selection for this product</span>
+                                {% endif %}
+                            </div>
+                        </label>
+                    </div>
+                    {% empty %}
+                    <div class="alert">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-info shrink-0 w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div>
+                            <span>No product options available.</span>
+                            <a href="{% url 'product:option_create' %}" class="link link-primary">Create options</a>
+                            <span>to enable product variations.</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% if form.product_options.errors %}
+                <label class="label">
+                    <span class="label-text-alt text-error">{{ form.product_options.errors.0 }}</span>
+                </label>
+                {% endif %}
+               
+            </div>
+        </div>
+
+        <!-- Status and Settings -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Status and Settings</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Status <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.status.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Tags</span>
+                            <span class="label-text-alt">Separate tags with commas</span>
+                        </label>
+                        {{ form.tags }}
+                        {% if form.tags.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.tags.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <div class="space-y-4">
+                    <div class="form-control">
+                        <label class="label cursor-pointer flex flex-row justify-start gap-4">
+                            {{ form.is_featured }}
+                            <div class="flex-1">
+                                <span class="label-text font-medium">Featured Product</span>
+                                <span class="label-text-alt block">This product will be highlighted in listings</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label cursor-pointer flex flex-row justify-start gap-4">
+                            {{ form.is_serial_number_managed }}
+                            <div class="flex-1">
+                                <span class="label-text font-medium">Serial Number Managed</span>
+                                <span class="label-text-alt block">Track individual items with serial numbers</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex justify-end gap-3">
+            <a href="{% url 'product:product_list' %}" class="btn btn-ghost">
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                {{ button_text }}
+            </button>
+        </div>
+    </form>
+</div>
+
+<style>
+    /* Add DaisyUI styling to Django form fields */
+    input[type="text"]:not(.input),
+    input[type="email"]:not(.input),
+    input[type="tel"]:not(.input),
+    input[type="number"]:not(.input),
+    input[type="password"]:not(.input),
+    input[type="date"]:not(.input),
+    input[type="datetime-local"]:not(.input),
+    input[type="time"]:not(.input),
+    input[type="url"]:not(.input),
+    input[type="search"]:not(.input) {
+        @apply input input-bordered w-full;
+    }
+    
+    select:not(.select) {
+        @apply select select-bordered w-full;
+    }
+    
+    textarea:not(.textarea) {
+        @apply textarea textarea-bordered w-full h-24;
+    }
+    
+    input[type="checkbox"]:not(.checkbox) {
+        @apply checkbox checkbox-primary;
+    }
+    
+    input[type="radio"]:not(.radio) {
+        @apply radio radio-primary;
+    }
+    
+    /* Input group styling for price fields */
+    .input-group input {
+        @apply input input-bordered flex-1;
+    }
+</style>
+{% endblock %}

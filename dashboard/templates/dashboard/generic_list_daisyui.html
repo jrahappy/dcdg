@@ -1,0 +1,229 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block dashboard_content %}
+<div class="space-y-4" x-data="{ 
+    viewMode: localStorage.getItem('{{ view_mode_key|default:'viewMode' }}') || 'list',
+    selectedItems: []
+}">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold">{{ page_title }}</h1>
+            {% if breadcrumbs %}
+            <div class="text-sm breadcrumbs">
+                <ul>
+                    {% for crumb in breadcrumbs %}
+                    <li>
+                        {% if crumb.url %}
+                            <a href="{{ crumb.url }}" class="link link-hover">{{ crumb.title }}</a>
+                        {% else %}
+                            {{ crumb.title }}
+                        {% endif %}
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex gap-2">
+            {% block header_actions %}
+            {% if create_url %}
+            <a href="{{ create_url }}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                {{ create_button_text|default:"Add New" }}
+            </a>
+            {% endif %}
+            {% endblock %}
+        </div>
+    </div>
+
+    <!-- Search and Filters Card -->
+    {% block search_filters %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body p-4">
+            <form method="get" class="flex flex-col lg:flex-row gap-4">
+                {% block search_form_content %}
+                <!-- Search Input -->
+                <div class="form-control flex-1">
+                    <div class="input-group">
+                        <input type="text" 
+                               name="search" 
+                               value="{{ search_query }}" 
+                               placeholder="{{ search_placeholder|default:'Search...' }}" 
+                               class="input input-bordered flex-1" />
+                        <button type="submit" class="btn btn-square">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                {% endblock %}
+                
+                {% block additional_filters %}{% endblock %}
+                
+                {% if show_view_toggle|default:True %}
+                <!-- View Mode Toggle -->
+                <div class="btn-group">
+                    <button type="button" 
+                            @click="viewMode = 'list'; localStorage.setItem('{{ view_mode_key|default:'viewMode' }}', 'list')"
+                            :class="viewMode === 'list' ? 'btn-active' : ''"
+                            class="btn btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                        </svg>
+                    </button>
+                    <button type="button" 
+                            @click="viewMode = 'grid'; localStorage.setItem('{{ view_mode_key|default:'viewMode' }}', 'grid')"
+                            :class="viewMode === 'grid' ? 'btn-active' : ''"
+                            class="btn btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                        </svg>
+                    </button>
+                </div>
+                {% endif %}
+                
+                {% if search_query or has_filters %}
+                    <a href="{{ request.path }}" class="btn btn-ghost btn-sm">Clear Filters</a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+    {% endblock %}
+
+    <!-- List View -->
+    <div x-show="viewMode === 'list'" x-transition>
+        {% if object_list %}
+        <div class="card bg-base-100 shadow-xl">
+            <div class="overflow-x-auto pb-32">
+                {% block list_content %}
+                <table class="table table-zebra">
+                    <thead>
+                        <tr>
+                            {% block table_header %}
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                            {% endblock %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in object_list %}
+                        <tr class="hover">
+                            {% block table_row %}
+                            <td>{{ item.id }}</td>
+                            <td>{{ item }}</td>
+                            <td>{{ item.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                {% block row_actions %}
+                                <div class="dropdown dropdown-end">
+                                    <label tabindex="0" class="btn btn-ghost btn-xs">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                        </svg>
+                                    </label>
+                                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                        {% block dropdown_actions %}
+                                        <li><a href="#">View</a></li>
+                                        <li><a href="#">Edit</a></li>
+                                        <li><a href="#" class="text-error">Delete</a></li>
+                                        {% endblock %}
+                                    </ul>
+                                </div>
+                                {% endblock %}
+                            </td>
+                            {% endblock %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% endblock %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Grid View -->
+    <div x-show="viewMode === 'grid'" x-transition>
+        {% if object_list %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {% block grid_content %}
+            {% for item in object_list %}
+            <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+                {% block grid_card %}
+                <div class="card-body">
+                    <h2 class="card-title">{{ item }}</h2>
+                    <p class="text-sm text-base-content/60">Created {{ item.created_at|date:"M d, Y" }}</p>
+                    <div class="card-actions justify-end">
+                        <a href="#" class="btn btn-primary btn-sm">View</a>
+                    </div>
+                </div>
+                {% endblock %}
+            </div>
+            {% endfor %}
+            {% endblock %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Empty State -->
+    {% if not object_list %}
+    {% block empty_state %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body text-center py-16">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto mb-4 text-base-content/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+            </svg>
+            <h3 class="text-xl font-semibold">{{ empty_title|default:"No items found" }}</h3>
+            <p class="text-base-content/60">{{ empty_message|default:"Get started by adding your first item" }}</p>
+            {% if create_url %}
+            <div class="card-actions justify-center mt-4">
+                <a href="{{ create_url }}" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    {{ create_button_text|default:"Add New" }}
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endblock %}
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    {% block pagination %}
+    <div class="flex justify-center">
+        <div class="btn-group">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{{ request.GET|urlencode }}" class="btn">«</a>
+            {% else %}
+                <button class="btn btn-disabled">«</button>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <button class="btn btn-active">{{ num }}</button>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}{{ request.GET|urlencode }}" class="btn">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{{ request.GET|urlencode }}" class="btn">»</a>
+            {% else %}
+                <button class="btn btn-disabled">»</button>
+            {% endif %}
+        </div>
+    </div>
+    {% endblock %}
+    {% endif %}
+</div>
+{% endblock %}

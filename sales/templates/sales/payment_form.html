@@ -1,0 +1,309 @@
+{% extends 'dashboard/base_daisyui.html' %}
+{% load static %}
+
+{% block page_title %}Record Payment{% endblock %}
+
+{% block dashboard_content %}
+<div class="h-full flex flex-col bg-white">
+    <!-- Breadcrumb -->
+    <div class="px-4 py-2 border-b border-gray-200 bg-gray-50">
+        <nav class="flex items-center space-x-2 text-sm">
+            {% if form.initial.invoice %}
+                {% breadcrumb "Dashboard" "dashboard:home" "Invoices" "sales:invoice_list" form.initial.invoice.invoice_number "sales:invoice_detail" form.initial.invoice.pk "Record Payment" %}
+            {% else %}
+                {% breadcrumb "Dashboard" "dashboard:home" "Payments" "sales:payment_list" "New Payment" %}
+            {% endif %}
+        </nav>
+    </div>
+    
+    <!-- Header -->
+    <div class="border-b border-gray-200 bg-white px-6 py-4">
+        <div class="flex items-center">
+            {% if form.initial.invoice %}
+                <button onclick="window.location.href='{% url 'sales:invoice_detail' form.initial.invoice.pk %}'" class="mr-4 text-gray-600 hover:text-gray-900">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h1 class="text-2xl font-semibold text-gray-900">Record Payment for {{ form.initial.invoice.invoice_number }}</h1>
+            {% else %}
+                <button onclick="window.history.back()" class="mr-4 text-gray-600 hover:text-gray-900">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h1 class="text-2xl font-semibold text-gray-900">Record New Payment</h1>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Form Content -->
+    <div class="flex-1 overflow-y-auto p-6">
+        <div class="max-w-3xl mx-auto">
+            {% if form.initial.invoice %}
+            <!-- Invoice Summary -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <div class="mb-3">
+                    <div class="text-sm text-blue-600">Customer</div>
+                    <div class="text-base font-medium text-blue-900">
+                        {% if form.initial.invoice.customer %}
+                            {{ form.initial.invoice.customer.get_full_name }}
+                            {% if form.initial.invoice.customer.company_name %}
+                                - {{ form.initial.invoice.customer.company_name }}
+                            {% endif %}
+                        {% elif form.initial.invoice.is_shop_order %}
+                            {{ form.initial.invoice.first_name }} {{ form.initial.invoice.last_name }}
+                            {% if form.initial.invoice.email %}
+                                ({{ form.initial.invoice.email }})
+                            {% endif %}
+                        {% else %}
+                            Anonymous Customer
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="grid grid-cols-3 gap-4">
+                    <div>
+                        <div class="text-sm text-blue-600">Invoice Total</div>
+                        <div class="text-lg font-semibold text-blue-900">${{ form.initial.invoice.total_amount|floatformat:2 }}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-blue-600">Paid Amount</div>
+                        <div class="text-lg font-semibold text-blue-900">${{ form.initial.invoice.paid_amount|floatformat:2 }}</div>
+                    </div>
+                    <div>
+                        <div class="text-sm text-blue-600">Balance Due</div>
+                        <div class="text-lg font-semibold text-blue-900">${{ form.initial.invoice.balance_due|floatformat:2 }}</div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                {% if form.errors %}
+                <div class="bg-red-50 border border-red-200 rounded-lg p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <i class="fas fa-exclamation-circle text-red-400"></i>
+                        </div>
+                        <div class="ml-3">
+                            <h3 class="text-sm font-medium text-red-800">There were errors with your submission</h3>
+                            <div class="mt-2 text-sm text-red-700">
+                                {% if form.non_field_errors %}
+                                <ul class="list-disc list-inside space-y-1">
+                                    {% for error in form.non_field_errors %}
+                                        <li>{{ error }}</li>
+                                    {% endfor %}
+                                </ul>
+                                {% endif %}
+                                {% for field, errors in form.errors.items %}
+                                    {% if field != '__all__' %}
+                                    <div class="mt-1">
+                                        <strong>{{ field }}:</strong>
+                                        {% for error in errors %}
+                                            {{ error }}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="bg-white border border-gray-200 rounded-lg">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h2 class="text-lg font-semibold text-gray-900">Payment Details</h2>
+                    </div>
+                    <div class="p-6 space-y-6">
+                        <!-- Hidden fields -->
+                        {{ form.invoice.as_hidden }}
+                        {{ form.customer.as_hidden }}
+                        {{ form.order.as_hidden }}
+
+                        <!-- Payment Date -->
+                        <div>
+                            <label for="{{ form.payment_date.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Payment Date <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.payment_date }}
+                            {% if form.payment_date.errors %}
+                                <div class="mt-1 text-sm text-red-600">
+                                    {{ form.payment_date.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Amount -->
+                        <div>
+                            <label for="{{ form.amount.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Amount <span class="text-red-500">*</span>
+                            </label>
+                            <div class="relative">
+                                <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
+                                {{ form.amount }}
+                            </div>
+                            {% if form.amount.errors %}
+                                <div class="mt-1 text-sm text-red-600">
+                                    {{ form.amount.errors.0 }}
+                                </div>
+                            {% endif %}
+                            {% if form.initial.invoice %}
+                                <div class="mt-1 text-sm text-gray-500">
+                                    Balance due: ${{ form.initial.invoice.balance_due|floatformat:2 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Payment Method -->
+                        <div>
+                            <label for="{{ form.payment_method.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Payment Method <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.payment_method }}
+                            {% if form.payment_method.errors %}
+                                <div class="mt-1 text-sm text-red-600">
+                                    {{ form.payment_method.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Reference Number -->
+                        <div>
+                            <label for="{{ form.reference_number.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Reference Number
+                            </label>
+                            {{ form.reference_number }}
+                            {% if form.reference_number.errors %}
+                                <div class="mt-1 text-sm text-red-600">
+                                    {{ form.reference_number.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="mt-1 text-sm text-gray-500">
+                                Check number, transaction ID, or other reference
+                            </div>
+                        </div>
+
+                        <!-- Bank Name (for check/bank transfer) -->
+                        <div>
+                            <label for="{{ form.bank_name.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Bank Name
+                            </label>
+                            {{ form.bank_name }}
+                            {% if form.bank_name.errors %}
+                                <div class="mt-1 text-sm text-red-600">
+                                    {{ form.bank_name.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Notes -->
+                        <div>
+                            <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Notes
+                            </label>
+                            {{ form.notes }}
+                            {% if form.notes.errors %}
+                                <div class="mt-1 text-sm text-red-600">
+                                    {{ form.notes.errors.0 }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Status -->
+                        <div>
+                            <label for="{{ form.status.id_for_label }}" class="block text-sm font-medium text-gray-700 mb-2">
+                                Payment Status
+                            </label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                                <div class="mt-1 text-sm text-red-600">
+                                    {{ form.status.errors.0 }}
+                                </div>
+                            {% endif %}
+                            <div class="mt-1 text-sm text-gray-500">
+                                Set to "Completed" for confirmed payments
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex justify-end gap-3">
+                    {% if form.initial.invoice %}
+                        <button type="button" onclick="window.location.href='{% url 'sales:invoice_detail' form.initial.invoice.pk %}'" 
+                                class="px-6 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors duration-200">
+                            Cancel
+                        </button>
+                    {% else %}
+                        <button type="button" onclick="window.history.back()" 
+                                class="px-6 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors duration-200">
+                            Cancel
+                        </button>
+                    {% endif %}
+                    <button type="submit" class="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
+                        <i class="fas fa-check mr-2"></i>
+                        Record Payment
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Style form inputs to match Tailwind design */
+#id_payment_date,
+#id_amount,
+#id_payment_method,
+#id_reference_number,
+#id_bank_name,
+#id_status,
+#id_customer {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+#id_amount {
+    padding-left: 2rem;
+}
+
+#id_notes {
+    width: 100%;
+    padding: 0.5rem 0.75rem;
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    font-size: 0.875rem;
+    min-height: 100px;
+    resize: vertical;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+#id_payment_date:focus,
+#id_amount:focus,
+#id_payment_method:focus,
+#id_reference_number:focus,
+#id_bank_name:focus,
+#id_notes:focus,
+#id_status:focus,
+#id_customer:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Style select dropdown */
+#id_payment_method,
+#id_status,
+#id_customer {
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 0.5rem center;
+    background-repeat: no-repeat;
+    background-size: 1.5em 1.5em;
+    padding-right: 2.5rem;
+}
+</style>
+{% endblock %}

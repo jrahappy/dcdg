@@ -11,9 +11,10 @@ urlpatterns = [
     path('manage/info/', views.account_info, name='account-info'),
     path('manage/security/', views.account_security, name='account-security'),
     path('manage/sender/', views.sender_information, name='sender-information'),
+    path('manage/organization/', views.my_organization, name='account-organization'),
     
-    # Logout confirmation
-    path('logout/', views.logout_confirm, name='logout-confirm'),
+    # Override allauth logout - MUST come before allauth URLs
+    path('logout/', views.logout_confirm, name='account_logout'),
     
     # Override allauth email confirmation URLs
     path('confirm-email/', views.redirect_email_confirm, name='account_email_verification_sent'),

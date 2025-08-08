@@ -1,0 +1,513 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}{{ chat_room.subject }} - Chat Support{% endblock %}
+
+{% block dashboard_content %}
+<style>
+/* WhatsApp/Mobile chat styles */
+.chat-bubble-tail-left {
+    position: absolute;
+    top: 0;
+    left: -8px;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 10px 10px 0;
+    border-color: transparent white transparent transparent;
+}
+
+.chat-bubble-tail-right {
+    position: absolute;
+    top: 0;
+    right: -8px;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 0 0 10px 10px;
+    border-color: transparent transparent transparent #dcf8c6;
+}
+
+.chat-container {
+    background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' xmlns='http://www.w3.org/2000/svg'%3E%3Cdefs%3E%3Cpattern id='chat-bg' patternUnits='userSpaceOnUse' width='60' height='60'%3E%3Cpath d='M30 30c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10zm10 0c0-5.5-4.5-10-10-10s-10 4.5-10 10 4.5 10 10 10 10-4.5 10-10z' fill='%23ffffff' fill-opacity='0.03'/%3E%3C/pattern%3E%3C/defs%3E%3Crect width='100%25' height='100%25' fill='url(%23chat-bg)'/%3E%3C/svg%3E");
+    background-color: #e5ddd5;
+}
+
+.message-date-divider {
+    background: rgba(225, 245, 254, 0.95);
+    color: #54656f;
+}
+</style>
+
+<div class="flex bg-base-100 rounded-lg shadow-lg" style="height: calc(100vh - 8rem);">
+    <!-- Main Chat Container - Phone Style -->
+    <div class="flex-1 flex flex-col mx-auto w-full" style="max-width: 600px;">
+        <!-- Chat Header - Mobile Style -->
+        <div class="flex items-center justify-between h-16 px-3 bg-gradient-to-r from-teal-600 to-teal-500 text-white shadow-md">
+            <div class="flex items-center gap-2">
+                <a href="{% url 'chat:chat_list' %}" class="p-2 hover:bg-white/20 rounded-full transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                    </svg>
+                </a>
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                        <span class="text-sm font-bold">{{ chat_room.customer.first_name.0|upper }}{{ chat_room.customer.last_name.0|upper|default:"U" }}</span>
+                    </div>
+                    <div>
+                        <h1 class="font-semibold text-white">{{ chat_room.customer.get_full_name|default:chat_room.customer.username }}</h1>
+                        <p class="text-xs text-white/80">
+                            {% if chat_room.status == 'active' %}
+                                <span class="flex items-center gap-1">
+                                    <span class="w-2 h-2 bg-green-300 rounded-full animate-pulse"></span>
+                                    Active now
+                                </span>
+                            {% else %}
+                                {{ chat_room.get_status_display }}
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex items-center gap-1">
+                <button class="p-2 hover:bg-white/20 rounded-full transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                    </svg>
+                </button>
+                <button class="p-2 hover:bg-white/20 rounded-full transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                </button>
+                <div class="dropdown dropdown-end">
+                    <button tabindex="0" class="p-2 hover:bg-white/20 rounded-full transition-colors">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                        </svg>
+                    </button>
+                    <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 text-gray-800">
+                        <li><a href="{% url 'customer:customer_detail' chat_room.customer.id %}">View Customer</a></li>
+                        {% if chat_room.status == 'active' %}
+                        <li><a href="{% url 'chat:close_chat' chat_room.pk %}" class="text-error">Close Chat</a></li>
+                        {% endif %}
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chat Messages Container - WhatsApp Style -->
+        <div class="flex-1 overflow-y-auto chat-container" id="messages-container">
+            <div class="p-3 min-h-full">
+                <!-- Date divider -->
+                <div class="text-center my-4">
+                    <span class="inline-block px-3 py-1 text-xs message-date-divider rounded-lg shadow-sm">
+                        {{ chat_room.created_at|date:"F j, Y" }}
+                    </span>
+                </div>
+
+                {% for message in messages %}
+                <div class="message-item mb-2" data-message-id="{{ message.id }}">
+                    {% if message.message_type == 'system' %}
+                    <!-- System Message -->
+                    <div class="text-center my-3">
+                        <span class="inline-block px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-lg">
+                            🔒 {{ message.content }}
+                        </span>
+                    </div>
+                    {% else %}
+                    <!-- Regular Message - WhatsApp Style -->
+                    <div class="flex {% if message.sender == user %}justify-end{% else %}justify-start{% endif %} mb-1">
+                        <div class="max-w-[75%] sm:max-w-[60%] relative">
+                            {% if message.sender == user %}
+                            <!-- Sent message (green bubble) -->
+                            <div class="bg-[#dcf8c6] rounded-lg shadow-sm relative ml-2">
+                                <div class="chat-bubble-tail-right"></div>
+                                <div class="px-3 py-2">
+                                    <p class="text-sm text-gray-900 whitespace-pre-wrap break-words">{{ message.content }}</p>
+                                    <div class="flex items-center justify-end gap-1 mt-1">
+                                        <span class="text-[11px] text-gray-600">{{ message.created_at|date:"g:i A" }}</span>
+                                        {% if message.is_read %}
+                                        <svg class="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                            <path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"/>
+                                            <path fill-rule="evenodd" d="M4 5a2 2 0 012-2 1 1 0 000 2H6a2 2 0 100 4h2a2 2 0 100 4h2a1 1 0 100 2 2 2 0 01-2 2H4a2 2 0 01-2-2V7a2 2 0 012-2z" clip-rule="evenodd"/>
+                                        </svg>
+                                        {% else %}
+                                        <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                            <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                        </svg>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% else %}
+                            <!-- Received message (white bubble) -->
+                            <div class="bg-white rounded-lg shadow-sm relative mr-2">
+                                <div class="chat-bubble-tail-left"></div>
+                                <div class="px-3 py-2">
+                                    <p class="text-xs font-semibold text-teal-600 mb-1">{{ message.sender.get_full_name|default:message.sender.username }}</p>
+                                    <p class="text-sm text-gray-900 whitespace-pre-wrap break-words">{{ message.content }}</p>
+                                    <div class="flex items-center justify-end mt-1">
+                                        <span class="text-[11px] text-gray-600">{{ message.created_at|date:"g:i A" }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            {% if message.attachment %}
+                            <div class="mt-1 px-3">
+                                {% if message.message_type == 'image' %}
+                                <img src="{{ message.attachment.url }}" alt="Image" class="rounded-lg max-w-full h-auto" style="max-height: 200px;">
+                                {% else %}
+                                <a href="{{ message.attachment.url }}" target="_blank" class="inline-flex items-center text-xs text-blue-600 hover:text-blue-800">
+                                    <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                                        <path fill-rule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" clip-rule="evenodd"/>
+                                    </svg>
+                                    {{ message.attachment.name|slice:"20:" }}
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Message Input - WhatsApp Style -->
+        {% if chat_room.status == 'active' %}
+        <div class="bg-[#f0f0f0] px-3 py-2 flex items-end gap-2">
+            <form method="post" enctype="multipart/form-data" id="message-form" class="flex-1 flex items-end gap-2">
+                {% csrf_token %}
+                <button type="button" class="p-2 text-gray-600 hover:text-gray-800 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                </button>
+                
+                <label for="{{ form.attachment.id_for_label }}" class="p-2 text-gray-600 hover:text-gray-800 transition-colors cursor-pointer">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                </label>
+                <div class="hidden">{{ form.attachment }}</div>
+                
+                <div class="flex-1">
+                    <textarea name="content" id="id_content" 
+                              class="w-full px-4 py-2 rounded-3xl border-0 resize-none focus:outline-none bg-white" 
+                              rows="1" 
+                              placeholder="Type a message"
+                              style="max-height: 100px;"></textarea>
+                    {% if form.content.errors %}
+                    <p class="mt-1 text-xs text-red-600">{{ form.content.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                
+                <button type="submit" class="p-2 bg-teal-500 text-white rounded-full hover:bg-teal-600 transition-colors shadow-md">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                </button>
+            </form>
+        </div>
+        {% else %}
+        <div class="bg-yellow-50 px-4 py-3 text-center">
+            <p class="text-sm text-yellow-800">🔒 This chat has been closed</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Customer Information Sidebar -->
+    <div class="w-80 bg-white border-l border-gray-200 overflow-y-auto hidden lg:block">
+        <div class="p-4">
+            <h2 class="text-lg font-semibold text-gray-900 mb-4">Customer Information</h2>
+            
+            <div class="space-y-4">
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Name</label>
+                    <p class="text-sm text-gray-900">{{ chat_room.customer.get_full_name|default:"Not provided" }}</p>
+                </div>
+                
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Email</label>
+                    <p class="text-sm text-gray-900">{{ chat_room.customer.email }}</p>
+                </div>
+                
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Username</label>
+                    <p class="text-sm text-gray-900">{{ chat_room.customer.username }}</p>
+                </div>
+                
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Member Since</label>
+                    <p class="text-sm text-gray-900">{{ chat_room.customer.date_joined|date:"M d, Y" }}</p>
+                </div>
+                
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Total Orders</label>
+                    <p class="text-sm text-gray-900">{{ shop_order_count }}</p>
+                </div>
+                
+                <div>
+                    <label class="text-sm font-medium text-gray-500">Chat Started</label>
+                    <p class="text-sm text-gray-900">{{ chat_room.created_at|date:"M d, Y g:i A" }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Auto-resize textarea
+function autoResizeTextarea() {
+    const textarea = document.getElementById('id_content');
+    if (textarea) {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+        });
+        
+        // Reset height when empty
+        textarea.addEventListener('input', function() {
+            if (!this.value) {
+                this.style.height = '40px';
+            }
+        });
+    }
+}
+
+// Auto-scroll to bottom on load
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('messages-container');
+    container.scrollTop = container.scrollHeight;
+    
+    // Initialize auto-resize
+    autoResizeTextarea();
+    
+    // Debug: count initial messages
+    const initialMessages = document.querySelectorAll('.message-item');
+    console.log('Initial messages on page load:', initialMessages.length);
+    initialMessages.forEach((msg, index) => {
+        console.log(`Message ${index + 1}: ID=${msg.dataset.messageId}`);
+    });
+});
+
+// WebSocket support
+const roomId = {{ chat_room.pk }};
+let chatSocket = null;
+let socketReady = false;
+
+let currentUserId = {{ user.id }};
+let typingTimeout;
+let isTyping = false;
+
+function connectWebSocket() {
+    console.log('Attempting WebSocket connection...');
+    chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/chat/' + roomId + '/'
+    );
+
+    chatSocket.onopen = function(e) {
+        console.log('WebSocket connection established');
+        socketReady = true;
+    };
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        
+        if (data.type === 'message') {
+            // Only add message if it's from another user (not ourselves)
+            // This prevents duplicates when we send a message
+            if (data.user_id !== currentUserId) {
+                // Check if message already exists to prevent duplicates
+                if (!document.querySelector(`[data-message-id="${data.message_id}"]`)) {
+                    addMessage(data);
+                    markMessageAsRead([data.message_id]);
+                }
+            }
+        } else if (data.type === 'user_join') {
+            // Only show join message if it's not the current user
+            if (data.user_id !== currentUserId) {
+                showSystemMessage(`${data.username} joined the chat`);
+            }
+        } else if (data.type === 'user_leave') {
+            // Only show leave message if it's not the current user
+            if (data.user_id !== currentUserId) {
+                showSystemMessage(`${data.username} left the chat`);
+            }
+        }
+    };
+
+    chatSocket.onerror = function(e) {
+        console.error('WebSocket error:', e);
+        socketReady = false;
+    };
+
+    chatSocket.onclose = function(e) {
+        console.error('WebSocket closed:', e.code, e.reason);
+        socketReady = false;
+        // Fallback to polling
+        console.log('Falling back to polling mode...');
+        startPolling();
+    };
+}
+
+// Try to connect
+connectWebSocket();
+
+// Handle form submission
+document.getElementById('message-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const messageInput = document.querySelector('#id_content');
+    const message = messageInput.value.trim();
+    
+    if (message) {
+        if (socketReady && chatSocket.readyState === WebSocket.OPEN) {
+            // Send via WebSocket
+            chatSocket.send(JSON.stringify({
+                'type': 'message',
+                'message': message
+            }));
+            
+            // Add our own message immediately to the UI
+            // Generate a temporary ID to prevent duplicates
+            const tempId = 'temp-' + Date.now();
+            addMessage({
+                message_id: tempId,
+                user_id: currentUserId,
+                username: '{{ user.get_full_name|default:user.username|escapejs }}',
+                message: message,
+                timestamp: new Date().toISOString()
+            });
+            
+            messageInput.value = '';
+            messageInput.style.height = '40px';
+        } else {
+            // Fallback to regular form submission
+            console.log('WebSocket not ready, using regular form submission');
+            this.submit();
+        }
+    }
+});
+
+function addMessage(data) {
+    // Check if message already exists
+    if (document.querySelector(`[data-message-id="${data.message_id}"]`)) {
+        console.log('Message already exists, skipping:', data.message_id);
+        return;
+    }
+    
+    const container = document.querySelector('#messages-container > div');
+    const isOwnMessage = data.user_id === currentUserId;
+    
+    const messageHtml = `
+        <div class="message-item mb-2" data-message-id="${data.message_id}">
+            <div class="flex ${isOwnMessage ? 'justify-end' : 'justify-start'} mb-1">
+                <div class="max-w-[75%] sm:max-w-[60%] relative">
+                    ${isOwnMessage ? `
+                    <div class="bg-[#dcf8c6] rounded-lg shadow-sm relative ml-2">
+                        <div class="chat-bubble-tail-right"></div>
+                        <div class="px-3 py-2">
+                            <p class="text-sm text-gray-900 whitespace-pre-wrap break-words">${data.message}</p>
+                            <div class="flex items-center justify-end gap-1 mt-1">
+                                <span class="text-[11px] text-gray-600">${new Date(data.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                                <svg class="w-4 h-4 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                                    <path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/>
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+                    ` : `
+                    <div class="bg-white rounded-lg shadow-sm relative mr-2">
+                        <div class="chat-bubble-tail-left"></div>
+                        <div class="px-3 py-2">
+                            <p class="text-xs font-semibold text-teal-600 mb-1">${data.username}</p>
+                            <p class="text-sm text-gray-900 whitespace-pre-wrap break-words">${data.message}</p>
+                            <div class="flex items-center justify-end mt-1">
+                                <span class="text-[11px] text-gray-600">${new Date(data.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}</span>
+                            </div>
+                        </div>
+                    </div>
+                    `}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', messageHtml);
+    
+    // Scroll to bottom
+    const scrollContainer = document.getElementById('messages-container');
+    scrollContainer.scrollTop = scrollContainer.scrollHeight;
+}
+
+function markMessageAsRead(messageIds) {
+    if (socketReady && chatSocket.readyState === WebSocket.OPEN) {
+        chatSocket.send(JSON.stringify({
+            'type': 'mark_read',
+            'message_ids': messageIds
+        }));
+    }
+}
+
+function showSystemMessage(message) {
+    const container = document.querySelector('#messages-container > div');
+    
+    const messageHtml = `
+        <div class="message-item">
+            <div class="text-center my-3">
+                <span class="inline-block px-3 py-1 text-xs bg-blue-100 text-blue-800 rounded-lg">
+                    🔒 ${message}
+                </span>
+            </div>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', messageHtml);
+    
+    // Scroll to bottom
+    const scrollContainer = document.getElementById('messages-container');
+    scrollContainer.scrollTop = scrollContainer.scrollHeight;
+}
+
+// Fallback polling mechanism
+function startPolling() {
+    console.log('Starting polling mechanism');
+    let lastMessageId = 0;
+    const messages = document.querySelectorAll('.message-item');
+    if (messages.length > 0) {
+        lastMessageId = messages[messages.length - 1].dataset.messageId;
+    }
+    console.log('Starting polling with lastMessageId:', lastMessageId);
+    
+    setInterval(function() {
+        fetch(`{% url 'chat:get_new_messages' chat_room.pk %}?last_message_id=${lastMessageId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.messages && data.messages.length > 0) {
+                    console.log('Polling received messages:', data.messages.length);
+                    data.messages.forEach(msg => {
+                        // Check if message already exists before adding
+                        if (!document.querySelector(`[data-message-id="${msg.id}"]`)) {
+                            addMessage({
+                                message_id: msg.id,
+                                user_id: msg.sender_id,
+                                username: msg.sender,
+                                message: msg.content,
+                                timestamp: msg.created_at
+                            });
+                        }
+                    });
+                    
+                    lastMessageId = data.messages[data.messages.length - 1].id;
+                }
+            })
+            .catch(error => {
+                console.error('Polling error:', error);
+            });
+    }, 5000);
+}
+</script>
+{% endblock %}

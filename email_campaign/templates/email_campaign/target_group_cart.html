@@ -1,9 +1,17 @@
 {% extends 'dashboard/base.html' %}
+{% load breadcrumbs %}
 
 {% block page_title %}Target Group Cart{% endblock %}
 
 {% block dashboard_content %}
 <div class="h-full flex flex-col bg-white">
+    <!-- Breadcrumb -->
+    <div class="px-4 py-2 border-b border-gray-200 bg-gray-50">
+        <nav class="flex items-center space-x-2 text-sm">
+            {% breadcrumb "Dashboard" "dashboard:home" "Email Campaigns" "email_campaign:campaign_list" "Select Customers" "email_campaign:customer_selection" "Target Group Cart" %}
+        </nav>
+    </div>
+    
     <!-- Header -->
     <div class="px-6 py-4 border-b border-gray-200">
         <h2 class="text-2xl font-semibold text-gray-900">Target Group Cart</h2>
@@ -119,7 +127,7 @@
                         {% endfor %}
                     </tbody>
                 </table>
-                {% if customers.count < cart_count and (search_query or city_filter or state_filter) %}
+                {% if customers.count < cart_count and search_query or customers.count < cart_count and city_filter or customers.count < cart_count and state_filter %}
                 <div class="bg-blue-50 px-6 py-3 text-sm text-blue-700 border-t border-gray-200">
                     <i class="fas fa-info-circle mr-1"></i>
                     Showing {{ customers.count }} of {{ cart_count }} customers based on your filters.

@@ -1,0 +1,131 @@
+{% extends 'customer_portal/base.html' %}
+
+{% block title %}{{ notification.title }}{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <nav class="flex" aria-label="Breadcrumb">
+        <ol role="list" class="flex items-center space-x-4">
+            <li>
+                <a href="{% url 'customer_portal:dashboard' %}" class="text-gray-400 hover:text-gray-500">
+                    <svg class="h-5 w-5 flex-shrink-0" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M9.293 2.293a1 1 0 011.414 0l7 7A1 1 0 0117 11h-1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-3a1 1 0 00-1-1H9a1 1 0 00-1 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-6H3a1 1 0 01-.707-1.707l7-7z" clip-rule="evenodd" />
+                    </svg>
+                    <span class="sr-only">Home</span>
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                        <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
+                    </svg>
+                    <a href="{% url 'customer_portal:notification_list' %}" class="ml-4 text-sm font-medium text-gray-500 hover:text-gray-700">Notifications</a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                        <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
+                    </svg>
+                    <span class="ml-4 text-sm font-medium text-gray-500">{{ notification.title|truncatewords:5 }}</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+</div>
+
+<div class="bg-white shadow sm:rounded-lg">
+    <div class="px-4 py-5 sm:p-6">
+        <!-- Header -->
+        <div class="mb-6">
+            <div class="sm:flex sm:items-start sm:justify-between">
+                <div>
+                    <h1 class="text-2xl font-bold text-gray-900">{{ notification.title }}</h1>
+                    <div class="mt-2 flex items-center space-x-4 text-sm text-gray-500">
+                        <span>{{ notification.created_at|date:"F d, Y g:i A" }}</span>
+                        <span>•</span>
+                        <span>{{ notification.get_notification_type_display }}</span>
+                        {% if notification.priority == 'high' %}
+                        <span>•</span>
+                        <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-800">
+                            High Priority
+                        </span>
+                        {% elif notification.priority == 'medium' %}
+                        <span>•</span>
+                        <span class="inline-flex items-center rounded-full bg-yellow-100 px-2 py-0.5 text-xs font-medium text-yellow-800">
+                            Medium Priority
+                        </span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="mt-4 sm:mt-0">
+                    {% if notification.is_read %}
+                    <span class="inline-flex items-center rounded-full bg-gray-100 px-3 py-0.5 text-sm font-medium text-gray-800">
+                        <svg class="mr-1.5 h-2 w-2 text-gray-400" fill="currentColor" viewBox="0 0 8 8">
+                            <circle cx="4" cy="4" r="3" />
+                        </svg>
+                        Read
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center rounded-full bg-blue-100 px-3 py-0.5 text-sm font-medium text-blue-800">
+                        <svg class="mr-1.5 h-2 w-2 text-blue-400" fill="currentColor" viewBox="0 0 8 8">
+                            <circle cx="4" cy="4" r="3" />
+                        </svg>
+                        Unread
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Message Content -->
+        <div class="prose prose-sm max-w-none">
+            <p>{{ notification.message|linebreaks }}</p>
+        </div>
+        
+        <!-- Actions -->
+        <div class="mt-8 flex items-center justify-between">
+            <a href="{% url 'customer_portal:notification_list' %}" class="text-sm font-medium text-gray-500 hover:text-gray-700">
+                ← Back to notifications
+            </a>
+            
+            {% if notification.link %}
+            <a href="{{ notification.link }}" class="inline-flex items-center rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                View Related Item
+                <svg class="ml-2 -mr-0.5 h-4 w-4" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 01.02-1.06L11.168 10 7.23 6.29a.75.75 0 111.04-1.08l4.5 4.25a.75.75 0 010 1.08l-4.5 4.25a.75.75 0 01-1.06-.02z" clip-rule="evenodd" />
+                </svg>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Related Information -->
+{% if notification.notification_type == 'order' %}
+<div class="mt-6 bg-blue-50 sm:rounded-lg">
+    <div class="px-4 py-5 sm:p-6">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-blue-800">Order Update</h3>
+                <div class="mt-2 text-sm text-blue-700">
+                    <p>This notification is related to an order update. Check your orders page for more details.</p>
+                </div>
+                <div class="mt-4">
+                    <div class="-mx-2 -my-1.5 flex">
+                        <a href="{% url 'customer_portal:order_list' %}" class="rounded-md bg-blue-50 px-2 py-1.5 text-sm font-medium text-blue-800 hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2 focus:ring-offset-blue-50">
+                            View orders
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

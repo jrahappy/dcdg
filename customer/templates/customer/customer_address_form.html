@@ -1,0 +1,336 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}Add Address - {{ customer.get_full_name }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs mb-6">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+            <li><a href="{% url 'customer:customer_list' %}">Customers</a></li>
+            <li><a href="{% url 'customer:customer_detail' customer.pk %}">{{ customer.get_full_name }}</a></li>
+            <li>Add Address</li>
+        </ul>
+    </div>
+
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold">Add Address</h1>
+        <p class="text-base-content/60 mt-2">Add a new address for {{ customer.get_full_name }}</p>
+    </div>
+
+    <!-- Customer Summary Card -->
+    <div class="card bg-base-200 mb-6">
+        <div class="card-body">
+            <div class="flex items-center gap-4">
+                <div class="avatar placeholder">
+                    <div class="bg-neutral text-neutral-content rounded-full w-12">
+                        <span>{{ customer.first_name.0|upper }}{{ customer.last_name.0|upper }}</span>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-semibold">{{ customer.get_full_name }}</h3>
+                    <p class="text-sm text-base-content/60">{{ customer.email }}</p>
+                    {% if customer.company_name %}
+                    <div class="badge badge-outline badge-sm mt-1">{{ customer.company_name }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="alert alert-error">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                        {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Address Information Section -->
+                <div>
+                    <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Address Information
+                    </h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Address Type -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">{{ form.address_type.label }}</span>
+                            </label>
+                            {{ form.address_type }}
+                            {% if form.address_type.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.address_type.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        <!-- Label -->
+                        {% if form.label %}
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">{{ form.label.label }}</span>
+                            </label>
+                            {{ form.label }}
+                            {% if form.label.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.label.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Recipient Name -->
+                        {% if form.recipient_name %}
+                        <div class="form-control md:col-span-2">
+                            <label class="label">
+                                <span class="label-text">{{ form.recipient_name.label }}</span>
+                            </label>
+                            {{ form.recipient_name }}
+                            {% if form.recipient_name.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.recipient_name.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Company Name -->
+                        {% if form.company_name %}
+                        <div class="form-control md:col-span-2">
+                            <label class="label">
+                                <span class="label-text">{{ form.company_name.label }}</span>
+                            </label>
+                            {{ form.company_name }}
+                            {% if form.company_name.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.company_name.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Street Address / Address Line 1 -->
+                        {% if form.street_address %}
+                        <div class="form-control md:col-span-2">
+                            <label class="label">
+                                <span class="label-text">{{ form.street_address.label }} <span class="text-error">*</span></span>
+                            </label>
+                            {{ form.street_address }}
+                            {% if form.street_address.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.street_address.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+                        {% elif form.address_line1 %}
+                        <div class="form-control md:col-span-2">
+                            <label class="label">
+                                <span class="label-text">{{ form.address_line1.label }} <span class="text-error">*</span></span>
+                            </label>
+                            {{ form.address_line1 }}
+                            {% if form.address_line1.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.address_line1.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Apartment/Suite / Address Line 2 -->
+                        {% if form.apartment_suite %}
+                        <div class="form-control md:col-span-2">
+                            <label class="label">
+                                <span class="label-text">{{ form.apartment_suite.label }}</span>
+                            </label>
+                            {{ form.apartment_suite }}
+                            {% if form.apartment_suite.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.apartment_suite.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+                        {% elif form.address_line2 %}
+                        <div class="form-control md:col-span-2">
+                            <label class="label">
+                                <span class="label-text">{{ form.address_line2.label }}</span>
+                            </label>
+                            {{ form.address_line2 }}
+                            {% if form.address_line2.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.address_line2.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- City -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">{{ form.city.label }} <span class="text-error">*</span></span>
+                            </label>
+                            {{ form.city }}
+                            {% if form.city.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.city.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        <!-- State -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">{{ form.state.label }} <span class="text-error">*</span></span>
+                            </label>
+                            {{ form.state }}
+                            {% if form.state.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.state.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        <!-- Postal Code -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">{{ form.postal_code.label }} <span class="text-error">*</span></span>
+                            </label>
+                            {{ form.postal_code }}
+                            {% if form.postal_code.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.postal_code.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        <!-- Country -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">{{ form.country.label }} <span class="text-error">*</span></span>
+                            </label>
+                            {{ form.country }}
+                            {% if form.country.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.country.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        <!-- Phone -->
+                        {% if form.phone %}
+                        <div class="form-control md:col-span-2">
+                            <label class="label">
+                                <span class="label-text">{{ form.phone.label }}</span>
+                            </label>
+                            {{ form.phone }}
+                            {% if form.phone.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.phone.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <!-- Is Default -->
+                        {% if form.is_default %}
+                        <div class="form-control md:col-span-2">
+                            <label class="label cursor-pointer justify-start gap-4">
+                                {{ form.is_default }}
+                                <span class="label-text">{{ form.is_default.label }}</span>
+                            </label>
+                            {% if form.is_default.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.is_default.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex justify-end gap-3 pt-4">
+                    <a href="{% url 'customer:customer_detail' customer.pk %}" class="btn btn-ghost">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Save Address
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Add DaisyUI styling to Django form fields */
+    input[type="text"]:not(.input),
+    input[type="email"]:not(.input),
+    input[type="tel"]:not(.input),
+    input[type="number"]:not(.input),
+    input[type="password"]:not(.input),
+    input[type="date"]:not(.input),
+    input[type="datetime-local"]:not(.input),
+    input[type="time"]:not(.input),
+    input[type="url"]:not(.input),
+    input[type="search"]:not(.input) {
+        @apply input input-bordered w-full;
+    }
+    
+    select:not(.select) {
+        @apply select select-bordered w-full;
+    }
+    
+    textarea:not(.textarea) {
+        @apply textarea textarea-bordered w-full h-24;
+    }
+    
+    input[type="checkbox"]:not(.checkbox) {
+        @apply checkbox checkbox-primary;
+    }
+    
+    input[type="radio"]:not(.radio) {
+        @apply radio radio-primary;
+    }
+    
+    /* Error state for form fields */
+    input.errorlist + input,
+    .errorlist ~ input,
+    .error input {
+        @apply input-error;
+    }
+    
+    select.errorlist + select,
+    .errorlist ~ select,
+    .error select {
+        @apply select-error;
+    }
+    
+    textarea.errorlist + textarea,
+    .errorlist ~ textarea,
+    .error textarea {
+        @apply textarea-error;
+    }
+</style>
+{% endblock %}

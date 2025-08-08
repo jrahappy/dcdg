@@ -1,0 +1,261 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block dashboard_content %}
+<div class="space-y-4">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold">Chat Support</h1>
+            <div class="text-sm breadcrumbs">
+                <ul>
+                    <li><a href="{% url 'dashboard:home' %}" class="link link-hover">Dashboard</a></li>
+                    <li>Chat Support</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex gap-2">
+            <button class="btn btn-outline btn-sm" onclick="location.reload()">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                Refresh
+            </button>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Active Chats</div>
+                <div class="stat-value text-primary">{{ active_count|default:0 }}</div>
+            </div>
+        </div>
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Unassigned</div>
+                <div class="stat-value text-warning">{{ unassigned_count|default:0 }}</div>
+            </div>
+        </div>
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">My Chats</div>
+                <div class="stat-value text-info">{{ my_chats_count|default:0 }}</div>
+            </div>
+        </div>
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Unread Messages</div>
+                <div class="stat-value text-error">{{ total_unread|default:0 }}</div>
+            </div>
+        </div>
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Closed Today</div>
+                <div class="stat-value text-success">{{ closed_today|default:0 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body p-4">
+            <div class="flex flex-col lg:flex-row gap-4">
+                <div class="tabs tabs-boxed flex-1">
+                    <a href="?filter=all" class="tab {% if not request.GET.filter or request.GET.filter == 'all' %}tab-active{% endif %}">All Chats</a>
+                    <a href="?filter=unassigned" class="tab {% if request.GET.filter == 'unassigned' %}tab-active{% endif %}">Unassigned</a>
+                    <a href="?filter=mine" class="tab {% if request.GET.filter == 'mine' %}tab-active{% endif %}">My Chats</a>
+                    <a href="?filter=active" class="tab {% if request.GET.filter == 'active' %}tab-active{% endif %}">Active</a>
+                    <a href="?filter=closed" class="tab {% if request.GET.filter == 'closed' %}tab-active{% endif %}">Closed</a>
+                </div>
+                
+                <div class="form-control">
+                    <input type="text" placeholder="Search customer or subject..." 
+                           class="input input-bordered" id="chat-search" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Rooms Grid -->
+    {% if chat_rooms %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for room in chat_rooms %}
+        <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow {% if room.unread_count %}ring-2 ring-warning{% endif %}">
+            <div class="card-body">
+                <!-- Header -->
+                <div class="flex justify-between items-start mb-3">
+                    <div class="flex items-center space-x-3">
+                        <div class="avatar placeholder {% if room.customer.is_online %}online{% else %}offline{% endif %}">
+                            <div class="bg-neutral text-neutral-content rounded-full w-12">
+                                <span>{{ room.customer.first_name.0|upper }}{{ room.customer.last_name.0|upper }}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <h3 class="font-bold">{{ room.customer.get_full_name|default:room.customer.username }}</h3>
+                            <p class="text-sm opacity-60">{{ room.customer.email }}</p>
+                        </div>
+                    </div>
+                    {% if room.status == 'active' %}
+                        <div class="badge badge-success">Active</div>
+                    {% elif room.status == 'closed' %}
+                        <div class="badge badge-ghost">Closed</div>
+                    {% else %}
+                        <div class="badge">{{ room.get_status_display }}</div>
+                    {% endif %}
+                </div>
+
+                <!-- Subject -->
+                <div class="mb-3">
+                    <p class="font-semibold text-sm">{{ room.subject|truncatechars:50 }}</p>
+                    {% if room.last_message %}
+                    <p class="text-sm opacity-75 mt-1">
+                        <span class="font-medium">Last:</span> {{ room.last_message.content|truncatechars:60 }}
+                    </p>
+                    {% endif %}
+                </div>
+
+                <!-- Info -->
+                <div class="space-y-1 text-sm">
+                    <div class="flex items-center justify-between">
+                        <span class="opacity-60">Manager:</span>
+                        <span class="font-medium">
+                            {% if room.manager %}
+                                {{ room.manager.get_full_name|default:room.manager.username }}
+                            {% else %}
+                                <span class="text-warning">Unassigned</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="opacity-60">Priority:</span>
+                        {% if room.priority == 'high' %}
+                            <div class="badge badge-error badge-sm">High</div>
+                        {% elif room.priority == 'normal' %}
+                            <div class="badge badge-ghost badge-sm">Normal</div>
+                        {% elif room.priority == 'low' %}
+                            <div class="badge badge-outline badge-sm">Low</div>
+                        {% else %}
+                            <div class="badge badge-sm">{{ room.get_priority_display|default:"Normal" }}</div>
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="opacity-60">Messages:</span>
+                        <span class="font-medium">{{ room.messages.count }}</span>
+                    </div>
+                    {% if room.unread_count %}
+                    <div class="flex items-center justify-between">
+                        <span class="opacity-60">Unread:</span>
+                        <div class="badge badge-warning">{{ room.unread_count }} new</div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Footer -->
+                <div class="card-actions justify-between items-center mt-4 pt-4 border-t">
+                    <div class="text-xs opacity-50">
+                        {{ room.updated_at|date:"M d, H:i" }}
+                    </div>
+                    <div class="flex gap-2">
+                        <a href="{% url 'chat:chat_room' room.id %}" class="btn btn-sm btn-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+                            </svg>
+                            Open Chat
+                        </a>
+                        {% if room.status == 'active' and room.manager == request.user %}
+                        <button class="btn btn-sm btn-outline btn-error" onclick="closeChat({{ room.id }})">
+                            Close
+                        </button>
+                        {% elif not room.manager %}
+                        <button class="btn btn-sm btn-outline btn-info" onclick="assignToMe({{ room.id }})">
+                            Assign to Me
+                        </button>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body text-center py-16">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto mb-4 text-base-content/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            <h3 class="text-xl font-semibold">No chat rooms found</h3>
+            <p class="text-base-content/60">Chat rooms will appear here when customers start conversations</p>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="flex justify-center">
+        <div class="btn-group">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}" class="btn">«</a>
+            {% else %}
+                <button class="btn btn-disabled">«</button>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <button class="btn btn-active">{{ num }}</button>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}" class="btn">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if request.GET.filter %}&filter={{ request.GET.filter }}{% endif %}" class="btn">»</a>
+            {% else %}
+                <button class="btn btn-disabled">»</button>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+// Auto-refresh every 30 seconds for new messages
+setInterval(() => {
+    const hasUnread = document.querySelector('.ring-warning');
+    if (hasUnread) {
+        location.reload();
+    }
+}, 30000);
+
+// Search functionality
+document.getElementById('chat-search').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const cards = document.querySelectorAll('.card');
+    
+    cards.forEach(card => {
+        const text = card.textContent.toLowerCase();
+        card.style.display = text.includes(searchTerm) ? '' : 'none';
+    });
+});
+
+function assignToMe(roomId) {
+    if (confirm('Assign this chat to yourself?')) {
+        fetch(`/chat/${roomId}/assign/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+            }
+        }).then(() => location.reload());
+    }
+}
+
+function closeChat(roomId) {
+    if (confirm('Close this chat room?')) {
+        window.location.href = `/chat/${roomId}/close/`;
+    }
+}
+</script>
+{% endblock %}

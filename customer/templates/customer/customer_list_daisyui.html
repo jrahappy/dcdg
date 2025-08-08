@@ -1,0 +1,342 @@
+{% extends 'dashboard/base_daisyui.html' %}
+{% load breadcrumbs %}
+
+{% block page_title %}Customer List{% endblock %}
+
+{% block dashboard_content %}
+<div class="space-y-4" x-data="{ 
+    viewMode: localStorage.getItem('customerViewMode') || 'list',
+    selectedCustomers: []
+}">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold">Customers</h1>
+            <div class="text-sm breadcrumbs">
+                <ul>
+                    <li><a href="{% url 'dashboard:home' %}" class="link link-hover">Dashboard</a></li>
+                    <li>Customers</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex gap-2">
+            <a href="{% url 'customer:customer_create' %}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Customer
+            </a>
+        </div>
+    </div>
+
+    <!-- Search and Filters Card -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body p-4">
+            <form method="get" class="flex flex-col lg:flex-row gap-4">
+                <!-- Search Input -->
+                <div class="form-control flex-1">
+                    <div class="input-group">
+                        <input type="text" 
+                               name="search" 
+                               value="{{ search_query }}" 
+                               placeholder="Search customers by name, email, or company..." 
+                               class="input input-bordered flex-1" />
+                        <button type="submit" class="btn btn-square">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Category Filter -->
+                <select name="category" class="select select-bordered w-full lg:w-auto">
+                    <option value="">All Categories</option>
+                    {% for value, label in categories %}
+                        <option value="{{ value }}" {% if selected_category == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                    {% endfor %}
+                </select>
+                
+                <!-- Rows per page -->
+                <select name="rows" class="select select-bordered w-full lg:w-auto" onchange="this.form.submit()">
+                    <option value="10" {% if rows_per_page == 10 %}selected{% endif %}>10 rows</option>
+                    <option value="20" {% if rows_per_page == 20 %}selected{% endif %}>20 rows</option>
+                    <option value="50" {% if rows_per_page == 50 %}selected{% endif %}>50 rows</option>
+                    <option value="100" {% if rows_per_page == 100 %}selected{% endif %}>100 rows</option>
+                </select>
+                
+                <!-- View Mode Toggle -->
+                <div class="btn-group">
+                    <button type="button" 
+                            @click="viewMode = 'list'; localStorage.setItem('customerViewMode', 'list')"
+                            :class="viewMode === 'list' ? 'btn-active' : ''"
+                            class="btn btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                        </svg>
+                    </button>
+                    <button type="button" 
+                            @click="viewMode = 'grid'; localStorage.setItem('customerViewMode', 'grid')"
+                            :class="viewMode === 'grid' ? 'btn-active' : ''"
+                            class="btn btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                        </svg>
+                    </button>
+                </div>
+                
+                {% if search_query or selected_category %}
+                    <a href="{% url 'customer:customer_list' %}" class="btn btn-ghost btn-sm">
+                        Clear Filters
+                    </a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Customer List/Grid -->
+    <div x-show="viewMode === 'list'" x-transition>
+        {% if customers %}
+        <div class="card bg-base-100 shadow-xl">
+            <div class="overflow-x-auto">
+                <table class="table table-zebra">
+                    <thead>
+                        <tr>
+                            <th>
+                                <label>
+                                    <input type="checkbox" class="checkbox" 
+                                           @change="selectedCustomers = $event.target.checked ? {{ customers|length }} : []" />
+                                </label>
+                            </th>
+                            <th>Customer</th>
+                            <th>Contact</th>
+                            <th>Company</th>
+                            <th>Category</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for customer in customers %}
+                        <tr class="hover">
+                            <th>
+                                <label>
+                                    <input type="checkbox" class="checkbox" value="{{ customer.id }}"
+                                           x-model="selectedCustomers" />
+                                </label>
+                            </th>
+                            <td>
+                                <div class="flex items-center space-x-3">
+                                    <div class="avatar placeholder">
+                                        <div class="bg-neutral text-neutral-content rounded-full w-12">
+                                            <span class="text-xl">{{ customer.first_name.0|upper }}{{ customer.last_name.0|upper }}</span>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <div class="font-bold">{{ customer.get_full_name }}</div>
+                                        <div class="text-sm opacity-50">ID: #{{ customer.id }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div>{{ customer.email }}</div>
+                                {% if customer.phone_number %}
+                                    <div class="text-sm opacity-50">{{ customer.phone_number }}</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ customer.company_name|default:"-" }}</td>
+                            <td>
+                                {% if customer.category %}
+                                    <div class="badge badge-outline">{{ customer.get_category_display }}</div>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if customer.is_active %}
+                                    <div class="badge badge-success">Active</div>
+                                {% else %}
+                                    <div class="badge badge-ghost">Inactive</div>
+                                {% endif %}
+                            </td>
+                            <td>{{ customer.date_joined|date:"M d, Y" }}</td>
+                            <th>
+                                <div class="dropdown dropdown-end">
+                                    <label tabindex="0" class="btn btn-ghost btn-xs">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                        </svg>
+                                    </label>
+                                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                        <li><a href="{% url 'customer:customer_detail' customer.id %}">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                            View
+                                        </a></li>
+                                        <li><a href="{% url 'customer:customer_update' customer.id %}">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                            </svg>
+                                            Edit
+                                        </a></li>
+                                        <div class="divider my-0"></div>
+                                        <li><a href="{% url 'customer:customer_delete' customer.id %}" class="text-error">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            Delete
+                                        </a></li>
+                                    </ul>
+                                </div>
+                            </th>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Grid View -->
+    <div x-show="viewMode === 'grid'" x-transition>
+        {% if customers %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {% for customer in customers %}
+            <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+                <div class="card-body">
+                    <div class="flex items-start justify-between">
+                        <div class="avatar placeholder">
+                            <div class="bg-neutral text-neutral-content rounded-full w-12">
+                                <span>{{ customer.first_name.0|upper }}{{ customer.last_name.0|upper }}</span>
+                            </div>
+                        </div>
+                        <div class="dropdown dropdown-end">
+                            <label tabindex="0" class="btn btn-ghost btn-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                </svg>
+                            </label>
+                            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                <li><a href="{% url 'customer:customer_detail' customer.id %}">View</a></li>
+                                <li><a href="{% url 'customer:customer_update' customer.id %}">Edit</a></li>
+                                <li><a href="{% url 'customer:customer_delete' customer.id %}" class="text-error">Delete</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <h2 class="card-title">{{ customer.get_full_name }}</h2>
+                    
+                    <div class="space-y-1 text-sm">
+                        <div class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <span class="truncate">{{ customer.email }}</span>
+                        </div>
+                        
+                        {% if customer.phone_number %}
+                        <div class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                            </svg>
+                            <span>{{ customer.phone_number }}</span>
+                        </div>
+                        {% endif %}
+                        
+                        {% if customer.company_name %}
+                        <div class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            <span class="truncate">{{ customer.company_name }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="card-actions justify-between items-center mt-4">
+                        {% if customer.is_active %}
+                            <div class="badge badge-success">Active</div>
+                        {% else %}
+                            <div class="badge badge-ghost">Inactive</div>
+                        {% endif %}
+                        
+                        <a href="{% url 'customer:customer_detail' customer.id %}" class="btn btn-primary btn-sm">
+                            View Details
+                        </a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Empty State -->
+    {% if not customers %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body text-center py-16">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto mb-4 text-base-content/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+            </svg>
+            <h3 class="text-xl font-semibold">No customers found</h3>
+            <p class="text-base-content/60">
+                {% if search_query or selected_category %}
+                    Try adjusting your search or filter criteria
+                {% else %}
+                    Get started by adding your first customer
+                {% endif %}
+            </p>
+            <div class="card-actions justify-center mt-4">
+                {% if search_query or selected_category %}
+                    <a href="{% url 'customer:customer_list' %}" class="btn btn-ghost">Clear Filters</a>
+                {% endif %}
+                <a href="{% url 'customer:customer_create' %}" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Customer
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if customers.has_other_pages %}
+    <div class="flex justify-center">
+        <div class="btn-group">
+            {% if customers.has_previous %}
+                <a href="?page={{ customers.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}&rows={{ rows_per_page }}" 
+                   class="btn">«</a>
+            {% else %}
+                <button class="btn btn-disabled">«</button>
+            {% endif %}
+            
+            {% for num in customers.paginator.page_range %}
+                {% if customers.number == num %}
+                    <button class="btn btn-active">{{ num }}</button>
+                {% elif num > customers.number|add:'-3' and num < customers.number|add:'3' %}
+                    <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}&rows={{ rows_per_page }}" 
+                       class="btn">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if customers.has_next %}
+                <a href="?page={{ customers.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_category %}&category={{ selected_category }}{% endif %}&rows={{ rows_per_page }}" 
+                   class="btn">»</a>
+            {% else %}
+                <button class="btn btn-disabled">»</button>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

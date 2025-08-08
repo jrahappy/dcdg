@@ -20,12 +20,22 @@ from django.conf import settings
 from django.conf.urls.static import static
 
 urlpatterns = [
-    path("", include("landing.urls")),  # Landing page is now the homepage
-    path("dashboard/", include("dashboard.urls")),  # Dashboard for logged-in users
+    path("", include("shop.urls")),  # Landing page is now the homepage
+    path("landing/", include("landing.urls")),  # Landing page is now the homepage
+    path("home/", include("dashboard.urls")),  # Dashboard for logged-in users
+    path("home/customer/", include("customer.urls")),  # Customer addresses
+    path("home/email-campaign/", include("email_campaign.urls")),  # Email campaigns
+    path("home/email-templates/", include("email_templates.urls")),  # Email templates
+    path("home/products/", include("product.urls")),  # Product management
+    path("home/purchases/", include("purchases.urls")),  # Purchase orders
+    path("home/sales/", include("sales.urls")),  # Sales app (quotes, orders, invoices)
+    path("home/blog/", include("blog.urls")),  # Blog moved to /blog/
+    path("shop/", include("shop.urls")),  # Shop for anonymous visitors
     path(
-        "dashboard/email-campaign/", include("email_campaign.urls")
-    ),  # Email campaigns
-    path("blog/", include("blog.urls")),  # Blog moved to /blog/
+        "account/", include("customer_portal.urls")
+    ),  # Customer portal for logged-in shoppers
+    path("account/chat/", include("chat.urls")),  # Chat support for customers
+    path("factory/", include("factory_portal.urls")),  # Factory portal for suppliers
     path("admin/", admin.site.urls),
     path("summernote/", include("django_summernote.urls")),
     # Load accounts URLs first to override allauth's email confirmation
@@ -35,4 +45,9 @@ urlpatterns = [
 ]
 
 if settings.DEBUG:
+    import debug_toolbar
+
+    urlpatterns = [
+        path("__debug__/", include(debug_toolbar.urls)),
+    ] + urlpatterns
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

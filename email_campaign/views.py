@@ -1,5 +1,6 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.db.models import Q, Count
 from django.http import JsonResponse
@@ -10,6 +11,7 @@ from django.utils import timezone
 from customer.models import Customer
 from .models import TargetGroup, EmailCampaign, EmailLog
 from .forms import EmailCampaignForm
+from email_templates.models import EmailTemplate
 import json
 
 
@@ -57,7 +59,7 @@ class TargetGroupCart:
         self.session.modified = True
 
 
-@login_required
+@staff_member_required
 def campaign_list(request):
     """List all email campaigns"""
     campaigns = EmailCampaign.objects.filter(created_by=request.user).order_by('-created_at')
@@ -94,10 +96,10 @@ def campaign_list(request):
         'sent_count': sent_count,
         'draft_count': draft_count,
     }
-    return render(request, 'email_campaign/campaign_list.html', context)
+    return render(request, 'email_campaign/campaign_list_daisyui.html', context)
 
 
-@login_required
+@staff_member_required
 def customer_selection(request):
     """Customer selection view with filters"""
     customers = Customer.objects.filter(is_active=True)
@@ -142,7 +144,7 @@ def customer_selection(request):
     return render(request, 'email_campaign/customer_selection.html', context)
 
 
-@login_required
+@staff_member_required
 @require_POST
 def add_to_cart(request):
     """Add customers to target group cart"""
@@ -162,7 +164,7 @@ def add_to_cart(request):
     })
 
 
-@login_required
+@staff_member_required
 @require_POST
 def remove_from_cart(request):
     """Remove customer from target group cart"""
@@ -178,7 +180,7 @@ def remove_from_cart(request):
     })
 
 
-@login_required
+@staff_member_required
 def target_group_cart_view(request):
     """View and manage target group cart"""
     cart = TargetGroupCart(request)
@@ -227,8 +229,13 @@ def target_group_cart_view(request):
             # Clear cart after creating group
             cart.clear()
             
+            # Store target group in session for 3-step process
+            request.session['campaign_creation'] = {
+                'target_group_id': target_group.id,
+                'step': 1
+            }
             messages.success(request, f'Target group "{name}" created with {all_customers.count()} customers.')
-            return redirect('email_campaign:campaign_create_with_group', target_group_id=target_group.id)
+            return redirect('email_campaign:campaign_create_step2')
         else:
             messages.error(request, 'Please provide a name and select at least one customer.')
     
@@ -244,7 +251,7 @@ def target_group_cart_view(request):
     return render(request, 'email_campaign/target_group_cart.html', context)
 
 
-@login_required
+@staff_member_required
 def clear_cart(request):
     """Clear the target group cart"""
     cart = TargetGroupCart(request)
@@ -253,7 +260,7 @@ def clear_cart(request):
     return redirect('email_campaign:customer_selection')
 
 
-@login_required
+@staff_member_required
 def campaign_create(request, target_group_id=None):
     """Create new email campaign"""
     if target_group_id:
@@ -298,7 +305,7 @@ def campaign_create(request, target_group_id=None):
     return render(request, 'email_campaign/campaign_form.html', context)
 
 
-@login_required
+@staff_member_required
 def campaign_detail(request, pk):
     """View campaign details"""
     campaign = get_object_or_404(EmailCampaign, pk=pk, created_by=request.user)
@@ -310,7 +317,7 @@ def campaign_detail(request, pk):
     return render(request, 'email_campaign/campaign_detail.html', context)
 
 
-@login_required
+@staff_member_required
 @require_POST
 def send_campaign(request, pk):
     """Send email campaign"""
@@ -325,7 +332,9 @@ def send_campaign(request, pk):
     campaign.save()
     
     # Prepare emails
-    from_email = campaign.from_email or settings.DEFAULT_FROM_EMAIL
+    email_template = campaign.email_template
+    from_email = email_template.sender_email if email_template else (campaign.from_email or settings.DEFAULT_FROM_EMAIL)
+    subject = email_template.subject if email_template else campaign.subject
     customers = campaign.target_group.customers.all()
     
     messages_to_send = []
@@ -337,10 +346,24 @@ def send_campaign(request, pk):
             status='pending'
         )
         
+        # Prepare email content with template variables
+        if email_template:
+            # Use email template with variable substitution
+            content = email_template.html_content or email_template.plain_content
+            # Basic variable substitution (in a real system, you'd use a proper template engine)
+            content = content.replace('{{first_name}}', customer.first_name or '')
+            content = content.replace('{{last_name}}', customer.last_name or '')
+            content = content.replace('{{email}}', customer.email or '')
+            content = content.replace('{{company_name}}', customer.company_name or '')
+            # Add more variable substitutions as needed
+        else:
+            # Use legacy content field
+            content = campaign.content
+        
         # Prepare email
         message = (
-            campaign.subject,
-            campaign.content,
+            subject,
+            content,
             from_email,
             [customer.email]
         )
@@ -376,7 +399,7 @@ def send_campaign(request, pk):
     return redirect('email_campaign:campaign_detail', pk=pk)
 
 
-@login_required
+@staff_member_required
 def campaign_delete(request, pk):
     """Delete campaign"""
     campaign = get_object_or_404(EmailCampaign, pk=pk, created_by=request.user)
@@ -390,7 +413,7 @@ def campaign_delete(request, pk):
     return render(request, 'email_campaign/campaign_confirm_delete.html', {'campaign': campaign})
 
 
-@login_required
+@staff_member_required
 def target_group_list(request):
     """List all target groups"""
     target_groups = TargetGroup.objects.filter(created_by=request.user).order_by('-created_at')
@@ -414,10 +437,10 @@ def target_group_list(request):
         'page_obj': page_obj,
         'search_query': search_query,
     }
-    return render(request, 'email_campaign/target_group_list.html', context)
+    return render(request, 'email_campaign/target_group_list_daisyui.html', context)
 
 
-@login_required
+@staff_member_required
 def target_group_detail(request, pk):
     """View target group details"""
     target_group = get_object_or_404(TargetGroup, pk=pk, created_by=request.user)
@@ -432,7 +455,7 @@ def target_group_detail(request, pk):
     return render(request, 'email_campaign/target_group_detail.html', context)
 
 
-@login_required
+@staff_member_required
 def target_group_edit(request, pk):
     """Edit target group"""
     target_group = get_object_or_404(TargetGroup, pk=pk, created_by=request.user)
@@ -472,7 +495,7 @@ def target_group_edit(request, pk):
     return render(request, 'email_campaign/target_group_edit.html', context)
 
 
-@login_required
+@staff_member_required
 def target_group_delete(request, pk):
     """Delete target group"""
     target_group = get_object_or_404(TargetGroup, pk=pk, created_by=request.user)
@@ -494,3 +517,133 @@ def target_group_delete(request, pk):
         'campaign_count': campaign_count,
     }
     return render(request, 'email_campaign/target_group_confirm_delete.html', context)
+
+
+# 3-Step Marketing Campaign Creation Views
+
+@staff_member_required
+def campaign_create_step1(request):
+    """Step 1: Select Target Group"""
+    target_groups = TargetGroup.objects.filter(created_by=request.user).order_by('-created_at')
+    
+    if request.method == 'POST':
+        target_group_id = request.POST.get('target_group_id')
+        if target_group_id:
+            # Store in session and proceed to step 2
+            request.session['campaign_creation'] = {
+                'target_group_id': target_group_id,
+                'step': 1
+            }
+            return redirect('email_campaign:campaign_create_step2')
+        else:
+            messages.error(request, 'Please select a target group.')
+    
+    context = {
+        'target_groups': target_groups,
+        'step': 1,
+        'step_title': 'Select Target Group'
+    }
+    return render(request, 'email_campaign/campaign_create_step1.html', context)
+
+
+@staff_member_required
+def campaign_create_step2(request):
+    """Step 2: Select Email Template"""
+    # Check if step 1 is completed
+    campaign_data = request.session.get('campaign_creation')
+    if not campaign_data or campaign_data.get('step', 0) < 1:
+        messages.error(request, 'Please complete step 1 first.')
+        return redirect('email_campaign:campaign_create_step1')
+    
+    # Get target group for context
+    target_group = get_object_or_404(TargetGroup, id=campaign_data['target_group_id'], created_by=request.user)
+    
+    # Get available email templates
+    email_templates = EmailTemplate.objects.filter(status='active').order_by('-updated_at')
+    
+    if request.method == 'POST':
+        email_template_id = request.POST.get('email_template_id')
+        if email_template_id:
+            # Update session and proceed to step 3
+            campaign_data['email_template_id'] = email_template_id
+            campaign_data['step'] = 2
+            request.session['campaign_creation'] = campaign_data
+            return redirect('email_campaign:campaign_create_step3')
+        else:
+            messages.error(request, 'Please select an email template.')
+    
+    context = {
+        'target_group': target_group,
+        'email_templates': email_templates,
+        'step': 2,
+        'step_title': 'Select Email Template'
+    }
+    return render(request, 'email_campaign/campaign_create_step2.html', context)
+
+
+@staff_member_required
+def campaign_create_step3(request):
+    """Step 3: Preview and Create Campaign"""
+    # Check if previous steps are completed
+    campaign_data = request.session.get('campaign_creation')
+    if not campaign_data or campaign_data.get('step', 0) < 2:
+        messages.error(request, 'Please complete the previous steps first.')
+        return redirect('email_campaign:campaign_create_step1')
+    
+    # Get objects for preview
+    target_group = get_object_or_404(TargetGroup, id=campaign_data['target_group_id'], created_by=request.user)
+    email_template = get_object_or_404(EmailTemplate, id=campaign_data['email_template_id'])
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        campaign_name = request.POST.get('campaign_name', f'{email_template.title} - {target_group.name}')
+        
+        if action == 'create_draft':
+            # Create campaign as draft
+            campaign = EmailCampaign.objects.create(
+                name=campaign_name,
+                subject=email_template.subject,
+                email_template=email_template,
+                target_group=target_group,
+                created_by=request.user,
+                total_recipients=target_group.customer_count,
+                status='draft'
+            )
+            
+            # Clear session data
+            if 'campaign_creation' in request.session:
+                del request.session['campaign_creation']
+            
+            messages.success(request, f'Campaign "{campaign_name}" created as draft.')
+            return redirect('email_campaign:campaign_detail', pk=campaign.id)
+            
+        elif action == 'create_and_send':
+            # Create campaign and send immediately
+            campaign = EmailCampaign.objects.create(
+                name=campaign_name,
+                subject=email_template.subject,
+                email_template=email_template,
+                target_group=target_group,
+                created_by=request.user,
+                total_recipients=target_group.customer_count,
+                status='draft'
+            )
+            
+            # Clear session data
+            if 'campaign_creation' in request.session:
+                del request.session['campaign_creation']
+            
+            # Send the campaign immediately
+            return redirect('email_campaign:send_campaign', pk=campaign.id)
+    
+    # Get first few customers for preview
+    sample_customers = target_group.customers.all()[:3]
+    
+    context = {
+        'target_group': target_group,
+        'email_template': email_template,
+        'sample_customers': sample_customers,
+        'step': 3,
+        'step_title': 'Preview & Create'
+    }
+    return render(request, 'email_campaign/campaign_create_step3.html', context)

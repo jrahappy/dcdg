@@ -1,0 +1,484 @@
+{% extends 'shop/base.html' %}
+{% load static %}
+
+{% block title %}Checkout{% endblock %}
+
+{% block content %}
+<div class="bg-gray-50">
+    <div class="mx-auto max-w-2xl px-4 pb-24 pt-16 sm:px-6 lg:max-w-7xl lg:px-8">
+        <h2 class="sr-only">Checkout</h2>
+
+        <form method="post" id="checkout-form" class="lg:grid lg:grid-cols-2 lg:gap-x-12 xl:gap-x-16">
+            {% csrf_token %}
+            <div>
+                <div>
+                    <h2 class="text-lg font-medium text-gray-900">Contact information</h2>
+
+                    <div class="mt-4">
+                        <label for="email" class="block text-sm font-medium text-gray-700">Email address</label>
+                        <div class="mt-1">
+                            <input type="email" id="email" name="email" required autocomplete="email" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-10 border-t border-gray-200 pt-10">
+                    <h2 class="text-lg font-medium text-gray-900">Shipping information</h2>
+
+                    {% if user.is_authenticated %}
+                        {% if saved_addresses %}
+                        <div class="mt-4">
+                            <label for="saved_address" class="block text-sm font-medium text-gray-700">Use saved address</label>
+                            <select id="saved_address" name="saved_address" class="mt-1 block w-full rounded-md border-gray-300 py-2 pl-3 pr-10 text-base focus:border-indigo-500 focus:outline-none focus:ring-indigo-500 sm:text-sm">
+                                <option value="">-- Enter new address --</option>
+                                {% for address in saved_addresses %}
+                                <option value="{{ address.id }}" 
+                                    data-recipient-name="{{ address.recipient_name }}"
+                                    data-address-line1="{{ address.address_line1 }}"
+                                    data-address-line2="{{ address.address_line2|default:'' }}"
+                                    data-city="{{ address.city }}"
+                                    data-state="{{ address.state }}"
+                                    data-postal-code="{{ address.postal_code }}"
+                                    data-phone="{{ address.phone|default:'' }}"
+                                    {% if address.is_default %}selected{% endif %}>
+                                    {{ address.label|default:address.get_address_type_display }} - {{ address.recipient_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <p class="mt-2 text-sm text-gray-500">
+                                <a href="{% url 'customer_portal:address_list' %}" class="font-medium text-indigo-600 hover:text-indigo-500">Manage addresses</a>
+                            </p>
+                        </div>
+                        {% else %}
+                        <div class="mt-4 rounded-md bg-blue-50 p-4">
+                            <div class="flex">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a.75.75 0 000 1.5h.253a.25.25 0 01.244.304l-.459 2.066A1.75 1.75 0 0010.747 15H11a.75.75 0 000-1.5h-.253a.25.25 0 01-.244-.304l.459-2.066A1.75 1.75 0 009.253 9H9z" clip-rule="evenodd" />
+                                    </svg>
+                                </div>
+                                <div class="ml-3 flex-1 md:flex md:justify-between">
+                                    <p class="text-sm text-blue-700">Save time at checkout by saving your addresses.</p>
+                                    <p class="mt-3 text-sm md:ml-6 md:mt-0">
+                                        <a href="{% url 'customer_portal:address_create' %}" class="whitespace-nowrap font-medium text-blue-700 hover:text-blue-600">
+                                            Add address
+                                            <span aria-hidden="true"> &rarr;</span>
+                                        </a>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                    {% endif %}
+
+                    <div class="mt-4 grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
+                        <div>
+                            <label for="first_name" class="block text-sm font-medium text-gray-700">First name</label>
+                            <div class="mt-1">
+                                <input type="text" id="first_name" name="first_name" required autocomplete="given-name" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="last_name" class="block text-sm font-medium text-gray-700">Last name</label>
+                            <div class="mt-1">
+                                <input type="text" id="last_name" name="last_name" required autocomplete="family-name" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <label for="billing_address_line1" class="block text-sm font-medium text-gray-700">Address</label>
+                            <div class="mt-1">
+                                <input type="text" name="billing_address_line1" id="billing_address_line1" required autocomplete="street-address" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <label for="billing_address_line2" class="block text-sm font-medium text-gray-700">Apartment, suite, etc.</label>
+                            <div class="mt-1">
+                                <input type="text" name="billing_address_line2" id="billing_address_line2" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="billing_city" class="block text-sm font-medium text-gray-700">City</label>
+                            <div class="mt-1">
+                                <input type="text" name="billing_city" id="billing_city" required autocomplete="address-level2" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="billing_state" class="block text-sm font-medium text-gray-700">State / Province</label>
+                            <div class="mt-1">
+                                <input type="text" name="billing_state" id="billing_state" required autocomplete="address-level1" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="billing_postal_code" class="block text-sm font-medium text-gray-700">Postal code</label>
+                            <div class="mt-1">
+                                <input type="text" name="billing_postal_code" id="billing_postal_code" required autocomplete="postal-code" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="phone" class="block text-sm font-medium text-gray-700">Phone</label>
+                            <div class="mt-1">
+                                <input type="tel" name="phone" id="phone" autocomplete="tel" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-10 border-t border-gray-200 pt-10">
+                    <fieldset>
+                        <legend class="text-lg font-medium text-gray-900">Shipping address</legend>
+                        <div class="mt-4 space-y-4">
+                            <div class="flex items-center">
+                                <input id="shipping_same_as_billing" name="shipping_same_as_billing" type="checkbox" checked class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                <label for="shipping_same_as_billing" class="ml-3 text-sm text-gray-600">Same as billing address</label>
+                            </div>
+                        </div>
+                    </fieldset>
+
+                    <div id="shipping-address-fields" class="hidden mt-6 grid grid-cols-1 gap-y-6 sm:grid-cols-2 sm:gap-x-4">
+                        <div class="sm:col-span-2">
+                            <label for="shipping_address_line1" class="block text-sm font-medium text-gray-700">Address</label>
+                            <div class="mt-1">
+                                <input type="text" name="shipping_address_line1" id="shipping_address_line1" autocomplete="street-address" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+
+                        <div class="sm:col-span-2">
+                            <label for="shipping_address_line2" class="block text-sm font-medium text-gray-700">Apartment, suite, etc.</label>
+                            <div class="mt-1">
+                                <input type="text" name="shipping_address_line2" id="shipping_address_line2" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="shipping_city" class="block text-sm font-medium text-gray-700">City</label>
+                            <div class="mt-1">
+                                <input type="text" name="shipping_city" id="shipping_city" autocomplete="address-level2" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="shipping_state" class="block text-sm font-medium text-gray-700">State / Province</label>
+                            <div class="mt-1">
+                                <input type="text" name="shipping_state" id="shipping_state" autocomplete="address-level1" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="shipping_postal_code" class="block text-sm font-medium text-gray-700">Postal code</label>
+                            <div class="mt-1">
+                                <input type="text" name="shipping_postal_code" id="shipping_postal_code" autocomplete="postal-code" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Shipping method -->
+                <div class="mt-10 border-t border-gray-200 pt-10">
+                    <fieldset>
+                        <legend class="text-lg font-medium text-gray-900">Shipping method</legend>
+                        <div class="mt-4 space-y-4">
+                            {% for rate in shipping_rates %}
+                            <div class="flex items-center">
+                                <input id="shipping-{{ rate.id }}" name="shipping_rate" value="{{ rate.id }}" type="radio" {% if forloop.first %}checked{% endif %} class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                                <label for="shipping-{{ rate.id }}" class="ml-3 flex w-full cursor-pointer justify-between text-sm">
+                                    <span class="font-medium text-gray-900">{{ rate.name }}</span>
+                                    <span class="text-gray-600">${{ rate.base_rate|floatformat:2 }} ({{ rate.estimated_days }} days)</span>
+                                </label>
+                            </div>
+                            {% empty %}
+                            <p class="text-sm text-gray-500">No shipping methods available.</p>
+                            {% endfor %}
+                        </div>
+                    </fieldset>
+                </div>
+
+                <!-- Payment -->
+                <div class="mt-10 border-t border-gray-200 pt-10">
+                    <h2 class="text-lg font-medium text-gray-900">Payment</h2>
+
+                    <div class="mt-6 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                        <p class="text-sm text-gray-600">
+                            <svg class="inline h-5 w-5 text-gray-400 mr-2" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                <path fill-rule="evenodd" d="M10 1a4.5 4.5 0 00-4.5 4.5V9H5a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2h-.5V5.5A4.5 4.5 0 0010 1zm3 8V5.5a3 3 0 10-6 0V9h6z" clip-rule="evenodd" />
+                            </svg>
+                            Payment processing is currently in demo mode. No charges will be made.
+                        </p>
+                    </div>
+
+                    <fieldset class="mt-6">
+                        <legend class="block text-sm font-medium text-gray-700">Card details</legend>
+                        <div class="mt-2 -space-y-px rounded-md bg-white shadow-sm">
+                            <div>
+                                <label for="card-number" class="sr-only">Card number</label>
+                                <input type="text" name="card-number" id="card-number" class="relative block w-full rounded-none rounded-t-md border-gray-300 bg-transparent focus:z-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="Card number" value="4242 4242 4242 4242" readonly>
+                            </div>
+                            <div class="flex -space-x-px">
+                                <div class="w-1/2 min-w-0 flex-1">
+                                    <label for="card-expiration-date" class="sr-only">Expiration date</label>
+                                    <input type="text" name="card-expiration-date" id="card-expiration-date" class="relative block w-full rounded-none rounded-bl-md border-gray-300 bg-transparent focus:z-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="MM / YY" value="12/34" readonly>
+                                </div>
+                                <div class="min-w-0 flex-1">
+                                    <label for="card-cvc" class="sr-only">CVC</label>
+                                    <input type="text" name="card-cvc" id="card-cvc" class="relative block w-full rounded-none rounded-br-md border-gray-300 bg-transparent focus:z-10 focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" placeholder="CVC" value="123" readonly>
+                                </div>
+                            </div>
+                        </div>
+                    </fieldset>
+                </div>
+
+                <!-- Order notes -->
+                <div class="mt-10 border-t border-gray-200 pt-10">
+                    <label for="notes" class="block text-sm font-medium text-gray-700">Order notes (optional)</label>
+                    <div class="mt-1">
+                        <textarea id="notes" name="notes" rows="3" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order summary -->
+            <div class="mt-10 lg:mt-0">
+                <h2 class="text-lg font-medium text-gray-900">Order summary</h2>
+
+                <div class="mt-4 rounded-lg border border-gray-200 bg-white shadow-sm">
+                    <h3 class="sr-only">Items in your cart</h3>
+                    <ul role="list" class="divide-y divide-gray-200">
+                        {% for item in cart.items.all %}
+                        <li class="flex px-4 py-6 sm:px-6">
+                            <div class="flex-shrink-0">
+                                <div class="h-20 w-20 overflow-hidden rounded-md">
+                                    {% if item.product.main_image %}
+                                    <img src="{{ item.product.main_image.url }}" alt="{{ item.product.name }}" class="h-full w-full object-cover object-center">
+                                    {% else %}
+                                    <div class="h-full w-full flex items-center justify-center bg-gray-200">
+                                        <svg class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="ml-6 flex flex-1 flex-col">
+                                <div class="flex">
+                                    <div class="min-w-0 flex-1">
+                                        <h4 class="text-sm">
+                                            <a href="{% url 'shop:product_detail' item.product.pk %}" class="font-medium text-gray-700 hover:text-gray-800">{{ item.product.name }}</a>
+                                        </h4>
+                                        {% if item.selected_options %}
+                                        <p class="mt-1 text-sm text-indigo-600">
+                                            {% for key, value in item.selected_options.items %}
+                                                {{ key }}: {{ value }}{% if not forloop.last %}, {% endif %}
+                                            {% endfor %}
+                                        </p>
+                                        {% endif %}
+                                        <p class="mt-1 text-sm text-gray-500">{{ item.product.category.name|default:"" }}</p>
+                                    </div>
+
+                                    <div class="ml-4 flow-root flex-shrink-0">
+                                        <p class="text-sm font-medium text-gray-900">${{ item.line_total|floatformat:2 }}</p>
+                                    </div>
+                                </div>
+
+                                <div class="flex flex-1 items-end justify-between pt-2">
+                                    <p class="mt-1 text-sm font-medium text-gray-900">Qty: {{ item.quantity }}</p>
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    <dl class="space-y-6 border-t border-gray-200 px-4 py-6 sm:px-6">
+                        <div class="flex items-center justify-between">
+                            <dt class="text-sm">Subtotal</dt>
+                            <dd class="text-sm font-medium text-gray-900">${{ cart.subtotal|floatformat:2 }}</dd>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <dt class="text-sm">Shipping</dt>
+                            <dd class="text-sm font-medium text-gray-900" id="shipping-cost">$0.00</dd>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <dt class="text-sm">Taxes</dt>
+                            <dd class="text-sm font-medium text-gray-900" id="tax-amount">$0.00</dd>
+                        </div>
+
+                        <!-- Promo code -->
+                        <div class="border-t border-gray-200 pt-6">
+                            <label for="promo_code" class="block text-sm font-medium text-gray-700">Promo code</label>
+                            <div class="mt-1 flex space-x-4">
+                                <input type="text" name="promo_code" id="promo_code" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+                                <button type="button" onclick="applyPromoCode()" class="rounded-md bg-gray-200 px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-50">Apply</button>
+                            </div>
+                            <p id="promo-message" class="mt-2 text-sm"></p>
+                        </div>
+
+                        <div class="flex items-center justify-between border-t border-gray-200 pt-6">
+                            <dt class="text-base font-medium">Total</dt>
+                            <dd class="text-base font-medium text-gray-900" id="order-total">${{ cart.subtotal|floatformat:2 }}</dd>
+                        </div>
+                    </dl>
+
+                    <div class="border-t border-gray-200 px-4 py-6 sm:px-6">
+                        <button type="submit" class="w-full rounded-md border border-transparent bg-indigo-600 px-4 py-3 text-base font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-50">Complete order</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Toggle shipping address fields
+document.getElementById('shipping_same_as_billing').addEventListener('change', function() {
+    const shippingFields = document.getElementById('shipping-address-fields');
+    if (this.checked) {
+        shippingFields.classList.add('hidden');
+        // Clear required attributes
+        shippingFields.querySelectorAll('input[required]').forEach(input => {
+            input.removeAttribute('required');
+        });
+    } else {
+        shippingFields.classList.remove('hidden');
+        // Add required attributes
+        ['shipping_address_line1', 'shipping_city', 'shipping_state', 'shipping_postal_code'].forEach(id => {
+            document.getElementById(id).setAttribute('required', '');
+        });
+    }
+});
+
+// Calculate shipping when method changes
+document.querySelectorAll('input[name="shipping_rate"]').forEach(radio => {
+    radio.addEventListener('change', updateTotals);
+});
+
+function updateTotals() {
+    const subtotal = parseFloat('{{ cart.subtotal|default:"0.00" }}');
+    const shippingInput = document.querySelector('input[name="shipping_rate"]:checked');
+    let shippingCost = 0;
+    
+    if (shippingInput) {
+        const label = document.querySelector(`label[for="${shippingInput.id}"]`);
+        const costText = label.querySelector('span:last-child').textContent;
+        shippingCost = parseFloat(costText.match(/\$(\d+\.?\d*)/)[1]);
+    }
+    
+    const taxRate = 0.08; // 8% tax rate
+    const taxAmount = subtotal * taxRate;
+    const total = subtotal + shippingCost + taxAmount;
+    
+    document.getElementById('shipping-cost').textContent = `$${shippingCost.toFixed(2)}`;
+    document.getElementById('tax-amount').textContent = `$${taxAmount.toFixed(2)}`;
+    document.getElementById('order-total').textContent = `$${total.toFixed(2)}`;
+}
+
+// Initialize totals
+updateTotals();
+
+// Handle saved address selection
+{% if user.is_authenticated and saved_addresses %}
+document.getElementById('saved_address').addEventListener('change', function() {
+    const selectedOption = this.options[this.selectedIndex];
+    
+    if (this.value) {
+        // Parse the recipient name to extract first and last name
+        const recipientName = selectedOption.dataset.recipientName;
+        const nameParts = recipientName.split(' ');
+        const firstName = nameParts[0] || '';
+        const lastName = nameParts.slice(1).join(' ') || '';
+        
+        // Fill in the form fields
+        document.getElementById('first_name').value = firstName;
+        document.getElementById('last_name').value = lastName;
+        document.getElementById('billing_address_line1').value = selectedOption.dataset.addressLine1;
+        document.getElementById('billing_address_line2').value = selectedOption.dataset.addressLine2;
+        document.getElementById('billing_city').value = selectedOption.dataset.city;
+        document.getElementById('billing_state').value = selectedOption.dataset.state;
+        document.getElementById('billing_postal_code').value = selectedOption.dataset.postalCode;
+        document.getElementById('phone').value = selectedOption.dataset.phone;
+        
+        // Also fill email if user is authenticated
+        {% if user.email %}
+        document.getElementById('email').value = '{{ user.email }}';
+        {% endif %}
+    } else {
+        // Clear the form fields
+        document.getElementById('first_name').value = '';
+        document.getElementById('last_name').value = '';
+        document.getElementById('billing_address_line1').value = '';
+        document.getElementById('billing_address_line2').value = '';
+        document.getElementById('billing_city').value = '';
+        document.getElementById('billing_state').value = '';
+        document.getElementById('billing_postal_code').value = '';
+        document.getElementById('phone').value = '';
+    }
+});
+
+// Trigger change event on page load if default address is selected
+window.addEventListener('DOMContentLoaded', function() {
+    const savedAddressSelect = document.getElementById('saved_address');
+    if (savedAddressSelect && savedAddressSelect.value) {
+        savedAddressSelect.dispatchEvent(new Event('change'));
+    }
+});
+{% endif %}
+
+// Apply promo code
+function applyPromoCode() {
+    const promoCode = document.getElementById('promo_code').value;
+    const messageEl = document.getElementById('promo-message');
+    
+    if (!promoCode) {
+        messageEl.textContent = 'Please enter a promo code';
+        messageEl.className = 'mt-2 text-sm text-red-600';
+        return;
+    }
+    
+    // For now, just show a message that the code will be validated on checkout
+    messageEl.textContent = 'Promo code will be applied at checkout';
+    messageEl.className = 'mt-2 text-sm text-green-600';
+}
+
+// Handle form submission
+document.getElementById('checkout-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    // Show loading state
+    const submitButton = this.querySelector('button[type="submit"]');
+    const originalText = submitButton.textContent;
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Processing...';
+    
+    // Submit form data
+    const formData = new FormData(this);
+    
+    fetch(this.action, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = data.redirect_url;
+        } else {
+            // Show error
+            showNotification(data.error || 'An error occurred during checkout', 'error');
+            submitButton.disabled = false;
+            submitButton.textContent = originalText;
+        }
+    })
+    .catch(error => {
+        showNotification('An error occurred. Please try again.', 'error');
+        submitButton.disabled = false;
+        submitButton.textContent = originalText;
+    });
+});
+</script>
+{% endblock %}

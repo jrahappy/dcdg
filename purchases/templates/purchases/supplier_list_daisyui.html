@@ -1,0 +1,269 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block dashboard_content %}
+<div class="space-y-4" x-data="{ selectedSuppliers: [] }">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold">Suppliers</h1>
+            <div class="text-sm breadcrumbs">
+                <ul>
+                    <li><a href="{% url 'dashboard:home' %}" class="link link-hover">Dashboard</a></li>
+                    <li>Suppliers</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex gap-2">
+            <a href="{% url 'purchases:supplier_create' %}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                New Supplier
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Total Suppliers</div>
+                <div class="stat-value text-primary">{{ total_suppliers|default:0 }}</div>
+            </div>
+        </div>
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Active</div>
+                <div class="stat-value text-success">{{ active_count|default:0 }}</div>
+            </div>
+        </div>
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Total Orders</div>
+                <div class="stat-value text-info">{{ total_orders|default:0 }}</div>
+            </div>
+        </div>
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Total Spent</div>
+                <div class="stat-value text-warning text-lg">${{ total_spent|default:0|floatformat:0 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body p-4">
+            <form method="get" class="flex flex-col lg:flex-row gap-4">
+                <div class="form-control flex-1">
+                    <input type="text" name="search" value="{{ search_query }}" 
+                           placeholder="Search suppliers..." 
+                           class="input input-bordered" />
+                </div>
+                
+                <select name="status" class="select select-bordered">
+                    <option value="">All Status</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+                
+                <select name="location" class="select select-bordered">
+                    <option value="">All Locations</option>
+                    {% for location in locations %}
+                    <option value="{{ location }}" {% if location == location_filter %}selected{% endif %}>{{ location }}</option>
+                    {% endfor %}
+                </select>
+                
+                <button type="submit" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Search
+                </button>
+                
+                {% if search_query or status_filter or location_filter %}
+                <a href="{% url 'purchases:supplier_list' %}" class="btn btn-ghost">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Suppliers List -->
+    {% if page_obj %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="overflow-x-auto">
+            <table class="table table-zebra">
+                <thead>
+                    <tr>
+                        <th>
+                            <label>
+                                <input type="checkbox" class="checkbox" />
+                            </label>
+                        </th>
+                        <th>Supplier</th>
+                        <th>Contact Info</th>
+                        <th>Location</th>
+                        <th>Orders</th>
+                        <th>Status</th>
+                        <th>Last Order</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for supplier in page_obj %}
+                    <tr class="hover">
+                        <th>
+                            <label>
+                                <input type="checkbox" class="checkbox" value="{{ supplier.id }}" />
+                            </label>
+                        </th>
+                        <td>
+                            <div class="font-bold">{{ supplier.name }}</div>
+                        </td>
+                        <td>
+                            {% if supplier.contact_person or supplier.email or supplier.phone %}
+                                <div class="text-sm">
+                                    {% if supplier.contact_person %}
+                                        <div class="font-medium">{{ supplier.contact_person }}</div>
+                                    {% endif %}
+                                    {% if supplier.email %}
+                                        <div class="opacity-75">{{ supplier.email }}</div>
+                                    {% endif %}
+                                    {% if supplier.phone %}
+                                        <div class="opacity-75">{{ supplier.phone }}</div>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <span class="text-base-content/50">No contact</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if supplier.city or supplier.state %}
+                                <div class="text-sm">
+                                    {{ supplier.city|default:"" }}{% if supplier.state %}, {{ supplier.state }}{% endif %}
+                                    {% if supplier.country %}
+                                        <div class="opacity-75">{{ supplier.get_country_display|default:supplier.country }}</div>
+                                    {% endif %}
+                                </div>
+                            {% else %}
+                                <span class="text-base-content/50">No address</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="flex items-center gap-1">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                                </svg>
+                                {{ supplier.purchase_orders.count|default:0 }}
+                            </div>
+                        </td>
+                        <td>
+                            {% if supplier.is_active %}
+                                <div class="badge badge-success">Active</div>
+                            {% else %}
+                                <div class="badge badge-ghost">Inactive</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="text-base-content/50">-</span>
+                        </td>
+                        <td>
+                            <div class="dropdown dropdown-end">
+                                <label tabindex="0" class="btn btn-ghost btn-xs">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                    </svg>
+                                </label>
+                                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                    <li><a href="{% url 'purchases:supplier_detail' supplier.id %}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        View Details
+                                    </a></li>
+                                    <li><a href="{% url 'purchases:supplier_update' supplier.id %}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                        Edit
+                                    </a></li>
+                                    <li><a href="{% url 'purchases:purchase_order_create_step1' %}?supplier={{ supplier.id }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                                        </svg>
+                                        Create Order
+                                    </a></li>
+                                    <li><a href="{% url 'purchases:purchase_order_list' %}?supplier={{ supplier.id }}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                                        </svg>
+                                        View Orders
+                                    </a></li>
+                                    <div class="divider my-0"></div>
+                                    <li><a href="{% url 'purchases:supplier_delete' supplier.id %}" class="text-error">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        Delete
+                                    </a></li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body text-center py-16">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto mb-4 text-base-content/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+            </svg>
+            <h3 class="text-xl font-semibold">No suppliers found</h3>
+            <p class="text-base-content/60">Add your first supplier to start creating purchase orders</p>
+            <div class="card-actions justify-center mt-4">
+                <a href="{% url 'purchases:supplier_create' %}" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Supplier
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="flex justify-center">
+        <div class="btn-group">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="btn">«</a>
+            {% else %}
+                <button class="btn btn-disabled">«</button>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <button class="btn btn-active">{{ num }}</button>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}" class="btn">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="btn">»</a>
+            {% else %}
+                <button class="btn btn-disabled">»</button>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,8 +1,16 @@
 {% extends 'dashboard/base.html' %}
+{% load breadcrumbs %}
 
 {% block page_title %}Delete Target Group{% endblock %}
 
 {% block dashboard_content %}
+<!-- Breadcrumb -->
+<div class="px-4 py-2 border-b border-gray-200 bg-gray-50">
+    <nav class="flex items-center space-x-2 text-sm">
+        {% breadcrumb "Dashboard" "dashboard:home" "Target Groups" "email_campaign:target_group_list" target_group.name "email_campaign:target_group_detail" target_group.pk "Delete" %}
+    </nav>
+</div>
+
 <div class="delete-container">
     <div class="delete-card">
         <div class="delete-icon">

@@ -6,11 +6,25 @@ from django.urls import reverse
 class User(AbstractUser):
     email = models.EmailField(unique=True)
     
+    # Organization relationship - each user belongs to one organization
+    organization = models.ForeignKey(
+        'customer.Organization',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='users',
+        help_text='Organization this user belongs to (admin only)'
+    )
+    
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
     
     def __str__(self):
         return self.email
+    
+    def can_manage_organization(self):
+        """Check if user can manage their organization"""
+        return self.is_superuser and self.organization
 
 
 class Profile(models.Model):

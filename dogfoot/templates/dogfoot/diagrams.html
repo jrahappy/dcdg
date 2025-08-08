@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Database Schema Diagram</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: Arial, sans-serif;
+      overflow: auto;
+    }
+    #container {
+      position: relative;
+      min-width: 100vw;
+      min-height: 500vh;
+      border: 1px solid #ccc;
+      background-color: #f8f8f8;
+      transition: width 0.3s ease, height 0.3s ease;
+      background-image: 
+        linear-gradient(rgba(0,0,0,.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,0,0,.05) 1px, transparent 1px);
+      background-size: 50px 50px;
+    }
+    .box {
+      position: absolute;
+      width: fit-content;
+      min-width: 200px;
+      height: fit-content;
+      background-color: #ffffff;
+      border: 2px solid #4a5568;
+      border-radius: 8px;
+      cursor: move;
+      user-select: none;
+      padding: 12px;
+      box-sizing: border-box;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      font-size: 14px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease, background-color 0.2s ease;
+      transform-origin: center center;
+    }
+    .box.zoomed {
+      transform: scale(1.2);
+      box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+      border-color: #2d3748;
+      z-index: 100;
+    }
+    .box.selected {
+      background-color: #e0f2fe;
+      border-color: #0284c7;
+    }
+    .box.related {
+      background-color: #f0f9ff;
+      border-color: #38bdf8;
+    }
+    .box.not_related {
+      display: none;
+    }
+    .box-content-title {
+      font-weight: bold;
+      font-size: 16px;
+      margin-bottom: 8px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid #e2e8f0;
+      color: #2d3748;
+    }
+    .box-content-content {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 4px;
+      align-items: center;
+      gap: 12px;
+    }
+    .box-content-content-item {
+      color: #4a5568;
+    }
+    .field-name {
+      font-weight: 500;
+      min-width: 100px;
+    }
+    .field-type {
+      text-align: right;
+      font-size: 12px;
+      color: #718096;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 11px;
+      font-weight: bold;
+      white-space: nowrap;
+    }
+    .badge-foreign {
+      background-color: #fed7d7;
+      color: #c53030;
+    }
+    .badge-relation {
+      background-color: #fefcbf;
+      color: #975a16;
+    }
+    .badge-unique {
+      background-color: #bee3f8;
+      color: #2c5282;
+    }
+    .badge-choices {
+      background-color: #2d3748;
+      color: #ffffff;
+      display: block;
+      margin-top: 4px;
+      text-align: right;
+      font-size: 10px;
+      line-height: 1.4;
+    }
+    svg {
+      position: absolute;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      pointer-events: none;
+    }
+    path {
+      fill: none;
+      stroke: #718096;
+      stroke-width: 2px;
+      transition: stroke 0.2s ease, stroke-width 0.2s ease;
+    }
+    path.highlight {
+      stroke: #0284c7;
+      stroke-width: 3px;
+    }
+    .marker-circle {
+      fill: #718096;
+    }
+    .marker-triangle {
+      fill: #718096;
+    }
+    .controls {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      background-color: #ffffff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    }
+    .controls button {
+      display: block;
+      width: 100%;
+      margin-bottom: 8px;
+      padding: 10px 16px;
+      background-color: #4a5568;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    .controls button:last-child {
+      margin-bottom: 0;
+    }
+    .controls button:hover {
+      background-color: #2d3748;
+    }
+    .coordinates-display {
+      position: fixed;
+      bottom: 10px;
+      right: 10px;
+      max-width: 400px;
+      font-family: monospace;
+      background-color: #ffffff;
+      padding: 15px;
+      border-radius: 8px;
+      border: 1px solid #e2e8f0;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      font-size: 12px;
+      z-index: 1000;
+    }
+    .expand-indicator {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background-color: #4a5568;
+      color: white;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+      pointer-events: none;
+      z-index: 1001;
+    }
+    .expand-indicator.show {
+      opacity: 0.9;
+    }
+  </style>
+</head>
+<body>
+<div class="controls">
+  <button onclick="saveCoordinates()">Save Coordinates</button>
+  <button onclick="loadCoordinates()">Load Coordinates</button>
+  <button onclick="showCoordinates()">Show Coordinates</button>
+  <button onclick="autoArrange()">Auto Arrange (Grid)</button>
+  <button onclick="autoArrangeMasonry()">Auto Arrange (Columns)</button>
+</div>
+
+<div class="coordinates-display" id="coordinatesDisplay" style="display: none;"></div>
+<div class="expand-indicator" id="expandIndicator">Canvas expanded</div>
+
+<div id="container">
+  <svg id="svg">
+    <defs>
+      <marker id="circle-marker" markerWidth="8" markerHeight="8" refX="4" refY="4" markerUnits="strokeWidth">
+        <circle cx="4" cy="4" r="3" class="marker-circle"/>
+      </marker>
+      <marker id="triangle-start" markerWidth="10" markerHeight="10" refX="0" refY="5" markerUnits="strokeWidth" orient="auto">
+        <polygon points="0,0 10,5 0,10" class="marker-triangle"/>
+      </marker>
+      <marker id="triangle-end" markerWidth="10" markerHeight="10" refX="0" refY="5" markerUnits="strokeWidth" orient="auto">
+        <polygon points="0,0 10,5 0,10" class="marker-triangle"/>
+      </marker>
+    </defs>
+  </svg>
+  
+  {% with box_counter=0 %}
+  {% for app_name, app_data in apps.items %}
+    {% if "django" in app_name or "allauth" in app_name or "debug" in app_name or "crispy" in app_name or "whitenoise" in app_name or "storages" in app_name or "dogfoot" in app_name %}
+      <!-- Skip system apps -->
+    {% else %}
+      {% for model_name, model_data in app_data.models.items %}
+      <div id="box-{{ forloop.parentloop.counter0 }}-{{ forloop.counter0 }}" class="box" data-model="{{ app_name }}.{{ model_name }}" style="left: 0; top: 0;">
+        <div class="box-content">
+          <div class="box-content-title">{{ model_name }}</div>
+         {% for field_item in model_data.fields.items %}
+                    {% if field_item|length == 2 %}
+                        {% with field_name=field_item.0 field_data=field_item.1 %}
+          <div class="box-content-content">
+            <div class="box-content-content-item field-name">{{ field_name }}</div>
+            <div class="box-content-content-item field-type">
+              {% if field_data.type == "ForeignKey" %}
+                <span class="badge badge-foreign">FK → {{ field_data.related_table }}</span>
+              {% elif field_data.type == "OneToOneField" or field_data.type == "ManyToManyField" %}
+                <span class="badge badge-relation">{{ field_data.type|slice:":3" }} → {{ field_data.related_table }}</span>
+              {% else %}
+                {% if field_data.unique %}
+                  <span class="badge badge-unique">{{ field_data.type|slice:":-5" }}{% if field_data.max_length != 'N/A' %}({{ field_data.max_length }}){% endif %}</span>
+                {% else %}
+                  {{ field_data.type|slice:":-5" }}{% if field_data.max_length != 'N/A' %}({{ field_data.max_length }}){% endif %}
+                {% endif %}
+              {% endif %}
+              {% if field_data.choices and field_data.type != "ForeignKey" %}
+                <span class="badge badge-choices">
+                {% for choice in field_data.choices %}
+                  {{ choice.0 }}{% if not forloop.last %}, {% endif %}
+                {% endfor %}
+                </span>
+              {% endif %}
+            </div>
+          </div>
+           {% endwith %}
+                    {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      
+      {% endfor %}
+    {% endif %}
+  {% endfor %}
+  {% endwith %}
+</div>
+
+<script>
+// Wait for DOM to be fully loaded
+window.addEventListener('DOMContentLoaded', function() {
+  const container = document.getElementById('container');
+  const svg = document.getElementById('svg');
+  const coordinatesDisplay = document.getElementById('coordinatesDisplay');
+  
+  // Get boxes after DOM is loaded
+  const boxes = Array.from(document.querySelectorAll('.box'));
+  
+  console.log('Number of boxes found:', boxes.length);
+
+  // Calculate container size based on number of boxes
+  function resizeContainer() {
+    const boxCount = boxes.length;
+    const columnsCount = Math.ceil(Math.sqrt(boxCount));
+    const rowsCount = Math.ceil(boxCount / columnsCount);
+    
+    // Calculate required size (350px spacing between boxes, 400px margin)
+    const requiredWidth = Math.max(window.innerWidth, columnsCount * 350 + 400);
+    const requiredHeight = Math.max(window.innerHeight, rowsCount * 300 + 200);
+    
+    container.style.width = requiredWidth + 'px';
+    container.style.height = requiredHeight + 'px';
+  }
+
+  // Auto arrange boxes in a grid with dynamic spacing
+  function autoArrange() {
+    const boxCount = boxes.length;
+    if (boxCount === 0) {
+      console.log('No boxes to arrange');
+      return;
+    }
+    
+    // Calculate optimal number of columns based on aspect ratio
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const aspectRatio = viewportWidth / viewportHeight;
+    
+    // Aim for a grid that roughly matches screen aspect ratio
+    let columnsCount = Math.ceil(Math.sqrt(boxCount * aspectRatio));
+    columnsCount = Math.max(2, Math.min(columnsCount, 8)); // Between 2 and 8 columns
+    
+    const horizontalPadding = 50;
+    const verticalPadding = 50;
+    const horizontalGap = 50; // Gap between boxes horizontally
+    const verticalGap = 40; // Gap between boxes vertically
+    
+    // Group boxes by rows and calculate dimensions
+    const rows = [];
+    let currentRow = [];
+    let maxRowHeight = 0;
+    
+    // First, measure all boxes
+    const boxDimensions = boxes.map(box => ({
+      box: box,
+      width: box.offsetWidth || 250,
+      height: box.offsetHeight || 200
+    }));
+    
+    // Distribute boxes into rows
+    boxDimensions.forEach((boxData, index) => {
+      currentRow.push(boxData);
+      maxRowHeight = Math.max(maxRowHeight, boxData.height);
+      
+      if (currentRow.length === columnsCount || index === boxDimensions.length - 1) {
+        rows.push({
+          boxes: currentRow,
+          height: maxRowHeight
+        });
+        currentRow = [];
+        maxRowHeight = 0;
+      }
+    });
+    
+    // Position boxes with dynamic spacing
+    let currentY = verticalPadding;
+    
+    rows.forEach((row, rowIndex) => {
+      let currentX = horizontalPadding;
+      
+      // Calculate total width needed for this row
+      const totalBoxWidth = row.boxes.reduce((sum, boxData) => sum + boxData.width, 0);
+      const totalGapWidth = (row.boxes.length - 1) * horizontalGap;
+      const totalRowWidth = totalBoxWidth + totalGapWidth;
+      
+      // Center the row if it has fewer boxes than columnsCount
+      const containerWidth = Math.max(viewportWidth, totalRowWidth + horizontalPadding * 2);
+      if (row.boxes.length < columnsCount) {
+        currentX = (containerWidth - totalRowWidth) / 2;
+      }
+      
+      row.boxes.forEach((boxData, colIndex) => {
+        // Position the box
+        boxData.box.style.left = currentX + 'px';
+        boxData.box.style.top = currentY + 'px';
+        
+        console.log(`Box ${boxes.indexOf(boxData.box)}: ${boxData.box.querySelector('.box-content-title').textContent} at (${currentX}, ${currentY}) - size: ${boxData.width}x${boxData.height}`);
+        
+        // Move to next column position
+        currentX += boxData.width + horizontalGap;
+      });
+      
+      // Move to next row position
+      currentY += row.height + verticalGap;
+    });
+    
+    // Calculate and set container size
+    const maxX = Math.max(...boxes.map(box => parseInt(box.style.left) + box.offsetWidth));
+    const maxY = Math.max(...boxes.map(box => parseInt(box.style.top) + box.offsetHeight));
+    
+    const requiredWidth = maxX + horizontalPadding;
+    const requiredHeight = maxY + verticalPadding;
+    
+    container.style.width = Math.max(viewportWidth, requiredWidth) + 'px';
+    container.style.height = Math.max(viewportHeight * 2, requiredHeight) + 'px';
+    
+    // Reinitialize relationships after arranging
+    setTimeout(() => {
+      initializeRelationships();
+    }, 100);
+  }
+  
+  // Alternative auto arrange using column-based layout (masonry style)
+  function autoArrangeMasonry() {
+    const boxCount = boxes.length;
+    if (boxCount === 0) {
+      console.log('No boxes to arrange');
+      return;
+    }
+    
+    // Sort boxes by height (tallest first) for better packing
+    const sortedBoxes = [...boxes].sort((a, b) => {
+      const heightA = a.offsetHeight || 200;
+      const heightB = b.offsetHeight || 200;
+      return heightB - heightA;
+    });
+    
+    // Calculate number of columns
+    const viewportWidth = window.innerWidth;
+    const minBoxWidth = 250;
+    const horizontalGap = 50;
+    const horizontalPadding = 50;
+    const verticalGap = 30;
+    const verticalPadding = 50;
+    
+    const availableWidth = viewportWidth - (2 * horizontalPadding);
+    const columnsCount = Math.max(2, Math.floor(availableWidth / (minBoxWidth + horizontalGap)));
+    
+    // Initialize column heights
+    const columns = Array(columnsCount).fill(0).map(() => ({
+      x: 0,
+      height: verticalPadding
+    }));
+    
+    // Calculate column positions
+    const columnWidth = Math.max(...boxes.map(box => box.offsetWidth || minBoxWidth));
+    columns.forEach((col, index) => {
+      col.x = horizontalPadding + index * (columnWidth + horizontalGap);
+    });
+    
+    // Place boxes in columns (always choose the shortest column)
+    sortedBoxes.forEach(box => {
+      // Find the column with minimum height
+      let minHeightColumn = columns[0];
+      let minHeightIndex = 0;
+      
+      columns.forEach((col, index) => {
+        if (col.height < minHeightColumn.height) {
+          minHeightColumn = col;
+          minHeightIndex = index;
+        }
+      });
+      
+      // Position the box
+      box.style.left = minHeightColumn.x + 'px';
+      box.style.top = minHeightColumn.height + 'px';
+      
+      // Update column height
+      const boxHeight = box.offsetHeight || 200;
+      columns[minHeightIndex].height += boxHeight + verticalGap;
+      
+      console.log(`Box ${box.querySelector('.box-content-title').textContent} placed in column ${minHeightIndex} at (${minHeightColumn.x}, ${box.style.top})`);
+    });
+    
+    // Calculate container size
+    const maxColumnHeight = Math.max(...columns.map(col => col.height));
+    const totalWidth = columns[columns.length - 1].x + columnWidth + horizontalPadding;
+    
+    container.style.width = Math.max(viewportWidth, totalWidth) + 'px';
+    container.style.height = Math.max(viewportHeight * 2, maxColumnHeight + verticalPadding) + 'px';
+    
+    // Reinitialize relationships after arranging
+    setTimeout(() => {
+      initializeRelationships();
+    }, 100);
+  }
+  
+  // Make both functions available globally
+  window.autoArrange = autoArrange;
+  window.autoArrangeMasonry = autoArrangeMasonry;
+
+// Extract relationships from boxes
+function extractRelationships() {
+  const relationships = [];
+  
+  boxes.forEach((fromBox, fromIndex) => {
+    const fromModel = fromBox.dataset.model;
+    
+    // Find all foreign key and relation badges in this box
+    const relationBadges = fromBox.querySelectorAll('.badge-foreign, .badge-relation');
+    
+    relationBadges.forEach(badge => {
+      const badgeText = badge.textContent;
+      const relatedTable = badgeText.split('→')[1]?.trim();
+      
+      if (relatedTable && relatedTable !== 'N/A') {
+        // Find the target box by checking the model title
+        boxes.forEach((toBox, toIndex) => {
+          const toModelTitle = toBox.querySelector('.box-content-title').textContent;
+          const toModel = toBox.dataset.model;
+          
+          // Check if the related table name matches the model name
+          // Convert table name format (e.g., 'accounts_user') to model name format (e.g., 'User')
+          const modelNameFromTable = relatedTable.split('_').slice(-1)[0];
+          
+          if (toModelTitle.toLowerCase() === modelNameFromTable.toLowerCase() ||
+              toModelTitle.toLowerCase() === relatedTable.toLowerCase() ||
+              toModel.toLowerCase().includes(relatedTable.toLowerCase()) ||
+              relatedTable.toLowerCase().includes(toModelTitle.toLowerCase())) {
+            
+            // Avoid duplicate relationships
+            const exists = relationships.some(rel => 
+              rel.from === fromIndex && rel.to === toIndex && rel.type === (badge.classList.contains('badge-foreign') ? 1 : 0)
+            );
+            
+            if (!exists) {
+              relationships.push({
+                from: fromIndex,
+                to: toIndex,
+                type: badge.classList.contains('badge-foreign') ? 1 : 0
+              });
+              console.log(`Relationship found: ${fromBox.querySelector('.box-content-title').textContent} -> ${toModelTitle}`);
+            }
+          }
+        });
+      }
+    });
+  });
+  
+  console.log('Total relationships found:', relationships.length);
+  return relationships;
+}
+
+// Initialize relationships and paths as empty
+let links = [];
+let paths = [];
+
+// Function to initialize relationships and create paths
+function initializeRelationships() {
+  // Clear existing paths
+  paths.forEach(p => p.remove());
+  paths = [];
+  
+  // Extract new relationships
+  links = extractRelationships();
+  
+  // Create paths for each relationship
+  paths = links.map((link) => {
+    const p = document.createElementNS('http://www.w3.org/2000/svg','path');
+    svg.appendChild(p);
+    return p;
+  });
+  
+  updateCurves();
+}
+
+let active = null, offsetX=0, offsetY=0;
+let zoomedBox = null;
+
+// Function to find related boxes
+function findRelatedBoxes(selectedBox) {
+  const selectedIndex = boxes.indexOf(selectedBox);
+  const relatedIndices = new Set();
+  
+  // Find boxes that this box references (outgoing relationships)
+  links.forEach(link => {
+    if (link.from === selectedIndex) {
+      relatedIndices.add(link.to);
+    }
+    // Also find boxes that reference this box (incoming relationships)
+    if (link.to === selectedIndex) {
+      relatedIndices.add(link.from);
+    }
+  });
+  
+  return Array.from(relatedIndices).map(index => boxes[index]);
+}
+
+// Function to handle box selection and highlighting
+function highlightRelatedBoxes(selectedBox) {
+  // Remove previous highlighting
+  boxes.forEach(box => {
+    box.classList.remove('selected', 'related');
+  });
+  
+  // Remove path highlighting
+  paths.forEach(path => {
+    path.classList.remove('highlight');
+  });
+  
+  if (selectedBox) {
+    // Highlight selected box
+    selectedBox.classList.add('selected');
+    
+    const selectedIndex = boxes.indexOf(selectedBox);
+    
+    // Highlight related boxes and paths
+    links.forEach((link, index) => {
+      if (link.from === selectedIndex || link.to === selectedIndex) {
+        // Highlight the path
+        if (paths[index]) {
+          paths[index].classList.add('highlight');
+        }
+        
+        // Highlight the connected box
+        const relatedIndex = link.from === selectedIndex ? link.to : link.from;
+        if (boxes[relatedIndex]) {
+          boxes[relatedIndex].classList.add('related');
+        }
+      }
+      else {
+        // Remove highlight from unrelated paths
+        console.log(`Removing highlight from path ${index} (${link.from} -> ${link.to})`);
+        if (paths[index]) {
+          paths[index].classList.add('not_related');
+        }
+      }
+    });
+  }
+}
+
+// Function to handle box zoom
+function toggleBoxZoom(box) {
+  // If clicking the same box, toggle zoom
+  if (zoomedBox === box) {
+    box.classList.remove('zoomed');
+    zoomedBox = null;
+    highlightRelatedBoxes(null); // Remove highlighting
+  } else {
+    // Remove zoom from previous box
+    if (zoomedBox) {
+      zoomedBox.classList.remove('zoomed');
+    }
+    // Add zoom to new box
+    box.classList.add('zoomed');
+    zoomedBox = box;
+    highlightRelatedBoxes(box); // Add highlighting
+  }
+  
+  // Update curves after zoom change
+  setTimeout(() => {
+    updateCurves();
+  }, 250);
+}
+
+function getClosestCorner(box1, box2) {
+  const r1 = box1.getBoundingClientRect();
+  const r2 = box2.getBoundingClientRect();
+  const c = container.getBoundingClientRect();
+  
+  // Get box centers relative to container
+  const center1 = {
+    x: r1.left - c.left + r1.width/2,
+    y: r1.top - c.top + r1.height/2
+  };
+  const center2 = {
+    x: r2.left - c.left + r2.width/2,
+    y: r2.top - c.top + r2.height/2
+  };
+  
+  // Get box corners relative to container
+  const corners1 = [
+    {x: r1.left - c.left, y: r1.top - c.top}, // top-left
+    {x: r1.right - c.left, y: r1.top - c.top}, // top-right
+    {x: r1.left - c.left, y: r1.bottom - c.top}, // bottom-left
+    {x: r1.right - c.left, y: r1.bottom - c.top} // bottom-right
+  ];
+  const corners2 = [
+    {x: r2.left - c.left, y: r2.top - c.top}, // top-left
+    {x: r2.right - c.left, y: r2.top - c.top}, // top-right
+    {x: r2.left - c.left, y: r2.bottom - c.top}, // bottom-left
+    {x: r2.right - c.left, y: r2.bottom - c.top} // bottom-right
+  ];
+  
+  // Find closest corner pair
+  let minDistance = Infinity;
+  let closestPair = {from: center1, to: center2};
+  
+  corners1.forEach(corner1 => {
+    corners2.forEach(corner2 => {
+      const distance = Math.sqrt(
+        Math.pow(corner1.x - corner2.x, 2) + 
+        Math.pow(corner1.y - corner2.y, 2)
+      );
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestPair = {from: corner1, to: corner2};
+      }
+    });
+  });
+  
+  return closestPair;
+}
+
+function updateCurves() {
+  links.forEach((link, i) => {
+    if (boxes[link.from] && boxes[link.to]) {
+      const corners = getClosestCorner(boxes[link.from], boxes[link.to]);
+      const c1 = corners.from;
+      const c2 = corners.to;
+      const mx = (c1.x + c2.x)/2;
+      const my = (c1.y + c2.y)/2;
+      const cp1x = mx;
+      const cp1y = my - 60;
+      const d = `M${c1.x},${c1.y} Q${cp1x},${cp1y} ${c2.x},${c2.y}`;
+      paths[i].setAttribute('d', d);
+      
+      // Set markers based on link type
+      switch(link.type) {
+        case 0: // circle both ends
+          paths[i].setAttribute('marker-start', 'url(#circle-marker)');
+          paths[i].setAttribute('marker-end', 'url(#circle-marker)');
+          break;
+        case 1: // triangle end only (foreign key)
+          paths[i].removeAttribute('marker-start');
+          paths[i].setAttribute('marker-end', 'url(#triangle-end)');
+          break;
+        case 2: // triangle start only
+          paths[i].setAttribute('marker-start', 'url(#triangle-start)');
+          paths[i].removeAttribute('marker-end');
+          break;
+        case 3: // triangle both ends
+          paths[i].setAttribute('marker-start', 'url(#triangle-start)');
+          paths[i].setAttribute('marker-end', 'url(#triangle-end)');
+          break;
+      }
+    }
+  });
+}
+
+let isDragging = false;
+let clickStartTime = 0;
+let clickStartX = 0;
+let clickStartY = 0;
+
+function onPointerDown(e) {
+  const b = e.target.closest('.box');
+  if (!b) return;
+  
+  active = b;
+  isDragging = false;
+  clickStartTime = Date.now();
+  clickStartX = e.clientX;
+  clickStartY = e.clientY;
+  
+  const rect = active.getBoundingClientRect();
+  offsetX = e.clientX - rect.left;
+  offsetY = e.clientY - rect.top;
+  active.setPointerCapture(e.pointerId);
+}
+
+function onPointerMove(e) {
+  if (!active) return;
+  
+  // Check if this is a drag (moved more than 5 pixels)
+  const moveDistance = Math.sqrt(
+    Math.pow(e.clientX - clickStartX, 2) + 
+    Math.pow(e.clientY - clickStartY, 2)
+  );
+  
+  if (moveDistance > 5) {
+    isDragging = true;
+  }
+  
+  const c = container.getBoundingClientRect();
+  let x = e.clientX - c.left - offsetX;
+  let y = e.clientY - c.top - offsetY;
+  
+  // Get current container dimensions
+  const currentWidth = container.offsetWidth;
+  const currentHeight = container.offsetHeight;
+  
+  // Calculate box boundaries
+  const boxRight = x + active.offsetWidth;
+  const boxBottom = y + active.offsetHeight;
+  
+  // Expand canvas if box is near boundaries (within 50px)
+  const expandMargin = 50;
+  let needsResize = false;
+  
+  if (boxRight > currentWidth - expandMargin) {
+    container.style.width = (boxRight + expandMargin * 2) + 'px';
+    needsResize = true;
+  }
+  
+  if (boxBottom > currentHeight - expandMargin) {
+    container.style.height = (boxBottom + expandMargin * 2) + 'px';
+    needsResize = true;
+  }
+  
+  // Also expand if dragging near left/top edges but keep minimum bounds
+  if (x < expandMargin && currentWidth < window.innerWidth * 2) {
+    container.style.width = (currentWidth + 200) + 'px';
+    x = Math.max(0, x); // Keep box within bounds
+    needsResize = true;
+  }
+  
+  if (y < expandMargin && currentHeight < window.innerHeight * 2) {
+    container.style.height = (currentHeight + 200) + 'px';
+    y = Math.max(0, y); // Keep box within bounds
+    needsResize = true;
+  }
+  
+  // Ensure box stays within minimum bounds
+  x = Math.max(0, x);
+  y = Math.max(0, y);
+  
+  // Show expand indicator if canvas was resized
+  if (needsResize) {
+    const indicator = document.getElementById('expandIndicator');
+    indicator.classList.add('show');
+    clearTimeout(window.expandIndicatorTimeout);
+    window.expandIndicatorTimeout = setTimeout(() => {
+      indicator.classList.remove('show');
+    }, 2000);
+  }
+  
+  active.style.left = x + 'px';
+  active.style.top = y + 'px';
+  updateCurves();
+}
+
+function onPointerUp(e) {
+  if (active) {
+    active.releasePointerCapture(e.pointerId);
+    
+    // Check if this was a click (not a drag and quick)
+    const clickDuration = Date.now() - clickStartTime;
+    if (!isDragging && clickDuration < 300) {
+      toggleBoxZoom(active);
+    }
+    
+    active = null;
+    isDragging = false;
+  }
+}
+
+// Function to get current coordinates of all boxes
+function getCurrentCoordinates() {
+  const coordinates = {};
+  boxes.forEach((box, index) => {
+    const left = parseInt(box.style.left) || 0;
+    const top = parseInt(box.style.top) || 0;
+    const width = box.offsetWidth;
+    const model = box.dataset.model;
+    coordinates[`box_${index}`] = { left, top, width, model };
+  });
+  return coordinates;
+}
+
+// Function to save coordinates to localStorage
+function saveCoordinates() {
+  const coordinates = getCurrentCoordinates();
+  localStorage.setItem('boxCoordinates', JSON.stringify(coordinates));
+  alert('Coordinates saved successfully!');
+}
+
+// Function to load coordinates from localStorage
+function loadCoordinates() {
+  const savedCoordinates = localStorage.getItem('boxCoordinates');
+  if (savedCoordinates) {
+    const coordinates = JSON.parse(savedCoordinates);
+    boxes.forEach((box, index) => {
+      const boxKey = `box_${index}`;
+      if (coordinates[boxKey]) {
+        box.style.left = coordinates[boxKey].left + 'px';
+        box.style.top = coordinates[boxKey].top + 'px';
+      }
+    });
+    updateCurves();
+    alert('Coordinates loaded successfully!');
+  } else {
+    alert('No saved coordinates found!');
+  }
+}
+
+// Function to display current coordinates
+function showCoordinates() {
+  const coordinates = getCurrentCoordinates();
+  let displayText = 'Current Box Coordinates:\n\n';
+  
+  Object.keys(coordinates).forEach(boxKey => {
+    const coords = coordinates[boxKey];
+    displayText += `${coords.model}: left=${coords.left}px, top=${coords.top}px\n`;
+  });
+  
+  coordinatesDisplay.textContent = displayText;
+  coordinatesDisplay.style.display = 'block';
+  
+  // Hide after 5 seconds
+  setTimeout(() => {
+    coordinatesDisplay.style.display = 'none';
+  }, 5000);
+}
+
+  // Initialize event listeners
+  boxes.forEach(b => {
+    b.addEventListener('pointerdown', onPointerDown);
+    b.addEventListener('pointermove', onPointerMove);
+    b.addEventListener('pointerup', onPointerUp);
+    b.addEventListener('pointercancel', onPointerUp);
+  });
+  
+  // Click on container to remove zoom and highlighting
+  container.addEventListener('click', function(e) {
+    if (e.target === container && zoomedBox) {
+      zoomedBox.classList.remove('zoomed');
+      zoomedBox = null;
+      highlightRelatedBoxes(null);
+      updateCurves();
+    }
+  });
+
+  // Initial setup
+  resizeContainer();
+  
+  // Check for saved coordinates first
+  const savedCoordinates = localStorage.getItem('boxCoordinates');
+  if (savedCoordinates) {
+    try {
+      loadCoordinates();
+    } catch (e) {
+      console.error('Error loading saved coordinates:', e);
+      autoArrange();
+    }
+  } else {
+    // Auto arrange if no saved coordinates
+    autoArrange();
+  }
+  
+  // Initialize relationships after boxes are positioned
+  setTimeout(() => {
+    initializeRelationships();
+  }, 100);
+  
+  // Make functions available globally
+  window.saveCoordinates = saveCoordinates;
+  window.loadCoordinates = loadCoordinates;
+  window.showCoordinates = showCoordinates;
+});
+</script>
+</body>
+</html>

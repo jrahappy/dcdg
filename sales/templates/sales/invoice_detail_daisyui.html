@@ -1,0 +1,579 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}Invoice {{ invoice.invoice_number }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="space-y-6">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </a></li>
+            <li><a href="{% url 'sales:invoice_list' %}">Invoices</a></li>
+            <li>{{ invoice.invoice_number }}</li>
+        </ul>
+    </div>
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div class="flex items-center gap-3">
+            <h1 class="text-3xl font-bold">Invoice {{ invoice.invoice_number }}</h1>
+            {% if invoice.status == 'draft' %}
+                <div class="badge badge-ghost">Draft</div>
+            {% elif invoice.status == 'sent' %}
+                <div class="badge badge-info">Sent</div>
+            {% elif invoice.status == 'viewed' %}
+                <div class="badge badge-secondary">Viewed</div>
+            {% elif invoice.status == 'paid' %}
+                <div class="badge badge-success">Paid</div>
+            {% elif invoice.status == 'overdue' %}
+                <div class="badge badge-error">Overdue</div>
+            {% elif invoice.status == 'cancelled' %}
+                <div class="badge badge-ghost">Cancelled</div>
+            {% elif invoice.status == 'refunded' %}
+                <div class="badge badge-warning">Refunded</div>
+            {% endif %}
+            
+            {% if invoice.payment_status == 'unpaid' %}
+                <div class="badge badge-error">Unpaid</div>
+            {% elif invoice.payment_status == 'partial' %}
+                <div class="badge badge-warning">Partial</div>
+            {% elif invoice.payment_status == 'paid' %}
+                <div class="badge badge-success">Paid</div>
+            {% elif invoice.payment_status == 'overdue' %}
+                <div class="badge badge-error">Overdue</div>
+            {% endif %}
+        </div>
+        <div class="flex flex-wrap gap-2">
+            {% if invoice.status == 'draft' %}
+            <button class="btn btn-info btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+                Send Invoice
+            </button>
+            {% endif %}
+            {% if invoice.balance_due > 0 %}
+            <a href="{% url 'sales:payment_add' invoice_pk=invoice.pk %}" class="btn btn-success btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Record Payment
+            </a>
+            {% endif %}
+            <button onclick="window.print()" class="btn btn-ghost btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Print
+            </button>
+            <a href="{% url 'sales:invoice_update' invoice.pk %}" class="btn btn-primary btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit
+            </a>
+            <button onclick="document.getElementById('delete_modal').showModal()" class="btn btn-error btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete
+            </button>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Invoice Information -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Invoice Information
+                    </h2>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <div class="text-sm text-base-content/60">Customer</div>
+                            <div class="font-medium">
+                                {% if invoice.customer %}
+                                    <a href="{% url 'customer:customer_detail' invoice.customer.pk %}" class="link link-primary">
+                                        {{ invoice.customer.get_full_name }}
+                                        {% if invoice.customer.company_name %}<br>{{ invoice.customer.company_name }}{% endif %}
+                                    </a>
+                                {% elif invoice.is_shop_order %}
+                                    {{ invoice.first_name }} {{ invoice.last_name }}
+                                    {% if invoice.email %}<br><small class="text-base-content/60">{{ invoice.email }}</small>{% endif %}
+                                    {% if invoice.phone %}<br><small class="text-base-content/60">{{ invoice.phone }}</small>{% endif %}
+                                {% else %}
+                                    <span class="text-base-content/60">No customer assigned</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-base-content/60">Invoice Date</div>
+                            <div class="font-medium">{{ invoice.invoice_date|date:"F d, Y" }}</div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-base-content/60">Due Date</div>
+                            <div class="font-medium">{{ invoice.due_date|date:"F d, Y" }}</div>
+                        </div>
+                        {% if invoice.order %}
+                        <div>
+                            <div class="text-sm text-base-content/60">Related Order</div>
+                            <div class="font-medium">
+                                <a href="{% url 'sales:order_detail' invoice.order.pk %}" class="link link-primary">
+                                    {{ invoice.order.order_number }}
+                                </a>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if invoice.sent_date %}
+                        <div>
+                            <div class="text-sm text-base-content/60">Sent Date</div>
+                            <div class="font-medium">{{ invoice.sent_date|date:"F d, Y" }}</div>
+                        </div>
+                        {% endif %}
+                        {% if invoice.viewed_date %}
+                        <div>
+                            <div class="text-sm text-base-content/60">First Viewed</div>
+                            <div class="font-medium">{{ invoice.viewed_date|date:"F d, Y" }}</div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Billing Address -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Billing Address
+                    </h2>
+                    <address class="not-italic mt-4">
+                        {{ invoice.billing_address_line1 }}<br>
+                        {% if invoice.billing_address_line2 %}{{ invoice.billing_address_line2 }}<br>{% endif %}
+                        {{ invoice.billing_city }}, {{ invoice.billing_state }} {{ invoice.billing_postal_code }}<br>
+                        {{ invoice.billing_country }}
+                    </address>
+                </div>
+            </div>
+
+            <!-- Shipping Tracking Information (for shop orders) -->
+            {% if invoice.is_shop_order %}
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <div class="flex items-center justify-between">
+                        <h2 class="card-title">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
+                            </svg>
+                            Shipping Tracking
+                        </h2>
+                        <button onclick="document.getElementById('tracking_modal').showModal()" class="btn btn-ghost btn-xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Update
+                        </button>
+                    </div>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                        <div>
+                            <div class="text-sm text-base-content/60">Delivery Service</div>
+                            <div class="font-medium" id="display-delivery-service">
+                                {% if invoice.delivery_service %}
+                                    {{ invoice.get_delivery_service_display }}
+                                {% else %}
+                                    <span class="text-base-content/40">Not set</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div>
+                            <div class="text-sm text-base-content/60">Tracking Number</div>
+                            <div class="font-medium font-mono" id="display-tracking-number">
+                                {% if invoice.post_tracking_number %}
+                                    {{ invoice.post_tracking_number }}
+                                {% else %}
+                                    <span class="text-base-content/40">Not set</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Line Items -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <div class="flex items-center justify-between">
+                        <h2 class="card-title">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                            </svg>
+                            Invoice Items
+                        </h2>
+                        {% if invoice.status == 'draft' %}
+                        <a href="{% url 'sales:invoice_item_add' invoice.pk %}" class="btn btn-ghost btn-xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Item
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="overflow-x-auto mt-4">
+                        <table class="table table-zebra">
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th class="text-right">Quantity</th>
+                                    <th class="text-right">Unit Price</th>
+                                    <th class="text-right">Discount</th>
+                                    <th class="text-right">Line Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in items %}
+                                <tr>
+                                    <td>
+                                        <div class="font-medium">{{ item.description }}</div>
+                                        {% if item.product %}
+                                        <div class="text-xs text-base-content/60">{{ item.product.name }}</div>
+                                            {% if item.product.supplier %}
+                                            <div class="text-xs text-base-content/50">
+                                                Supplier: <a href="{% url 'purchases:supplier_detail' item.product.supplier.pk %}" class="link link-primary">{{ item.product.supplier.name }}</a>
+                                            </div>
+                                            {% endif %}
+                                        {% endif %}
+                                        {% if item.product_options %}
+                                        <div class="text-xs text-info">
+                                            {% for key, value in item.product_options.items %}
+                                                {{ key }}: {{ value }}{% if not forloop.last %}, {% endif %}
+                                            {% endfor %}
+                                        </div>
+                                        {% endif %}
+                                        {% if item.inventory %}
+                                        <div class="text-xs text-primary">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                                            </svg>
+                                            SN: {{ item.inventory.serial_number }}
+                                        </div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-right">{{ item.quantity|floatformat:"-2" }}</td>
+                                    <td class="text-right">${{ item.unit_price|floatformat:2 }}</td>
+                                    <td class="text-right">{{ item.discount_percent|floatformat:"-2" }}%</td>
+                                    <td class="text-right font-semibold">${{ item.line_total|floatformat:2 }}</td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center py-8">
+                                        <div class="text-base-content/60">No items added yet</div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            {% if invoice.notes %}
+            <!-- Notes -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H7a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Notes
+                    </h2>
+                    <div class="whitespace-pre-wrap mt-4">{{ invoice.notes }}</div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if invoice.internal_notes %}
+            <!-- Internal Notes -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                        </svg>
+                        Internal Notes
+                    </h2>
+                    <div class="whitespace-pre-wrap mt-4">{{ invoice.internal_notes }}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="space-y-6">
+            <!-- Invoice Summary -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        Invoice Summary
+                    </h2>
+                    <div class="space-y-3 mt-4">
+                        <div class="flex justify-between text-sm">
+                            <span class="text-base-content/60">Subtotal</span>
+                            <span>${{ invoice.subtotal|floatformat:2 }}</span>
+                        </div>
+                        {% if invoice.discount_amount > 0 %}
+                        <div class="flex justify-between text-sm">
+                            <span class="text-base-content/60">Discount ({{ invoice.discount_percent|floatformat:"-2" }}%)</span>
+                            <span class="text-error">-${{ invoice.discount_amount|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
+                        {% if invoice.tax_amount > 0 %}
+                        <div class="flex justify-between text-sm">
+                            <span class="text-base-content/60">Tax ({{ invoice.tax_rate|floatformat:"-2" }}%)</span>
+                            <span>${{ invoice.tax_amount|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
+                        <div class="divider"></div>
+                        <div class="flex justify-between">
+                            <span class="font-semibold">Total</span>
+                            <span class="text-xl font-bold">${{ invoice.total_amount|floatformat:2 }}</span>
+                        </div>
+                        {% if invoice.paid_amount > 0 %}
+                        <div class="divider"></div>
+                        <div class="flex justify-between text-sm">
+                            <span class="text-base-content/60">Paid Amount</span>
+                            <span class="text-success">${{ invoice.paid_amount|floatformat:2 }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="font-semibold">Balance Due</span>
+                            <span class="text-lg font-bold {% if invoice.balance_due > 0 %}text-error{% endif %}">${{ invoice.balance_due|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Payment History -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <div class="flex items-center justify-between">
+                        <h2 class="card-title">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            Payment History
+                        </h2>
+                        {% if invoice.balance_due > 0 %}
+                        <a href="{% url 'sales:payment_add' invoice_pk=invoice.pk %}" class="btn btn-ghost btn-xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% if payments %}
+                    <div class="space-y-3 mt-4">
+                        {% for payment in payments %}
+                        <div class="border-l-4 {% if payment.status == 'completed' %}border-success{% elif payment.status == 'pending' %}border-warning{% else %}border-base-300{% endif %} pl-4 py-2">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="font-semibold">${{ payment.amount|floatformat:2 }}</div>
+                                    <div class="text-sm text-base-content/60">{{ payment.payment_date|date:"F d, Y" }}</div>
+                                    <div class="text-xs text-base-content/50 mt-1">
+                                        Method: {{ payment.get_payment_method_display }}
+                                        {% if payment.reference_number %}
+                                        <br>Ref: {{ payment.reference_number }}
+                                        {% endif %}
+                                        {% if payment.notes %}
+                                        <br>Note: {{ payment.notes|truncatechars:50 }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% if payment.status == 'completed' %}
+                                    <div class="badge badge-success badge-sm">Completed</div>
+                                {% elif payment.status == 'pending' %}
+                                    <div class="badge badge-warning badge-sm">Pending</div>
+                                {% elif payment.status == 'processing' %}
+                                    <div class="badge badge-info badge-sm">Processing</div>
+                                {% elif payment.status == 'failed' %}
+                                    <div class="badge badge-error badge-sm">Failed</div>
+                                {% elif payment.status == 'refunded' %}
+                                    <div class="badge badge-secondary badge-sm">Refunded</div>
+                                {% else %}
+                                    <div class="badge badge-ghost badge-sm">{{ payment.get_status_display }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <p class="text-base-content/60">No payments recorded yet</p>
+                        {% if invoice.balance_due > 0 %}
+                        <a href="{% url 'sales:payment_add' invoice_pk=invoice.pk %}" class="btn btn-success btn-sm mt-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Record First Payment
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Credit Notes -->
+            {% if invoice.credit_notes.exists %}
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16l3.5-2 3.5 2 3.5-2 3.5 2zM10 8.5a.5.5 0 11-1 0 .5.5 0 011 0zm5 5a.5.5 0 11-1 0 .5.5 0 011 0z" />
+                        </svg>
+                        Credit Notes
+                    </h2>
+                    <div class="space-y-2 mt-4">
+                        {% for credit_note in invoice.credit_notes.all %}
+                        <a href="{% url 'sales:credit_note_detail' credit_note.pk %}" class="link link-primary text-sm">
+                            {{ credit_note.credit_note_number }} - ${{ credit_note.total_amount|floatformat:2 }}
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<dialog id="delete_modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Delete Invoice</h3>
+        <p class="py-4">Are you sure you want to delete invoice <strong>{{ invoice.invoice_number }}</strong>? This will also delete all associated line items and payment records.</p>
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Cancel</button>
+            </form>
+            <form method="POST" action="{% url 'sales:invoice_delete' invoice.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-error">Delete Invoice</button>
+            </form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<!-- Tracking Update Modal -->
+<dialog id="tracking_modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Update Shipping Tracking</h3>
+        <form id="trackingForm" onsubmit="updateTracking(event)" class="mt-4">
+            {% csrf_token %}
+            <div class="space-y-4">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Delivery Service</span>
+                    </label>
+                    <select id="delivery_service" name="delivery_service" class="select select-bordered">
+                        <option value="">-- Select Service --</option>
+                        <option value="usps" {% if invoice.delivery_service == 'usps' %}selected{% endif %}>USPS</option>
+                        <option value="ups" {% if invoice.delivery_service == 'ups' %}selected{% endif %}>UPS</option>
+                        <option value="fedex" {% if invoice.delivery_service == 'fedex' %}selected{% endif %}>FedEx</option>
+                        <option value="dhl" {% if invoice.delivery_service == 'dhl' %}selected{% endif %}>DHL</option>
+                        <option value="other" {% if invoice.delivery_service == 'other' %}selected{% endif %}>Other</option>
+                    </select>
+                </div>
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Tracking Number</span>
+                    </label>
+                    <input type="text" id="post_tracking_number" name="post_tracking_number" 
+                           value="{{ invoice.post_tracking_number|default:'' }}"
+                           class="input input-bordered"
+                           placeholder="Enter tracking number">
+                </div>
+            </div>
+            <div class="modal-action">
+                <button type="button" onclick="document.getElementById('tracking_modal').close()" class="btn">Cancel</button>
+                <button type="submit" class="btn btn-primary">Update Tracking</button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<script>
+function updateTracking(event) {
+    event.preventDefault();
+    
+    const form = document.getElementById('trackingForm');
+    const formData = new FormData(form);
+    
+    // Get CSRF token
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    
+    fetch(`{% url 'sales:invoice_update_tracking' invoice.pk %}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Update the display values
+            const deliveryServiceDisplay = document.getElementById('display-delivery-service');
+            const trackingNumberDisplay = document.getElementById('display-tracking-number');
+            
+            if (data.delivery_service_display) {
+                deliveryServiceDisplay.innerHTML = data.delivery_service_display;
+            } else {
+                deliveryServiceDisplay.innerHTML = '<span class="text-base-content/40">Not set</span>';
+            }
+            
+            if (data.post_tracking_number) {
+                trackingNumberDisplay.innerHTML = data.post_tracking_number;
+            } else {
+                trackingNumberDisplay.innerHTML = '<span class="text-base-content/40">Not set</span>';
+            }
+            
+            // Close modal
+            document.getElementById('tracking_modal').close();
+            
+            // Show success message (you might want to implement a toast notification)
+            alert('Tracking information updated successfully!');
+        } else {
+            alert('Error updating tracking information: ' + (data.error || 'Unknown error'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while updating tracking information');
+    });
+}
+</script>
+{% endblock %}

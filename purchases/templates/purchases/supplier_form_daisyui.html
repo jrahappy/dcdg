@@ -1,0 +1,260 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs mb-6">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </a></li>
+            <li><a href="{% url 'purchases:supplier_list' %}">Suppliers</a></li>
+            {% if supplier %}
+                <li><a href="{% url 'purchases:supplier_detail' supplier.pk %}">{{ supplier.name }}</a></li>
+                <li>Edit</li>
+            {% else %}
+                <li>Create New</li>
+            {% endif %}
+        </ul>
+    </div>
+
+    <!-- Header Card -->
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div class="flex-1">
+                    <h1 class="text-3xl font-bold">{{ title }}</h1>
+                    <p class="text-base-content/60 mt-2">
+                        Manage supplier information and contact details
+                    </p>
+                </div>
+                <a href="{% url 'purchases:supplier_list' %}" class="btn btn-ghost btn-square">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Basic Information -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Basic Information
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Company Name <span class="text-error">*</span></span>
+                            </label>
+                            <input type="text" name="name" value="{{ supplier.name|default:'' }}" required
+                                   class="input input-bordered w-full"
+                                   placeholder="Enter company name">
+                        </div>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Contact Person</span>
+                        </label>
+                        <input type="text" name="contact_person" value="{{ supplier.contact_person|default:'' }}"
+                               class="input input-bordered w-full"
+                               placeholder="Contact person name">
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Email</span>
+                        </label>
+                        <input type="email" name="email" value="{{ supplier.email|default:'' }}"
+                               class="input input-bordered w-full"
+                               placeholder="supplier@example.com">
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Phone</span>
+                        </label>
+                        <input type="text" name="phone" value="{{ supplier.phone|default:'' }}"
+                               class="input input-bordered w-full"
+                               placeholder="(555) 123-4567">
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <input type="checkbox" name="is_active" {% if supplier.is_active|default:True %}checked{% endif %}
+                                   class="checkbox checkbox-primary">
+                            <span class="label-text ml-3">Active Supplier</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Address Information -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Address
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="md:col-span-2">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Address Line 1</span>
+                            </label>
+                            <input type="text" name="address_line1" value="{{ supplier.address_line1|default:'' }}"
+                                   class="input input-bordered w-full"
+                                   placeholder="Street address">
+                        </div>
+                    </div>
+                    
+                    <div class="md:col-span-2">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Address Line 2</span>
+                            </label>
+                            <input type="text" name="address_line2" value="{{ supplier.address_line2|default:'' }}"
+                                   class="input input-bordered w-full"
+                                   placeholder="Apartment, suite, etc.">
+                        </div>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">City</span>
+                        </label>
+                        <input type="text" name="city" value="{{ supplier.city|default:'' }}"
+                               class="input input-bordered w-full"
+                               placeholder="City">
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">State/Province</span>
+                        </label>
+                        <input type="text" name="state" value="{{ supplier.state|default:'' }}"
+                               class="input input-bordered w-full"
+                               placeholder="State or Province">
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Postal Code</span>
+                        </label>
+                        <input type="text" name="postal_code" value="{{ supplier.postal_code|default:'' }}"
+                               class="input input-bordered w-full"
+                               placeholder="ZIP or postal code">
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Country</span>
+                        </label>
+                        <select name="country" class="select select-bordered w-full">
+                            <option value="USA" {% if supplier.country|default:'USA' == 'USA' %}selected{% endif %}>United States</option>
+                            <option value="CAN" {% if supplier.country == 'CAN' %}selected{% endif %}>Canada</option>
+                            <option value="KOR" {% if supplier.country == 'KOR' %}selected{% endif %}>Korea</option>
+                            <option value="MEX" {% if supplier.country == 'MEX' %}selected{% endif %}>Mexico</option>
+                            <option value="CHN" {% if supplier.country == 'CHN' %}selected{% endif %}>China</option>
+                            <option value="JPN" {% if supplier.country == 'JPN' %}selected{% endif %}>Japan</option>
+                            <option value="GER" {% if supplier.country == 'GER' %}selected{% endif %}>Germany</option>
+                            <option value="UK" {% if supplier.country == 'UK' %}selected{% endif %}>United Kingdom</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Information -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Additional Information
+                </h2>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Internal Notes</span>
+                    </label>
+                    <textarea name="internal_notes" rows="4"
+                              class="textarea textarea-bordered w-full"
+                              placeholder="Notes for internal use only...">{{ supplier.internal_notes|default:'' }}</textarea>
+                    <label class="label">
+                        <span class="label-text-alt">These notes are for internal use and won't be visible to the supplier</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Contacts Section (if editing existing supplier) -->
+        {% if supplier %}
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        Contacts
+                    </h2>
+                    <div class="badge badge-outline">{{ supplier.contacts.count }} contact{{ supplier.contacts.count|pluralize }}</div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <div class="text-sm">
+                        Save the supplier first, then you can add multiple contacts from the supplier detail page.
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Form Actions -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <a href="{% if supplier %}{% url 'purchases:supplier_detail' supplier.pk %}{% else %}{% url 'purchases:supplier_list' %}{% endif %}" 
+                       class="btn btn-ghost">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {{ button_text }}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+{% endblock %}

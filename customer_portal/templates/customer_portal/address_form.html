@@ -1,0 +1,233 @@
+{% extends 'customer_portal/base.html' %}
+
+{% block title %}{% if form.instance.pk %}Edit Address{% else %}Add New Address{% endif %}{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <nav class="flex" aria-label="Breadcrumb">
+        <ol role="list" class="flex items-center space-x-4">
+            <li>
+                <a href="{% url 'customer_portal:dashboard' %}" class="text-gray-400 hover:text-gray-500">
+                    <i class="fas fa-home h-5 w-5 flex-shrink-0" aria-hidden="true"></i>
+                    <span class="sr-only">Home</span>
+                </a>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                        <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
+                    </svg>
+                    <a href="{% url 'customer_portal:address_list' %}" class="ml-4 text-sm font-medium text-gray-500 hover:text-gray-700">Addresses</a>
+                </div>
+            </li>
+            <li>
+                <div class="flex items-center">
+                    <svg class="h-5 w-5 flex-shrink-0 text-gray-300" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                        <path d="M5.555 17.776l8-16 .894.448-8 16-.894-.448z" />
+                    </svg>
+                    <span class="ml-4 text-sm font-medium text-gray-500">{% if form.instance.pk %}Edit{% else %}Add{% endif %}</span>
+                </div>
+            </li>
+        </ol>
+    </nav>
+</div>
+
+<div class="bg-white shadow sm:rounded-lg">
+    <div class="px-4 py-5 sm:p-6">
+        <h1 class="text-2xl font-bold text-gray-900 mb-6">
+            {% if form.instance.pk %}Edit Address{% else %}Add New Address{% endif %}
+        </h1>
+
+        <form method="post" class="space-y-6">
+            {% csrf_token %}
+            
+            <!-- Address Type -->
+            <div>
+                <label for="{{ form.address_type.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    Address Type
+                </label>
+                <div class="mt-1">
+                    {{ form.address_type }}
+                    {% if form.address_type.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.address_type.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <p class="mt-2 text-sm text-gray-500">Choose how this address will be used.</p>
+            </div>
+
+            <!-- Label -->
+            <div>
+                <label for="{{ form.label.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    Address Label (optional)
+                </label>
+                <div class="mt-1">
+                    {{ form.label }}
+                    {% if form.label.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.label.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <p class="mt-2 text-sm text-gray-500">Give this address a nickname like "Home" or "Office".</p>
+            </div>
+
+            <!-- Recipient Name -->
+            <div>
+                <label for="{{ form.recipient_name.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    Recipient Name
+                </label>
+                <div class="mt-1">
+                    {{ form.recipient_name }}
+                    {% if form.recipient_name.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.recipient_name.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Company -->
+            <div>
+                <label for="{{ form.company.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    Company (optional)
+                </label>
+                <div class="mt-1">
+                    {{ form.company }}
+                    {% if form.company.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.company.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Address Lines -->
+            <div>
+                <label for="{{ form.address_line1.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    Street Address
+                </label>
+                <div class="mt-1">
+                    {{ form.address_line1 }}
+                    {% if form.address_line1.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.address_line1.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div>
+                <label for="{{ form.address_line2.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    Apartment, suite, etc. (optional)
+                </label>
+                <div class="mt-1">
+                    {{ form.address_line2 }}
+                    {% if form.address_line2.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.address_line2.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- City, State, Postal Code -->
+            <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-6">
+                <div class="sm:col-span-2">
+                    <label for="{{ form.city.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        City
+                    </label>
+                    <div class="mt-1">
+                        {{ form.city }}
+                        {% if form.city.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ form.city.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label for="{{ form.state.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        State / Province
+                    </label>
+                    <div class="mt-1">
+                        {{ form.state }}
+                        {% if form.state.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ form.state.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label for="{{ form.postal_code.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        ZIP / Postal code
+                    </label>
+                    <div class="mt-1">
+                        {{ form.postal_code }}
+                        {% if form.postal_code.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ form.postal_code.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Country -->
+            <div>
+                <label for="{{ form.country.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    Country
+                </label>
+                <div class="mt-1">
+                    {{ form.country }}
+                    {% if form.country.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.country.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Phone -->
+            <div>
+                <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                    Phone Number (optional)
+                </label>
+                <div class="mt-1">
+                    {{ form.phone }}
+                    {% if form.phone.errors %}
+                    <p class="mt-2 text-sm text-red-600">{{ form.phone.errors.0 }}</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Default Address -->
+            <div class="relative flex items-start">
+                <div class="flex h-6 items-center">
+                    {{ form.is_default }}
+                </div>
+                <div class="ml-3 text-sm leading-6">
+                    <label for="{{ form.is_default.id_for_label }}" class="font-medium text-gray-900">Set as default address</label>
+                    <p class="text-gray-500">This address will be pre-selected at checkout.</p>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex justify-end gap-x-3 pt-6 border-t border-gray-200">
+                <a href="{% url 'customer_portal:address_list' %}" class="rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 shadow-sm ring-1 ring-inset ring-gray-300 hover:bg-gray-50">
+                    Cancel
+                </a>
+                <button type="submit" class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                    {% if form.instance.pk %}Update Address{% else %}Save Address{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-format phone number
+    const phoneInput = document.getElementById('{{ form.phone.id_for_label }}');
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 0) {
+                if (value.length <= 3) {
+                    value = value;
+                } else if (value.length <= 6) {
+                    value = value.slice(0, 3) + '-' + value.slice(3);
+                } else {
+                    value = value.slice(0, 3) + '-' + value.slice(3, 6) + '-' + value.slice(6, 10);
+                }
+            }
+            e.target.value = value;
+        });
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,69 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% load breadcrumbs %}
+
+{% block page_title %}Delete Supplier{% endblock %}
+
+{% block dashboard_content %}
+<div class="h-full flex flex-col bg-white">
+    <!-- Breadcrumb -->
+    <div class="px-4 py-2 border-b border-gray-200 bg-gray-50">
+        <nav class="flex items-center space-x-2 text-sm">
+            {% breadcrumb "Dashboard" "dashboard:home" "Suppliers" "purchases:supplier_list" supplier.name "purchases:supplier_detail" supplier.pk "Delete" %}
+        </nav>
+    </div>
+    
+    <!-- Content -->
+    <div class="flex-1 flex items-center justify-center p-6">
+        <div class="max-w-md w-full">
+            <div class="bg-white border border-gray-200 rounded-lg shadow-sm">
+                <div class="p-6">
+                    <div class="flex items-center justify-center w-12 h-12 mx-auto bg-red-100 rounded-full mb-4">
+                        <i class="fas fa-exclamation-triangle text-red-600"></i>
+                    </div>
+                    
+                    <h2 class="text-xl font-semibold text-gray-900 text-center mb-4">Delete Supplier</h2>
+                    
+                    <p class="text-gray-600 text-center mb-6">
+                        Are you sure you want to delete supplier <strong>{{ supplier.name }}</strong>?
+                    </p>
+                    
+                    {% if supplier.purchase_orders.exists %}
+                    <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+                        <p class="text-sm text-yellow-800">
+                            <i class="fas fa-info-circle mr-1"></i>
+                            This supplier has {{ supplier.purchase_orders.count }} purchase order{{ supplier.purchase_orders.count|pluralize }}.
+                            You cannot delete a supplier with existing purchase orders.
+                        </p>
+                    </div>
+                    {% else %}
+                    <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                        <p class="text-sm text-red-800">
+                            <i class="fas fa-exclamation-circle mr-1"></i>
+                            This action cannot be undone. All supplier information will be permanently deleted.
+                        </p>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="flex gap-3">
+                        <button type="button" 
+                                onclick="window.location.href='{% url 'purchases:supplier_detail' supplier.pk %}'"
+                                class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                            Cancel
+                        </button>
+                        {% if not supplier.purchase_orders.exists %}
+                        <form method="post" class="flex-1">
+                            {% csrf_token %}
+                            <button type="submit" 
+                                    class="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200">
+                                Delete Supplier
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

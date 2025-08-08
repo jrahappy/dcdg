@@ -1,0 +1,138 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Factory Portal{% endblock %} - DCDG Manufacturing</title>
+    
+    <!-- DaisyUI + Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.24/dist/full.min.css" rel="stylesheet" type="text/css" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Navigation -->
+    <div class="navbar bg-base-200">
+        <div class="navbar-start">
+            <div class="dropdown">
+                <label tabindex="0" class="btn btn-ghost lg:hidden">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16" />
+                    </svg>
+                </label>
+                <ul tabindex="0" class="menu menu-compact dropdown-content mt-3 p-2 shadow bg-base-100 rounded-box w-52">
+                    <li><a href="{% url 'factory_portal:dashboard' %}">Dashboard</a></li>
+                    <li><a href="{% url 'factory_portal:work_order_list' %}">Customer Orders</a></li>
+                    <li><a href="{% url 'factory_portal:shipment_list' %}">Shipments</a></li>
+                    <li><a href="{% url 'factory_portal:supply_request_list' %}">Supply Requests</a></li>
+                </ul>
+            </div>
+            <a href="{% url 'factory_portal:dashboard' %}" class="btn btn-ghost normal-case text-xl">
+                <i class="fas fa-industry mr-2"></i>Factory Portal
+            </a>
+        </div>
+        <div class="navbar-center hidden lg:flex">
+            <ul class="menu menu-horizontal px-1">
+                <li><a href="{% url 'factory_portal:dashboard' %}" class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">Dashboard</a></li>
+                <li><a href="{% url 'factory_portal:work_order_list' %}" class="{% if 'work_order' in request.resolver_match.url_name %}active{% endif %}">Customer Orders</a></li>
+                <li><a href="{% url 'factory_portal:shipment_list' %}" class="{% if 'shipment' in request.resolver_match.url_name %}active{% endif %}">Shipments</a></li>
+                <li><a href="{% url 'factory_portal:supply_request_list' %}" class="{% if 'supply' in request.resolver_match.url_name %}active{% endif %}">Supply Requests</a></li>
+            </ul>
+        </div>
+        <div class="navbar-end">
+            <div class="dropdown dropdown-end">
+                <label tabindex="0" class="btn btn-ghost btn-circle avatar">
+                    <div class="w-10 rounded-full bg-primary text-primary-content">
+                        <div class="flex items-center justify-center h-full">
+                            <span class="text-lg font-bold">{{ user.first_name.0 }}{{ user.last_name.0 }}</span>
+                        </div>
+                    </div>
+                </label>
+                <ul tabindex="0" class="menu menu-compact dropdown-content mt-3 p-2 shadow bg-base-100 rounded-box w-52">
+                    <li class="menu-title">
+                        <span>{{ user.get_full_name }}</span>
+                        <span class="text-xs">{{ user.factory_profile.supplier.name }}</span>
+                    </li>
+                    <li><a href="{% url 'factory_portal:profile' %}">
+                        <i class="fas fa-user"></i> Profile
+                    </a></li>
+                    <li><a href="{% url 'factory_portal:change_password' %}">
+                        <i class="fas fa-key"></i> Change Password
+                    </a></li>
+                    <li><a href="{% url 'account_logout' %}">
+                        <i class="fas fa-sign-out-alt"></i> Sign Out
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="min-h-screen bg-base-100">
+        <!-- Messages -->
+        {% if messages %}
+            <div class="container mx-auto px-4 mt-4">
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags|default:'info' }} mb-4">
+                        <div>
+                            {% if message.tags == 'success' %}
+                                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            {% elif message.tags == 'error' %}
+                                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                            {% elif message.tags == 'warning' %}
+                                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                            {% else %}
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                                </svg>
+                            {% endif %}
+                            <span>{{ message }}</span>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+
+        <!-- Page Content -->
+        <div class="container mx-auto px-4 py-8">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer footer-center p-4 bg-base-300 text-base-content">
+        <div>
+            <p>&copy; 2024 DCDG Manufacturing - Factory Portal</p>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script>
+        // Toggle dropdown menus
+        document.addEventListener('DOMContentLoaded', function() {
+            // Close dropdowns when clicking outside
+            document.addEventListener('click', function(e) {
+                const dropdowns = document.querySelectorAll('.dropdown');
+                dropdowns.forEach(dropdown => {
+                    if (!dropdown.contains(e.target)) {
+                        dropdown.removeAttribute('open');
+                    }
+                });
+            });
+        });
+    </script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

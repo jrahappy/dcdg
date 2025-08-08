@@ -1,0 +1,436 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% load breadcrumbs %}
+
+{% block page_title %}{% if form.instance.pk %}Edit{% else %}Create{% endif %} Invoice{% endblock %}
+
+{% block dashboard_content %}
+<div class="h-full flex flex-col bg-white">
+    <!-- Breadcrumb -->
+    <div class="px-4 py-2 border-b border-gray-200 bg-gray-50">
+        <nav class="flex items-center space-x-2 text-sm">
+            {% if form.instance.pk %}
+                {% breadcrumb "Dashboard" "dashboard:home" "Invoices" "sales:invoice_list" form.instance.invoice_number "sales:invoice_detail" form.instance.pk "Edit" %}
+            {% else %}
+                {% breadcrumb "Dashboard" "dashboard:home" "Invoices" "sales:invoice_list" "Create New" %}
+            {% endif %}
+        </nav>
+    </div>
+    
+    <!-- Header -->
+    <div class="border-b border-gray-200 bg-white px-6 py-4">
+        <div class="flex items-center">
+            <button onclick="window.location.href='{% url 'sales:invoice_list' %}'" class="mr-4 text-gray-600 hover:text-gray-900">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h1 class="text-2xl font-semibold text-gray-900">
+                {% if form.instance.pk %}Edit Invoice{% else %}Create New Invoice{% endif %}
+            </h1>
+        </div>
+    </div>
+
+    <!-- Form Content -->
+    <div class="flex-1 overflow-y-auto p-6">
+        <form method="post" class="max-w-6xl mx-auto" id="invoiceForm">
+            {% csrf_token %}
+            
+            <!-- Basic Information -->
+            <div class="bg-white border border-gray-200 rounded-lg mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Basic Information</h2>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Invoice Number <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.invoice_number }}
+                            {% if form.invoice_number.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.invoice_number.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Customer <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.customer }}
+                            {% if form.customer.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.customer.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Invoice Date <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.invoice_date }}
+                            {% if form.invoice_date.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.invoice_date.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Due Date <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.due_date }}
+                            {% if form.due_date.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.due_date.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Status
+                            </label>
+                            {{ form.status }}
+                            {% if form.status.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.status.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Related Order
+                            </label>
+                            {{ form.order }}
+                            {% if form.order.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.order.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Billing Address -->
+            <div class="bg-white border border-gray-200 rounded-lg mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Billing Address</h2>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Address Line 1 <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.billing_address_line1 }}
+                            {% if form.billing_address_line1.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.billing_address_line1.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Address Line 2
+                            </label>
+                            {{ form.billing_address_line2 }}
+                            {% if form.billing_address_line2.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.billing_address_line2.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                City <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.billing_city }}
+                            {% if form.billing_city.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.billing_city.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                State/Province <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.billing_state }}
+                            {% if form.billing_state.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.billing_state.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Postal Code <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.billing_postal_code }}
+                            {% if form.billing_postal_code.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.billing_postal_code.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Country <span class="text-red-500">*</span>
+                            </label>
+                            {{ form.billing_country }}
+                            {% if form.billing_country.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.billing_country.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Line Items -->
+            <div class="bg-white border border-gray-200 rounded-lg mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Invoice Items</h2>
+                </div>
+                <div class="p-6">
+                    {{ formset.management_form }}
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Discount %</th>
+                                    <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="formset-body">
+                                {% for form in formset %}
+                                <tr class="formset-row {% if form.instance.pk and form.DELETE.value %}hidden{% endif %}">
+                                    <td class="px-4 py-4">
+                                        {{ form.product }}
+                                        {% if form.product.errors %}
+                                            <p class="mt-1 text-xs text-red-600">{{ form.product.errors.0 }}</p>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        {{ form.description }}
+                                        {% if form.description.errors %}
+                                            <p class="mt-1 text-xs text-red-600">{{ form.description.errors.0 }}</p>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        {{ form.quantity }}
+                                        {% if form.quantity.errors %}
+                                            <p class="mt-1 text-xs text-red-600">{{ form.quantity.errors.0 }}</p>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        {{ form.unit_price }}
+                                        {% if form.unit_price.errors %}
+                                            <p class="mt-1 text-xs text-red-600">{{ form.unit_price.errors.0 }}</p>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-4">
+                                        {{ form.discount_percent }}
+                                        {% if form.discount_percent.errors %}
+                                            <p class="mt-1 text-xs text-red-600">{{ form.discount_percent.errors.0 }}</p>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-4 py-4 text-center">
+                                        <div class="hidden">{{ form.DELETE }}</div>
+                                        <button type="button" onclick="deleteFormsetRow(this)" class="delete-row-btn px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors duration-200">
+                                            <i class="fas fa-trash"></i> Delete
+                                        </button>
+                                    </td>
+                                    {% for hidden in form.hidden_fields %}
+                                        {{ hidden }}
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="button" class="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200" onclick="addFormsetRow()">
+                        <i class="fas fa-plus mr-2"></i> Add Item
+                    </button>
+                </div>
+            </div>
+
+            <!-- Pricing & Discounts -->
+            <div class="bg-white border border-gray-200 rounded-lg mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Pricing & Taxes</h2>
+                </div>
+                <div class="p-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Discount Percentage
+                            </label>
+                            {{ form.discount_percent }}
+                            {% if form.discount_percent.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.discount_percent.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Tax Rate (%)
+                            </label>
+                            {{ form.tax_rate }}
+                            {% if form.tax_rate.errors %}
+                                <p class="mt-1 text-sm text-red-600">{{ form.tax_rate.errors.0 }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Additional Information -->
+            <div class="bg-white border border-gray-200 rounded-lg mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Additional Information</h2>
+                </div>
+                <div class="p-6">
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Terms and Conditions
+                        </label>
+                        {{ form.terms_and_conditions }}
+                        {% if form.terms_and_conditions.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.terms_and_conditions.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-6">
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Notes
+                        </label>
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.notes.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-2">
+                            Internal Notes
+                        </label>
+                        {{ form.internal_notes }}
+                        {% if form.internal_notes.errors %}
+                            <p class="mt-1 text-sm text-red-600">{{ form.internal_notes.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="flex gap-4 justify-end">
+                <button type="button" onclick="window.location.href='{% if form.instance.pk %}{% url 'sales:invoice_detail' form.instance.pk %}{% else %}{% url 'sales:invoice_list' %}{% endif %}'" 
+                        class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                    Cancel
+                </button>
+                <button type="submit" class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    {% if form.instance.pk %}Update{% else %}Create{% endif %} Invoice
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Dynamic formset handling
+function addFormsetRow() {
+    const formsetBody = document.getElementById('formset-body');
+    const totalForms = document.getElementById('id_items-TOTAL_FORMS');
+    const currentFormCount = parseInt(totalForms.value);
+    
+    // Clone the last row
+    const lastRow = formsetBody.querySelector('.formset-row:last-child');
+    const newRow = lastRow.cloneNode(true);
+    
+    // Update the form index
+    const formRegex = RegExp(`items-(\\d+)-`, 'g');
+    newRow.innerHTML = newRow.innerHTML.replace(formRegex, `items-${currentFormCount}-`);
+    
+    // Clear input values
+    newRow.querySelectorAll('input[type="text"], input[type="number"], select').forEach(input => {
+        if (input.type === 'checkbox') {
+            input.checked = false;
+        } else {
+            input.value = '';
+        }
+    });
+    
+    // Append the new row
+    formsetBody.appendChild(newRow);
+    
+    // Update the TOTAL_FORMS count
+    totalForms.value = currentFormCount + 1;
+}
+
+function deleteFormsetRow(button) {
+    const row = button.closest('.formset-row');
+    const deleteCheckbox = row.querySelector('input[name$="-DELETE"]');
+    
+    if (deleteCheckbox) {
+        // Mark the row for deletion
+        deleteCheckbox.checked = true;
+        
+        // Hide the row
+        row.style.display = 'none';
+        
+        // If this is a new row (no ID), we need to update the TOTAL_FORMS count
+        const idInput = row.querySelector('input[name$="-id"]');
+        if (!idInput || !idInput.value) {
+            // This is a new row that hasn't been saved yet
+            // We can completely remove it and update the form count
+            const totalForms = document.getElementById('id_items-TOTAL_FORMS');
+            const currentFormCount = parseInt(totalForms.value);
+            
+            // Remove the row from DOM
+            row.remove();
+            
+            // Update form indices for remaining rows
+            const formsetBody = document.getElementById('formset-body');
+            const remainingRows = formsetBody.querySelectorAll('.formset-row');
+            
+            remainingRows.forEach((row, index) => {
+                // Update all form field names and IDs with the new index
+                const inputs = row.querySelectorAll('input, select, textarea');
+                inputs.forEach(input => {
+                    const name = input.getAttribute('name');
+                    const id = input.getAttribute('id');
+                    
+                    if (name) {
+                        input.setAttribute('name', name.replace(/items-\d+-/, `items-${index}-`));
+                    }
+                    if (id) {
+                        input.setAttribute('id', id.replace(/id_items-\d+-/, `id_items-${index}-`));
+                    }
+                });
+            });
+            
+            // Update the TOTAL_FORMS count
+            totalForms.value = remainingRows.length;
+        }
+    }
+}
+
+// Auto-populate invoice number if empty
+document.addEventListener('DOMContentLoaded', function() {
+    const invoiceNumberInput = document.getElementById('id_invoice_number');
+    if (invoiceNumberInput && !invoiceNumberInput.value) {
+        const date = new Date();
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const random = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+        invoiceNumberInput.value = `INV-${year}${month}-${random}`;
+    }
+    
+    // Auto-populate due date if empty (30 days from invoice date)
+    const invoiceDateInput = document.getElementById('id_invoice_date');
+    const dueDateInput = document.getElementById('id_due_date');
+    
+    if (invoiceDateInput && dueDateInput && !dueDateInput.value) {
+        invoiceDateInput.addEventListener('change', function() {
+            if (this.value && !dueDateInput.value) {
+                const invoiceDate = new Date(this.value);
+                invoiceDate.setDate(invoiceDate.getDate() + 30);
+                dueDateInput.value = invoiceDate.toISOString().split('T')[0];
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

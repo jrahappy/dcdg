@@ -141,12 +141,13 @@ def profile_edit(request):
     return render(request, 'accounts/profile_edit.html', context)
 
 
-@login_required
 def logout_confirm(request):
-    """Display logout confirmation page"""
+    """Display logout confirmation page with role-based redirects"""
+    # Don't require login for logout page
     if request.method == 'POST':
-        logout(request)
-        messages.success(request, 'You have been successfully logged out.')
+        if request.user.is_authenticated:
+            logout(request)
+            messages.success(request, 'You have been successfully logged out.')
         return redirect('landing:home')
     
     # Clear any existing messages to prevent confusion
@@ -154,7 +155,31 @@ def logout_confirm(request):
     for _ in storage:
         pass  # This clears the messages
     
-    return render(request, 'accounts/logout_confirm.html')
+    # Determine the cancel URL based on user role
+    cancel_url = 'dashboard:home'  # Default for staff
+    if request.user.is_authenticated:
+        # Check if user is a factory user
+        try:
+            from factory.models import FactoryUser
+            factory_user = request.user.factory_profile
+            if factory_user and factory_user.is_active:
+                cancel_url = 'factory_portal:dashboard'
+        except (FactoryUser.DoesNotExist, AttributeError):
+            pass
+        
+        # Check if user is a customer (shop user)
+        try:
+            customer = request.user.customer
+            if customer:
+                cancel_url = 'customer_portal:dashboard'
+        except (AttributeError, Exception):
+            pass
+    
+    context = {
+        'cancel_url': cancel_url
+    }
+    
+    return render(request, 'accounts/logout_confirm.html', context)
 
 
 def test_smtp_connection(smtp_host, smtp_port, smtp_username, smtp_password, smtp_encryption, test_email):
@@ -365,3 +390,86 @@ def sender_information(request):
     }
     
     return render(request, 'accounts/sender_information.html', context)
+
+
+@login_required
+def my_organization(request):
+    """Account management - My Organization section (Admin only)"""
+    # Only allow superusers to access organization management
+    if not request.user.is_superuser:
+        messages.error(request, 'Only administrators can manage organizations.')
+        return redirect('account-profile')
+    
+    from customer.models import Organization
+    
+    if request.user.organization:
+        # User has an organization - show organization details or handle updates
+        organization = request.user.organization
+        
+        if request.method == 'POST' and request.POST.get('action') == 'update':
+            # Update organization information
+            organization.name = request.POST.get('name')
+            organization.organization_type = request.POST.get('organization_type', 'dental_practice')
+            organization.tax_id = request.POST.get('tax_id', '')
+            organization.website = request.POST.get('website', '')
+            organization.email = request.POST.get('email', '')
+            organization.phone = request.POST.get('phone', '')
+            organization.address_line1 = request.POST.get('address_line1', '')
+            organization.address_line2 = request.POST.get('address_line2', '')
+            organization.city = request.POST.get('city', '')
+            organization.state = request.POST.get('state', '')
+            organization.postal_code = request.POST.get('postal_code', '')
+            organization.country = request.POST.get('country', 'United States')
+            organization.notes = request.POST.get('notes', '')
+            
+            organization.save()
+            messages.success(request, f'Organization "{organization.name}" updated successfully!')
+            return redirect('account-organization')
+        
+        members = organization.users.all().order_by('last_name', 'first_name')
+        
+        context = {
+            'organization': organization,
+            'members': members,
+            'has_organization': True,
+            'organization_types': Organization.ORGANIZATION_TYPE_CHOICES,
+        }
+        
+        return render(request, 'accounts/account_organization.html', context)
+    
+    # No organization - show create form
+    if request.method == 'POST':
+        # Create new organization and assign to user
+        organization = Organization(
+            name=request.POST.get('name'),
+            organization_type=request.POST.get('organization_type', 'dental_practice'),
+            tax_id=request.POST.get('tax_id', ''),
+            website=request.POST.get('website', ''),
+            email=request.POST.get('email', ''),
+            phone=request.POST.get('phone', ''),
+            address_line1=request.POST.get('address_line1', ''),
+            address_line2=request.POST.get('address_line2', ''),
+            city=request.POST.get('city', ''),
+            state=request.POST.get('state', ''),
+            postal_code=request.POST.get('postal_code', ''),
+            country=request.POST.get('country', 'United States'),
+            notes=request.POST.get('notes', ''),
+            is_active=True
+        )
+        organization.save()
+        
+        # Assign the organization to the current user
+        request.user.organization = organization
+        request.user.save()
+        
+        messages.success(request, f'Organization "{organization.name}" created successfully and assigned to you!')
+        return redirect('account-organization')
+    
+    # Show create organization form
+    context = {
+        'organization_types': Organization.ORGANIZATION_TYPE_CHOICES,
+        'user': request.user,
+        'has_organization': False,
+    }
+    
+    return render(request, 'accounts/account_organization.html', context)

@@ -1,0 +1,334 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block page_title %}Dashboard Overview{% endblock %}
+
+{% block dashboard_content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div>
+        <h1 class="text-2xl font-bold">Dashboard Overview</h1>
+        <p class="text-base-content/60 mt-1">Welcome back! Here's what's happening with your business.</p>
+    </div>
+
+    <!-- Statistics Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <!-- Customer Stats -->
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-figure text-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"></path>
+                    </svg>
+                </div>
+                <div class="stat-title">Total Customers</div>
+                <div class="stat-value text-primary">{{ total_customers }}</div>
+                <div class="stat-desc">
+                    <span class="text-success font-semibold">{{ active_customers }}</span> active
+                </div>
+            </div>
+        </div>
+
+        <!-- New Customers -->
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-figure text-success">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path>
+                    </svg>
+                </div>
+                <div class="stat-title">New Customers</div>
+                <div class="stat-value text-success">{{ new_customers }}</div>
+                <div class="stat-desc">Last 30 days</div>
+            </div>
+        </div>
+
+        <!-- Campaign Stats -->
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-figure text-secondary">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path>
+                    </svg>
+                </div>
+                <div class="stat-title">Email Campaigns</div>
+                <div class="stat-value text-secondary">{{ total_campaigns }}</div>
+                <div class="stat-desc">
+                    <span class="text-success font-semibold">{{ sent_campaigns }}</span> sent, 
+                    <span class="text-warning font-semibold">{{ draft_campaigns }}</span> draft
+                </div>
+            </div>
+        </div>
+
+        <!-- Blog Posts Stats -->
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-figure text-info">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path>
+                    </svg>
+                </div>
+                <div class="stat-title">Blog Posts</div>
+                <div class="stat-value text-info">{{ total_posts }}</div>
+                <div class="stat-desc">
+                    <span class="text-success font-semibold">{{ published_posts }}</span> published
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Recent Campaigns -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="card-title">Recent Campaigns</h2>
+                    <a href="{% url 'email_campaign:campaign_list' %}" 
+                       class="btn btn-ghost btn-xs"
+                       hx-get="{% url 'email_campaign:campaign_list' %}"
+                       hx-target="#main-content"
+                       hx-push-url="true">
+                        View all →
+                    </a>
+                </div>
+                
+                {% if recent_campaigns %}
+                    <div class="space-y-3">
+                        {% for campaign in recent_campaigns %}
+                        <div class="flex items-start gap-3">
+                            <div class="avatar placeholder">
+                                <div class="bg-secondary text-secondary-content rounded-full w-10">
+                                    <span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-medium truncate">{{ campaign.name }}</p>
+                                <p class="text-sm text-base-content/60">
+                                    {{ campaign.target_group.name }} • {{ campaign.total_recipients }} recipients
+                                </p>
+                                <p class="text-xs text-base-content/40 mt-1">
+                                    {{ campaign.created_at|date:"M d, Y" }}
+                                </p>
+                            </div>
+                            <div>
+                                {% if campaign.status == 'draft' %}
+                                    <div class="badge badge-ghost badge-sm">Draft</div>
+                                {% elif campaign.status == 'sent' %}
+                                    <div class="badge badge-success badge-sm">Sent</div>
+                                {% elif campaign.status == 'sending' %}
+                                    <div class="badge badge-info badge-sm">Sending</div>
+                                {% else %}
+                                    <div class="badge badge-error badge-sm">Failed</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 text-base-content/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                        </svg>
+                        <p class="text-base-content/60">No campaigns yet</p>
+                        <a href="{% url 'email_campaign:customer_selection' %}" class="link link-primary mt-2 inline-block">
+                            Create your first campaign →
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Blog Posts -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="card-title">Recent Blog Posts</h2>
+                    <a href="{% url 'dashboard:blog_list' %}" 
+                       class="btn btn-ghost btn-xs"
+                       hx-get="{% url 'dashboard:blog_list' %}"
+                       hx-target="#main-content"
+                       hx-push-url="true">
+                        View all →
+                    </a>
+                </div>
+                
+                {% if recent_posts %}
+                    <div class="space-y-3">
+                        {% for post in recent_posts %}
+                        <div class="flex items-start gap-3">
+                            <div class="avatar placeholder">
+                                <div class="bg-info text-info-content rounded-full w-10">
+                                    <span>
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z" />
+                                        </svg>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-medium truncate">{{ post.title }}</p>
+                                <p class="text-sm text-base-content/60 truncate">
+                                    {{ post.excerpt|default:post.content|truncatewords:10 }}
+                                </p>
+                                <p class="text-xs text-base-content/40 mt-1">
+                                    {{ post.created_at|date:"M d, Y" }}
+                                </p>
+                            </div>
+                            <div>
+                                {% if post.status == 'published' %}
+                                    <div class="badge badge-success badge-sm">Published</div>
+                                {% else %}
+                                    <div class="badge badge-ghost badge-sm">Draft</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 text-base-content/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        <p class="text-base-content/60">No blog posts yet</p>
+                        <a href="{% url 'dashboard:blog_create' %}" class="link link-primary mt-2 inline-block">
+                            Write your first post →
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Customers -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="card-title">Recent Customers</h2>
+                    <a href="{% url 'dashboard:customer_list' %}" 
+                       class="btn btn-ghost btn-xs"
+                       hx-get="{% url 'dashboard:customer_list' %}"
+                       hx-target="#main-content"
+                       hx-push-url="true">
+                        View all →
+                    </a>
+                </div>
+                
+                {% if recent_customers %}
+                    <div class="space-y-3">
+                        {% for customer in recent_customers %}
+                        <div class="flex items-center gap-3">
+                            <div class="avatar placeholder">
+                                <div class="bg-primary text-primary-content rounded-full w-10">
+                                    <span class="text-sm">
+                                        {{ customer.first_name.0|upper }}{{ customer.last_name.0|upper }}
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="font-medium truncate">{{ customer.get_full_name }}</p>
+                                <p class="text-sm text-base-content/60 truncate">
+                                    {{ customer.email }}
+                                    {% if customer.company_name %}• {{ customer.company_name }}{% endif %}
+                                </p>
+                            </div>
+                            <div>
+                                {% if customer.is_active %}
+                                    <div class="badge badge-success badge-sm">Active</div>
+                                {% else %}
+                                    <div class="badge badge-ghost badge-sm">Inactive</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-8">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-3 text-base-content/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <p class="text-base-content/60">No customers yet</p>
+                        <a href="{% url 'dashboard:customer_create' %}" class="link link-primary mt-2 inline-block">
+                            Add your first customer →
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title mb-4">Quick Actions</h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <a href="{% url 'dashboard:customer_create' %}" 
+                   class="btn btn-outline btn-primary"
+                   hx-get="{% url 'dashboard:customer_create' %}"
+                   hx-target="#main-content"
+                   hx-push-url="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                    </svg>
+                    Add New Customer
+                </a>
+                
+                <a href="{% url 'email_campaign:customer_selection' %}" 
+                   class="btn btn-outline btn-secondary"
+                   hx-get="{% url 'email_campaign:customer_selection' %}"
+                   hx-target="#main-content"
+                   hx-push-url="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                    Create Campaign
+                </a>
+                
+                <a href="{% url 'dashboard:blog_create' %}" 
+                   class="btn btn-outline btn-info"
+                   hx-get="{% url 'dashboard:blog_create' %}"
+                   hx-target="#main-content"
+                   hx-push-url="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Write Blog Post
+                </a>
+                
+                <a href="{% url 'dashboard:global_search' %}" 
+                   class="btn btn-outline btn-success">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Search Everything
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- HTMX Loading Indicator -->
+<div id="loading-indicator" 
+     class="htmx-indicator fixed bottom-4 right-4 z-50">
+    <div class="alert alert-info shadow-lg">
+        <div>
+            <span class="loading loading-spinner"></span>
+            <span>Loading...</span>
+        </div>
+    </div>
+</div>
+
+<style>
+.htmx-indicator {
+    display: none;
+}
+.htmx-request .htmx-indicator {
+    display: block;
+}
+.htmx-request.htmx-indicator {
+    display: block;
+}
+</style>
+{% endblock %}

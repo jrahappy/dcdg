@@ -1,0 +1,293 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block dashboard_content %}
+<div class="space-y-4" x-data="{ viewMode: 'grid' }">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold">Products</h1>
+            <div class="text-sm breadcrumbs">
+                <ul>
+                    <li><a href="{% url 'dashboard:home' %}" class="link link-hover">Dashboard</a></li>
+                    <li>Products</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex gap-2">
+            <a href="{% url 'product:product_create' %}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Product
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters and View Toggle -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body p-4">
+            <form method="get" class="flex flex-col lg:flex-row gap-4">
+                <div class="form-control flex-1">
+                    <input type="text" name="search" value="{{ search_query }}" 
+                           placeholder="Search products by name, SKU, or description..." 
+                           class="input input-bordered" />
+                </div>
+                
+                <select name="category" class="select select-bordered">
+                    <option value="">All Categories</option>
+                    {% for category in categories %}
+                        <option value="{{ category.id }}" {% if selected_category == category.id|stringformat:"s" %}selected{% endif %}>
+                            {{ category.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+                
+                <select name="status" class="select select-bordered">
+                    <option value="">All Status</option>
+                    <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Inactive</option>
+                    <option value="out_of_stock" {% if status_filter == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
+                </select>
+                
+                <button type="submit" class="btn btn-primary">Search</button>
+                
+                <!-- View Mode Toggle -->
+                <div class="btn-group">
+                    <button type="button" @click="viewMode = 'list'" :class="viewMode === 'list' ? 'btn-active' : ''" class="btn btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                        </svg>
+                    </button>
+                    <button type="button" @click="viewMode = 'grid'" :class="viewMode === 'grid' ? 'btn-active' : ''" class="btn btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
+                        </svg>
+                    </button>
+                </div>
+                
+                {% if search_query or selected_category or status_filter %}
+                <a href="{% url 'product:product_list' %}" class="btn btn-ghost">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- List View -->
+    <div x-show="viewMode === 'list'" x-transition>
+        {% if page_obj %}
+        <div class="card bg-base-100 shadow-xl">
+            <div class="overflow-x-auto">
+                <table class="table table-zebra">
+                    <thead>
+                        <tr>
+                            <th>SKU</th>
+                            <th>Product</th>
+                            <th>Category</th>
+                            <th>Supplier</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for product in page_obj %}
+                        <tr class="hover">
+                            <td class="font-mono text-sm">{{ product.sku }}</td>
+                            <td>
+                                <div class="flex items-center space-x-3">
+                                    {% if product.main_image %}
+                                    <div class="avatar">
+                                        <div class="mask mask-squircle w-12 h-12">
+                                            <img src="{{ product.main_image.url }}" alt="{{ product.name }}" />
+                                        </div>
+                                    </div>
+                                    {% elif product.thumbnail_image %}
+                                    <div class="avatar">
+                                        <div class="mask mask-squircle w-12 h-12">
+                                            <img src="{{ product.thumbnail_image.url }}" alt="{{ product.name }}" />
+                                        </div>
+                                    </div>
+                                    {% elif product.images.exists %}
+                                    <div class="avatar">
+                                        <div class="mask mask-squircle w-12 h-12">
+                                            <img src="{{ product.images.first.image.url }}" alt="{{ product.name }}" />
+                                        </div>
+                                    </div>
+                                    {% else %}
+                                    <div class="avatar placeholder">
+                                        <div class="bg-neutral text-neutral-content rounded-btn w-12">
+                                            <span>{{ product.name.0|upper }}</span>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                    <div>
+                                        <div class="font-bold">{{ product.name }}</div>
+                                        <div class="text-sm opacity-50">{{ product.short_description|truncatechars:50 }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                {% if product.category %}
+                                    <div class="badge badge-outline">{{ product.category.name }}</div>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if product.supplier %}
+                                    <a href="{% url 'purchases:supplier_detail' product.supplier.pk %}" class="link link-primary">
+                                        {{ product.supplier.name|truncatechars:20 }}
+                                    </a>
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="font-semibold">${{ product.price|floatformat:2 }}</td>
+                            <td>
+                                {% if product.quantity_in_stock > 10 %}
+                                    <div class="badge badge-success">{{ product.quantity_in_stock }} in stock</div>
+                                {% elif product.quantity_in_stock > 0 %}
+                                    <div class="badge badge-warning">{{ product.quantity_in_stock }} left</div>
+                                {% else %}
+                                    <div class="badge badge-error">Out of stock</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if product.status == 'active' %}
+                                    <div class="badge badge-success">Active</div>
+                                {% else %}
+                                    <div class="badge badge-ghost">Inactive</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="dropdown dropdown-end">
+                                    <label tabindex="0" class="btn btn-ghost btn-xs">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                        </svg>
+                                    </label>
+                                    <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                        <li><a href="{% url 'product:product_detail' product.id %}">View</a></li>
+                                        <li><a href="{% url 'product:product_update' product.id %}">Edit</a></li>
+                                        <li><a href="{% url 'product:inventory_list' %}?product={{ product.id }}">View Inventory</a></li>
+                                        <div class="divider my-0"></div>
+                                        <li><a href="{% url 'product:product_delete' product.id %}" class="text-error">Delete</a></li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Grid View -->
+    <div x-show="viewMode === 'grid'" x-transition>
+        {% if page_obj %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {% for product in page_obj %}
+            <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow h-full">
+                {% if product.main_image %}
+                <figure class="h-40 bg-base-200 p-4">
+                    <img src="{{ product.main_image.url }}" alt="{{ product.name }}" class="w-full h-full object-contain" />
+                </figure>
+                {% elif product.thumbnail_image %}
+                <figure class="h-40 bg-base-200 p-4">
+                    <img src="{{ product.thumbnail_image.url }}" alt="{{ product.name }}" class="w-full h-full object-contain" />
+                </figure>
+                {% elif product.images.exists %}
+                <figure class="h-40 bg-base-200 p-4">
+                    <img src="{{ product.images.first.image.url }}" alt="{{ product.name }}" class="w-full h-full object-contain" />
+                </figure>
+                {% else %}
+                <figure class="h-40 bg-base-200 flex items-center justify-center">
+                    <div class="avatar placeholder">
+                        <div class="bg-neutral text-neutral-content rounded-xl w-24 h-24">
+                            <span class="text-2xl">{{ product.name.0|upper }}</span>
+                        </div>
+                    </div>
+                </figure>
+                {% endif %}
+                <div class="card-body">
+                    <h2 class="card-title text-sm">
+                        {{ product.name|truncatechars:30 }}
+                        {% if product.is_new %}
+                        <div class="badge badge-secondary badge-sm">NEW</div>
+                        {% endif %}
+                    </h2>
+                    <p class="text-xs text-base-content/60">{{ product.short_description|truncatechars:60 }}</p>
+                    
+                    <div class="flex justify-between items-center mt-2">
+                        <span class="text-xl font-bold">${{ product.price|floatformat:2 }}</span>
+                        {% if product.quantity_in_stock > 10 %}
+                            <div class="badge badge-success badge-sm">In Stock</div>
+                        {% elif product.quantity_in_stock > 0 %}
+                            <div class="badge badge-warning badge-sm">Low Stock</div>
+                        {% else %}
+                            <div class="badge badge-error badge-sm">Out of Stock</div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="card-actions justify-end mt-4">
+                        <a href="{% url 'product:product_detail' product.id %}" class="btn btn-primary btn-sm">View</a>
+                        <a href="{% url 'product:product_update' product.id %}" class="btn btn-ghost btn-sm">Edit</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Empty State -->
+    {% if not page_obj %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body text-center py-16">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto mb-4 text-base-content/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+            </svg>
+            <h3 class="text-xl font-semibold">No products found</h3>
+            <p class="text-base-content/60">Add your first product to get started</p>
+            <div class="card-actions justify-center mt-4">
+                <a href="{% url 'product:product_create' %}" class="btn btn-primary">
+                    Add Product
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="flex justify-center">
+        <div class="btn-group">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="btn">«</a>
+            {% else %}
+                <button class="btn btn-disabled">«</button>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <button class="btn btn-active">{{ num }}</button>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}" class="btn">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="btn">»</a>
+            {% else %}
+                <button class="btn btn-disabled">»</button>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,259 @@
+{% extends 'factory_portal/base.html' %}
+
+{% block title %}My Profile{% endblock %}
+
+{% block content %}
+<div class="mb-8">
+    <h1 class="text-2xl font-bold text-gray-900">My Profile</h1>
+    <p class="mt-1 text-sm text-gray-600">Update your factory account information.</p>
+</div>
+
+<form method="post" class="space-y-6">
+    {% csrf_token %}
+    
+    <!-- Personal Information -->
+    <div class="bg-white shadow sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Personal Information</h2>
+            
+            <div class="grid grid-cols-1 gap-y-6 gap-x-4 sm:grid-cols-2">
+                <div>
+                    <label for="{{ form.employee_id.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Employee ID
+                    </label>
+                    <div class="mt-1">
+                        {{ form.employee_id }}
+                        {% if form.employee_id.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ form.employee_id.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <label for="{{ form.department.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Department
+                    </label>
+                    <div class="mt-1">
+                        {{ form.department }}
+                        {% if form.department.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ form.department.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <label for="{{ form.phone.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Phone
+                    </label>
+                    <div class="mt-1">
+                        {{ form.phone }}
+                        {% if form.phone.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ form.phone.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div>
+                    <label for="{{ form.mobile.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Mobile
+                    </label>
+                    <div class="mt-1">
+                        {{ form.mobile }}
+                        {% if form.mobile.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ form.mobile.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="sm:col-span-2">
+                    <label for="{{ form.notes.id_for_label }}" class="block text-sm font-medium text-gray-700">
+                        Notes
+                    </label>
+                    <div class="mt-1">
+                        {{ form.notes }}
+                        {% if form.notes.errors %}
+                        <p class="mt-2 text-sm text-red-600">{{ form.notes.errors.0 }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Account Information -->
+    <div class="bg-white shadow sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Account Information</h2>
+            
+            <div class="border-t border-gray-200">
+                <dl>
+                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Full name</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">{{ factory_user.full_name }}</dd>
+                    </div>
+                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Email address</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">{{ factory_user.email }}</dd>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Supplier</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">{{ factory_user.supplier.name }}</dd>
+                    </div>
+                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Role</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">{{ factory_user.get_role_display }}</dd>
+                    </div>
+                    <div class="bg-gray-50 px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Status</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">
+                            {% if factory_user.is_active %}
+                            <span class="inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
+                                Active
+                            </span>
+                            {% else %}
+                            <span class="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">
+                                Inactive
+                            </span>
+                            {% endif %}
+                        </dd>
+                    </div>
+                    <div class="bg-white px-4 py-5 sm:grid sm:grid-cols-3 sm:gap-4 sm:px-6">
+                        <dt class="text-sm font-medium text-gray-500">Member since</dt>
+                        <dd class="mt-1 text-sm text-gray-900 sm:col-span-2 sm:mt-0">{{ factory_user.date_joined|date:"F d, Y" }}</dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- Permissions -->
+    <div class="bg-white shadow sm:rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Permissions</h2>
+            
+            <div class="space-y-3">
+                <div class="flex items-center">
+                    {% if factory_user.can_approve_orders %}
+                    <svg class="h-5 w-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    {% else %}
+                    <svg class="h-5 w-5 text-gray-300 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                    {% endif %}
+                    <span class="text-sm text-gray-700">Can approve orders</span>
+                </div>
+                
+                <div class="flex items-center">
+                    {% if factory_user.can_manage_inventory %}
+                    <svg class="h-5 w-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    {% else %}
+                    <svg class="h-5 w-5 text-gray-300 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                    {% endif %}
+                    <span class="text-sm text-gray-700">Can manage inventory</span>
+                </div>
+                
+                <div class="flex items-center">
+                    {% if factory_user.can_create_shipments %}
+                    <svg class="h-5 w-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    {% else %}
+                    <svg class="h-5 w-5 text-gray-300 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                    {% endif %}
+                    <span class="text-sm text-gray-700">Can create shipments</span>
+                </div>
+                
+                <div class="flex items-center">
+                    {% if factory_user.can_approve_supply_requests %}
+                    <svg class="h-5 w-5 text-green-500 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                    </svg>
+                    {% else %}
+                    <svg class="h-5 w-5 text-gray-300 mr-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
+                    </svg>
+                    {% endif %}
+                    <span class="text-sm text-gray-700">Can approve supply requests</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Actions -->
+    <div class="flex justify-end space-x-3">
+        <a href="{% url 'factory_portal:change_password' %}" class="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+            Change Password
+        </a>
+        <button type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+            Save Changes
+        </button>
+    </div>
+</form>
+
+<style>
+    /* Style Django form inputs to match the theme */
+    input[type="text"]:not(.styled),
+    input[type="email"]:not(.styled),
+    input[type="tel"]:not(.styled),
+    textarea:not(.styled) {
+        display: block;
+        width: 100%;
+        border-radius: 0.375rem;
+        border: 1px solid rgb(209 213 219);
+        padding: 0.5rem 0.75rem;
+        font-size: 0.875rem;
+        line-height: 1.25rem;
+        color: rgb(17 24 39);
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+    }
+    
+    input[type="text"]:focus,
+    input[type="email"]:focus,
+    input[type="tel"]:focus,
+    textarea:focus {
+        outline: 2px solid transparent;
+        outline-offset: 2px;
+        border-color: rgb(99 102 241);
+        box-shadow: 0 0 0 1px rgb(99 102 241);
+    }
+    
+    textarea {
+        min-height: 5rem;
+    }
+</style>
+
+<!-- Success Message -->
+{% if messages %}
+{% for message in messages %}
+{% if message.tags == 'success' %}
+<div class="fixed bottom-0 right-0 m-6 max-w-sm">
+    <div class="rounded-md bg-green-50 p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm font-medium text-green-800">{{ message }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    setTimeout(() => {
+        document.querySelector('.fixed').style.display = 'none';
+    }, 3000);
+</script>
+{% endif %}
+{% endfor %}
+{% endif %}
+{% endblock %}

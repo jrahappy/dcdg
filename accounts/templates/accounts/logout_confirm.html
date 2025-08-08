@@ -17,7 +17,7 @@
             </div>
             
             <div class="card-actions justify-center gap-4">
-                <form method="POST" action="{% url 'logout-confirm' %}">
+                <form method="POST" action="{% url 'account_logout' %}">
                     {% csrf_token %}
                     <button type="submit" class="btn btn-error">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -27,7 +27,7 @@
                     </button>
                 </form>
                 
-                <a href="{% url 'dashboard:home' %}" class="btn btn-ghost">
+                <a href="{% url cancel_url %}" class="btn btn-ghost">
                     Cancel
                 </a>
             </div>
