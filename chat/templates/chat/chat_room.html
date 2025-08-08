@@ -1,0 +1,499 @@
+{% extends 'customer_portal/base.html' %}
+
+{% block title %}{{ chat_room.subject }}{% endblock %}
+
+{% block content %}
+<div class="chat-container flex flex-col">
+    <!-- Chat Header -->
+    <div class="bg-white shadow-sm border-b flex-shrink-0">
+        <div class="px-3 py-2 sm:px-4 sm:py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex-1 min-w-0">
+                    <h1 class="text-base sm:text-lg font-semibold text-gray-900 truncate">{{ chat_room.subject }}</h1>
+                    <p class="text-xs sm:text-sm text-gray-500 truncate">
+                        {% if is_staff %}
+                            Customer: {{ chat_room.customer.get_full_name }}
+                        {% elif chat_room.manager %}
+                            Support: {{ chat_room.manager.get_full_name }}
+                        {% else %}
+                            Waiting for support...
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="flex items-center space-x-2 sm:space-x-3 ml-2">
+                    <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium
+                        {% if chat_room.status == 'active' %}bg-green-100 text-green-800
+                        {% elif chat_room.status == 'closed' %}bg-gray-100 text-gray-800
+                        {% else %}bg-yellow-100 text-yellow-800{% endif %}">
+                        {{ chat_room.get_status_display }}
+                    </span>
+                    {% if chat_room.status == 'active' %}
+                    <a href="{% url 'chat:close_chat' chat_room.pk %}" class="text-xs sm:text-sm font-medium text-red-600 hover:text-red-500">
+                        <span class="hidden sm:inline">Close Chat</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:hidden" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                    {% endif %}
+                    <a href="{% url 'chat:chat_list' %}" class="text-xs sm:text-sm font-medium text-gray-600 hover:text-gray-500">
+                        <span class="hidden sm:inline">Back</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:hidden" viewBox="0 0 20 20" fill="currentColor">
+                            <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages Container -->
+    <div id="messages-container" class="flex-1 overflow-y-auto bg-gray-50 px-3 py-3 sm:px-4 sm:py-6">
+        <div class="max-w-3xl mx-auto space-y-2 sm:space-y-4">
+            {% for message in messages %}
+            <div class="message-item" data-message-id="{{ message.id }}">
+                {% if message.message_type == 'system' %}
+                <!-- System Message -->
+                <div class="text-center">
+                    <span class="inline-block px-2 py-1 text-xs text-gray-600 bg-gray-200 rounded-full">
+                        {{ message.content }}
+                    </span>
+                </div>
+                {% else %}
+                <!-- Regular Message -->
+                <div class="flex {% if message.sender == user %}justify-end{% else %}justify-start{% endif %}">
+                    <div class="max-w-[75%] sm:max-w-xs lg:max-w-md">
+                        <div class="{% if message.sender == user %}bg-indigo-600 text-white{% else %}bg-white{% endif %} rounded-lg px-3 py-2 shadow">
+                            <p class="text-xs font-medium {% if message.sender != user %}text-gray-900{% endif %}">
+                                {{ message.sender.get_full_name|default:message.sender.username }}
+                            </p>
+                            <p class="mt-1 text-sm {% if message.sender != user %}text-gray-600{% endif %}">
+                                {{ message.content|linebreaks }}
+                            </p>
+                            {% if message.attachment %}
+                            <div class="mt-2">
+                                {% if message.message_type == 'image' %}
+                                <img src="{{ message.attachment.url }}" alt="Attachment" class="rounded max-w-full h-auto">
+                                {% else %}
+                                <a href="{{ message.attachment.url }}" target="_blank" class="inline-flex items-center text-sm {% if message.sender == user %}text-indigo-200 hover:text-white{% else %}text-indigo-600 hover:text-indigo-500{% endif %}">
+                                    <svg class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                                    </svg>
+                                    {{ message.attachment.name|slice:"20:" }}
+                                </a>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+                        </div>
+                        <p class="mt-1 text-xs text-gray-500">
+                            {{ message.created_at|date:"g:i A" }}
+                            {% if message.is_read and message.sender == user %}
+                            <span class="ml-1 text-xs">✓✓</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Message Input -->
+    {% if chat_room.status == 'active' %}
+    <div class="bg-white border-t px-3 py-2 sm:px-4 sm:py-3 flex-shrink-0">
+        <form method="post" enctype="multipart/form-data" id="message-form" class="max-w-3xl mx-auto">
+            {% csrf_token %}
+            <div class="flex items-end space-x-2 sm:space-x-3">
+                <div class="flex-1">
+                    <textarea name="content" id="id_content" 
+                              class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 text-sm sm:text-base resize-none" 
+                              rows="1" 
+                              placeholder="Type your message..."
+                              style="min-height: 36px; max-height: 80px;"></textarea>
+                    {% if form.content.errors %}
+                    <p class="mt-1 text-xs sm:text-sm text-red-600">{{ form.content.errors.0 }}</p>
+                    {% endif %}
+                </div>
+                <div class="flex items-center space-x-1 sm:space-x-2">
+                    <label for="{{ form.attachment.id_for_label }}" class="cursor-pointer text-gray-400 hover:text-gray-500 p-2">
+                        <svg class="h-5 w-5 sm:h-6 sm:w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                        </svg>
+                        <span class="sr-only">Attach file</span>
+                    </label>
+                    <div class="hidden">{{ form.attachment }}</div>
+                    <button type="submit" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 sm:px-4 sm:py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+                        <span class="hidden sm:inline">Send</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 sm:hidden" viewBox="0 0 20 20" fill="currentColor">
+                            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+    {% else %}
+    <div class="bg-yellow-50 border-t border-yellow-200 px-3 py-2 sm:px-4 sm:py-3 flex-shrink-0">
+        <p class="text-xs sm:text-sm text-yellow-800 text-center">This chat has been closed.</p>
+    </div>
+    {% endif %}
+</div>
+
+<style>
+/* Fixed chat container size */
+.chat-container {
+    height: 600px;
+    max-height: 90vh;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    background: white;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Mobile-specific sizing */
+@media (max-width: 640px) {
+    .chat-container {
+        height: 500px;
+        max-height: 85vh;
+        border-radius: 0;
+        max-width: 100%;
+    }
+    
+    #messages-container {
+        flex: 1;
+        min-height: 0;
+    }
+    
+    .message-item {
+        font-size: 0.875rem;
+    }
+    
+    /* Ensure the page doesn't zoom on input focus on iOS */
+    input, textarea, select {
+        font-size: 16px !important;
+    }
+}
+
+/* Tablet and larger screens */
+@media (min-width: 641px) {
+    .chat-container {
+        margin: 20px auto;
+    }
+}
+
+/* Auto-resize textarea */
+#id_content {
+    overflow-y: hidden;
+}
+
+/* Improve message bubble appearance on mobile */
+.message-item > div > div {
+    word-break: break-word;
+}
+
+/* Messages container should take available space */
+#messages-container {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+</style>
+
+<script>
+// Auto-resize textarea
+function autoResizeTextarea() {
+    const textarea = document.getElementById('id_content');
+    if (textarea) {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 80) + 'px';
+        });
+        
+        // Prevent zoom on iOS
+        textarea.addEventListener('focus', function(e) {
+            e.target.style.fontSize = '16px';
+        });
+        
+        // Reset to minimum height when empty
+        textarea.addEventListener('blur', function() {
+            if (!this.value.trim()) {
+                this.style.height = '36px';
+            }
+        });
+    }
+}
+
+// WebSocket support
+const roomId = {{ chat_room.pk }};
+let chatSocket = null;
+let socketReady = false;
+
+let currentUserId = {{ user.id }};
+let typingTimeout;
+let isTyping = false;
+
+function connectWebSocket() {
+    console.log('Attempting WebSocket connection...');
+    chatSocket = new WebSocket(
+        'ws://' + window.location.host + '/ws/chat/' + roomId + '/'
+    );
+
+    chatSocket.onopen = function(e) {
+        console.log('WebSocket connection established');
+        socketReady = true;
+    };
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        
+        if (data.type === 'message') {
+            // Only add message if it's from another user (not ourselves)
+            // This prevents duplicates when we send a message
+            if (data.user_id !== currentUserId) {
+                // Check if message already exists to prevent duplicates
+                if (!document.querySelector(`[data-message-id="${data.message_id}"]`)) {
+                    addMessage(data);
+                    markMessageAsRead([data.message_id]);
+                }
+            }
+        } else if (data.type === 'typing') {
+            // Show/hide typing indicator
+            updateTypingIndicator(data);
+        } else if (data.type === 'user_join') {
+            // Only show join message if it's not the current user
+            // to avoid showing "You joined" when entering the room
+            if (data.user_id !== currentUserId) {
+                showSystemMessage(`${data.username} joined the chat`);
+            }
+        } else if (data.type === 'user_leave') {
+            // Show user left notification only for other users
+            if (data.user_id !== currentUserId) {
+                showSystemMessage(`${data.username} left the chat`);
+            }
+        }
+    };
+
+    chatSocket.onerror = function(e) {
+        console.error('WebSocket error:', e);
+        socketReady = false;
+    };
+
+    chatSocket.onclose = function(e) {
+        console.error('WebSocket closed:', e.code, e.reason);
+        socketReady = false;
+        // Fallback to polling
+        console.log('Falling back to polling mode...');
+        startPolling();
+    };
+}
+
+// Try to connect
+connectWebSocket();
+
+// Send message via WebSocket
+document.getElementById('message-form').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const messageInput = document.querySelector('#id_content');
+    const message = messageInput.value.trim();
+    
+    if (message) {
+        if (socketReady && chatSocket.readyState === WebSocket.OPEN) {
+            chatSocket.send(JSON.stringify({
+                'type': 'message',
+                'message': message
+            }));
+            
+            // Add our own message immediately to the UI
+            // Generate a temporary ID to prevent duplicates
+            const tempId = 'temp-' + Date.now();
+            addMessage({
+                message_id: tempId,
+                user_id: currentUserId,
+                username: '{{ user.get_full_name|default:user.username|escapejs }}',
+                message: message,
+                timestamp: new Date().toISOString()
+            });
+            
+            messageInput.value = '';
+            
+            // Stop typing indicator
+            if (isTyping) {
+                sendTypingStatus(false);
+            }
+        } else {
+            // Fallback to regular form submission
+            console.log('WebSocket not ready, using regular form submission');
+            this.submit();
+        }
+    }
+});
+
+// Typing indicator
+const messageInput = document.querySelector('#id_content');
+messageInput.addEventListener('input', function() {
+    if (!isTyping) {
+        isTyping = true;
+        sendTypingStatus(true);
+    }
+    
+    clearTimeout(typingTimeout);
+    typingTimeout = setTimeout(function() {
+        isTyping = false;
+        sendTypingStatus(false);
+    }, 1000);
+});
+
+function sendTypingStatus(typing) {
+    if (socketReady && chatSocket.readyState === WebSocket.OPEN) {
+        chatSocket.send(JSON.stringify({
+            'type': 'typing',
+            'is_typing': typing
+        }));
+    }
+}
+
+function markMessageAsRead(messageIds) {
+    if (socketReady && chatSocket.readyState === WebSocket.OPEN) {
+        chatSocket.send(JSON.stringify({
+            'type': 'mark_read',
+            'message_ids': messageIds
+        }));
+    }
+}
+
+function addMessage(data) {
+    // Check if message already exists
+    if (document.querySelector(`[data-message-id="${data.message_id}"]`)) {
+        console.log('Message already exists, skipping:', data.message_id);
+        return;
+    }
+    
+    const container = document.querySelector('#messages-container .max-w-3xl');
+    const isOwnMessage = data.user_id === currentUserId;
+    
+    const messageHtml = `
+        <div class="message-item" data-message-id="${data.message_id}">
+            <div class="flex ${isOwnMessage ? 'justify-end' : 'justify-start'}">
+                <div class="max-w-xs lg:max-w-md">
+                    <div class="${isOwnMessage ? 'bg-indigo-600 text-white' : 'bg-white'} rounded-lg px-4 py-2 shadow">
+                        <p class="text-sm font-medium ${!isOwnMessage ? 'text-gray-900' : ''}">${data.username}</p>
+                        <p class="mt-1 text-sm ${!isOwnMessage ? 'text-gray-600' : ''}">${data.message}</p>
+                    </div>
+                    <p class="mt-1 text-xs text-gray-500">
+                        ${new Date(data.timestamp).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true })}
+                    </p>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', messageHtml);
+    
+    // Scroll to bottom
+    const scrollContainer = document.getElementById('messages-container');
+    scrollContainer.scrollTop = scrollContainer.scrollHeight;
+}
+
+function showSystemMessage(message) {
+    const container = document.querySelector('#messages-container .max-w-3xl');
+    
+    const messageHtml = `
+        <div class="message-item">
+            <div class="text-center">
+                <span class="inline-block px-3 py-1 text-xs text-gray-600 bg-gray-200 rounded-full">
+                    ${message}
+                </span>
+            </div>
+        </div>
+    `;
+    
+    container.insertAdjacentHTML('beforeend', messageHtml);
+    
+    // Scroll to bottom
+    const scrollContainer = document.getElementById('messages-container');
+    scrollContainer.scrollTop = scrollContainer.scrollHeight;
+}
+
+function updateTypingIndicator(data) {
+    if (data.user_id !== currentUserId) {
+        // TODO: Implement typing indicator UI
+        console.log(`${data.username} is ${data.is_typing ? 'typing' : 'not typing'}`);
+    }
+}
+
+// Fallback polling mechanism
+function startPolling() {
+    console.log('Starting polling mechanism');
+    
+    let lastMessageId = 0;
+    const messages = document.querySelectorAll('.message-item');
+    if (messages.length > 0) {
+        lastMessageId = messages[messages.length - 1].dataset.messageId;
+    }
+    console.log('Starting polling with lastMessageId:', lastMessageId);
+    
+    setInterval(function() {
+        fetch(`{% url 'chat:get_new_messages' chat_room.pk %}?last_message_id=${lastMessageId}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.messages && data.messages.length > 0) {
+                    console.log('Polling received messages:', data.messages.length);
+                    data.messages.forEach(msg => {
+                        // Check if message already exists before adding
+                        if (!document.querySelector(`[data-message-id="${msg.id}"]`)) {
+                            addMessage({
+                                message_id: msg.id,
+                                user_id: msg.sender_id,
+                                username: msg.sender,
+                                message: msg.content,
+                                timestamp: msg.created_at
+                            });
+                        }
+                    });
+                    
+                    lastMessageId = data.messages[data.messages.length - 1].id;
+                }
+            })
+            .catch(error => {
+                console.error('Polling error:', error);
+            });
+    }, 5000);
+}
+
+// Auto-scroll to bottom on load
+document.addEventListener('DOMContentLoaded', function() {
+    const container = document.getElementById('messages-container');
+    container.scrollTop = container.scrollHeight;
+    
+    // Initialize auto-resize textarea
+    autoResizeTextarea();
+    
+    // Debug: count initial messages
+    const initialMessages = document.querySelectorAll('.message-item');
+    console.log('Initial messages on page load:', initialMessages.length);
+    initialMessages.forEach((msg, index) => {
+        console.log(`Message ${index + 1}: ID=${msg.dataset.messageId}`);
+    });
+    
+    // Keep focus visible when keyboard appears on mobile
+    const messageInput = document.getElementById('id_content');
+    if (messageInput) {
+        messageInput.addEventListener('focus', function() {
+            setTimeout(() => {
+                const container = document.getElementById('messages-container');
+                if (container) {
+                    container.scrollTop = container.scrollHeight;
+                }
+            }, 300);
+        });
+    }
+});
+</script>
+{% endblock %}

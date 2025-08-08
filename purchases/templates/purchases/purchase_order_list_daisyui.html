@@ -1,0 +1,375 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block dashboard_content %}
+<div class="space-y-4">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold">Purchase Orders</h1>
+            <div class="text-sm breadcrumbs">
+                <ul>
+                    <li><a href="{% url 'dashboard:home' %}" class="link link-hover">Dashboard</a></li>
+                    <li>Purchase Orders</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex gap-2">
+            <a href="{% url 'purchases:purchase_order_create_step1' %}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                New Purchase Order
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Total Orders</div>
+                <div class="stat-value text-primary">{{ total_orders|default:0 }}</div>
+            </div>
+        </div>
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Total Spent</div>
+                <div class="stat-value text-success text-lg">${{ total_spent|default:"0"|floatformat:2 }}</div>
+            </div>
+        </div>
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Pending</div>
+                <div class="stat-value text-warning">{{ pending_count|default:0 }}</div>
+            </div>
+        </div>
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Received</div>
+                <div class="stat-value text-info">{{ received_count|default:0 }}</div>
+            </div>
+        </div>
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Overdue</div>
+                <div class="stat-value text-error">{{ overdue_count|default:0 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body p-4">
+            <form method="get" class="flex flex-col lg:flex-row gap-4">
+                <div class="form-control flex-1">
+                    <input type="text" name="search" value="{{ search_query }}" 
+                           placeholder="Search by PO number, supplier, or reference..." 
+                           class="input input-bordered" />
+                </div>
+                
+                <select name="status" class="select select-bordered">
+                    <option value="">All Status</option>
+                    <option value="draft" {% if status_filter == 'draft' %}selected{% endif %}>Draft</option>
+                    <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                    <option value="approved" {% if status_filter == 'approved' %}selected{% endif %}>Approved</option>
+                    <option value="ordered" {% if status_filter == 'ordered' %}selected{% endif %}>Ordered</option>
+                    <option value="partial" {% if status_filter == 'partial' %}selected{% endif %}>Partially Received</option>
+                    <option value="received" {% if status_filter == 'received' %}selected{% endif %}>Received</option>
+                    <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                </select>
+                
+                <select name="supplier" class="select select-bordered">
+                    <option value="">All Suppliers</option>
+                    {% for supplier in suppliers %}
+                    <option value="{{ supplier.id }}" {% if supplier_filter == supplier.id|stringformat:"s" %}selected{% endif %}>
+                        {{ supplier.name }}
+                    </option>
+                    {% endfor %}
+                </select>
+                
+                <button type="submit" class="btn btn-primary">Filter</button>
+                
+                {% if search_query or status_filter or supplier_filter %}
+                <a href="{% url 'purchases:purchase_order_list' %}" class="btn btn-ghost">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Purchase Orders List with Accordion -->
+    {% if page_obj %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="overflow-x-auto">
+            <table class="table table-zebra">
+                <thead>
+                    <tr>
+                        <th>PO Number</th>
+                        <th>Supplier</th>
+                        <th>Order Date</th>
+                        <th>Expected Delivery</th>
+                        <th>Total Amount</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in page_obj %}
+                    <!-- Main Row -->
+                    <tr class="hover">
+                        <td>
+                            <button onclick="toggleAccordion('po-{{ order.id }}')" class="btn btn-ghost btn-xs">
+                                <svg id="arrow-po-{{ order.id }}" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                                </svg>
+                            </button>
+                            <span class="font-bold">{{ order.order_number }}</span>
+                            {% if order.reference_number %}
+                            <div class="text-sm opacity-50 ml-6">Ref: {{ order.reference_number }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="font-medium">{{ order.supplier.name }}</div>
+                            {% if order.supplier.contact_email %}
+                            <div class="text-sm opacity-50">{{ order.supplier.contact_email }}</div>
+                            {% endif %}
+                        </td>
+                        <td>{{ order.order_date|date:"M d, Y" }}</td>
+                        <td>
+                            {% if order.expected_delivery_date %}
+                                {{ order.expected_delivery_date|date:"M d, Y" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="font-semibold">${{ order.total_amount|floatformat:2 }}</td>
+                        <td>
+                            {% if order.status == 'draft' %}
+                                <div class="badge badge-ghost">Draft</div>
+                            {% elif order.status == 'sent' %}
+                                <div class="badge badge-warning">Sent</div>
+                            {% elif order.status == 'confirmed' %}
+                                <div class="badge badge-info">Confirmed</div>
+                            {% elif order.status == 'partially_received' %}
+                                <div class="badge badge-warning">Partial</div>
+                            {% elif order.status == 'received' %}
+                                <div class="badge badge-success">Received</div>
+                            {% elif order.status == 'cancelled' %}
+                                <div class="badge badge-error">Cancelled</div>
+                            {% else %}
+                                <div class="badge">{{ order.get_status_display }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="dropdown dropdown-end">
+                                <label tabindex="0" class="btn btn-ghost btn-xs">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                    </svg>
+                                </label>
+                                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                    <li><a href="{% url 'purchases:purchase_order_detail' order.id %}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        View Details
+                                    </a></li>
+                                    {% if order.status in 'draft,sent' %}
+                                    <li><a href="{% url 'purchases:purchase_order_edit_step1' order.id %}">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                        </svg>
+                                        Edit
+                                    </a></li>
+                                    {% endif %}
+                                    {% if order.status == 'draft' %}
+                                    <div class="divider my-0"></div>
+                                    <li><a href="{% url 'purchases:purchase_order_delete' order.id %}" class="text-error">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        Delete
+                                    </a></li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    <!-- Accordion Row (Purchase Order Items) -->
+                    <tr id="po-{{ order.id }}" class="hidden">
+                        <td colspan="7" class="bg-base-200 p-0">
+                            <div class="p-4">
+                                <h4 class="font-semibold mb-3">Purchase Order Items</h4>
+                                
+                                {% if order.notes %}
+                                <div class="alert alert-info mb-4">
+                                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                                    <span>{{ order.notes }}</span>
+                                </div>
+                                {% endif %}
+                                
+                                {% if order.items.all %}
+                                <div class="overflow-x-auto">
+                                    <table class="table table-sm">
+                                        <thead>
+                                            <tr>
+                                                <th>Product</th>
+                                                <th>Description</th>
+                                                <th class="text-right">Quantity</th>
+                                                <th class="text-right">Unit Cost</th>
+                                                <th class="text-right">Line Total</th>
+                                                <th class="text-center">Received</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for item in order.items.all %}
+                                            <tr>
+                                                <td>
+                                                    {% if item.product %}
+                                                    <div class="font-medium">{{ item.product.name }}</div>
+                                                    <div class="text-xs opacity-50">SKU: {{ item.product.sku }}</div>
+                                                    {% else %}
+                                                    -
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ item.description|default:"-" }}</td>
+                                                <td class="text-right">{{ item.quantity|floatformat:0 }}</td>
+                                                <td class="text-right">${{ item.unit_cost|floatformat:2 }}</td>
+                                                <td class="text-right font-medium">${{ item.line_total|floatformat:2 }}</td>
+                                                <td class="text-center">
+                                                    {% if item.quantity_received > 0 %}
+                                                        {% if item.quantity_received >= item.quantity %}
+                                                        <div class="badge badge-success badge-sm">Full</div>
+                                                        {% else %}
+                                                        <div class="badge badge-warning badge-sm">{{ item.quantity_received|floatformat:0 }}/{{ item.quantity|floatformat:0 }}</div>
+                                                        {% endif %}
+                                                    {% else %}
+                                                    <div class="badge badge-ghost badge-sm">Pending</div>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                        <tfoot>
+                                            <tr>
+                                                <th colspan="4" class="text-right">Subtotal:</th>
+                                                <th class="text-right">${{ order.subtotal|floatformat:2 }}</th>
+                                                <th></th>
+                                            </tr>
+                                            {% if order.shipping_cost > 0 %}
+                                            <tr>
+                                                <th colspan="4" class="text-right">Shipping:</th>
+                                                <th class="text-right">${{ order.shipping_cost|floatformat:2 }}</th>
+                                                <th></th>
+                                            </tr>
+                                            {% endif %}
+                                            {% if order.tax_amount > 0 %}
+                                            <tr>
+                                                <th colspan="4" class="text-right">Tax ({{ order.tax_rate }}%):</th>
+                                                <th class="text-right">${{ order.tax_amount|floatformat:2 }}</th>
+                                                <th></th>
+                                            </tr>
+                                            {% endif %}
+                                            {% if order.discount_amount > 0 %}
+                                            <tr>
+                                                <th colspan="4" class="text-right">Discount:</th>
+                                                <th class="text-right text-error">-${{ order.discount_amount|floatformat:2 }}</th>
+                                                <th></th>
+                                            </tr>
+                                            {% endif %}
+                                            <tr class="border-t-2">
+                                                <th colspan="4" class="text-right text-lg">Total:</th>
+                                                <th class="text-right text-lg text-primary">${{ order.total_amount|floatformat:2 }}</th>
+                                                <th></th>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                                {% else %}
+                                <p class="text-base-content/60">No items in this purchase order.</p>
+                                {% endif %}
+                                
+                                <!-- Additional Actions -->
+                                <div class="flex justify-end gap-2 mt-4">
+                                    <a href="{% url 'purchases:purchase_order_detail' order.id %}" class="btn btn-sm btn-primary">
+                                        View Full Details
+                                    </a>
+                                    {% if order.status in 'draft,sent' %}
+                                    <a href="{% url 'purchases:purchase_order_edit_step1' order.id %}" class="btn btn-sm btn-outline">
+                                        Edit Order
+                                    </a>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body text-center py-16">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto mb-4 text-base-content/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            </svg>
+            <h3 class="text-xl font-semibold">No purchase orders found</h3>
+            <p class="text-base-content/60">Create your first purchase order</p>
+            <div class="card-actions justify-center mt-4">
+                <a href="{% url 'purchases:purchase_order_create_step1' %}" class="btn btn-primary">
+                    Create Purchase Order
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="flex justify-center">
+        <div class="btn-group">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="btn">«</a>
+            {% else %}
+                <button class="btn btn-disabled">«</button>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <button class="btn btn-active">{{ num }}</button>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}" class="btn">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="btn">»</a>
+            {% else %}
+                <button class="btn btn-disabled">»</button>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleAccordion(rowId) {
+    const row = document.getElementById(rowId);
+    const arrow = document.getElementById('arrow-' + rowId);
+    
+    if (row.classList.contains('hidden')) {
+        // Show the accordion
+        row.classList.remove('hidden');
+        arrow.style.transform = 'rotate(90deg)';
+    } else {
+        // Hide the accordion
+        row.classList.add('hidden');
+        arrow.style.transform = 'rotate(0deg)';
+    }
+}
+</script>
+{% endblock %}

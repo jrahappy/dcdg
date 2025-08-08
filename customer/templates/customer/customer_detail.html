@@ -1,0 +1,313 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}{{ customer.get_full_name }} - Customer Details{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs mb-6">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+            <li><a href="{% url 'customer:customer_list' %}">Customers</a></li>
+            <li>{{ customer.get_full_name }}</li>
+        </ul>
+    </div>
+
+    <!-- Header with Actions -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold">{{ customer.get_full_name }}</h1>
+            <p class="text-base-content/60">Customer since {{ customer.date_joined|date:"F d, Y" }}</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="{% url 'customer:customer_update' customer.pk %}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit
+            </a>
+            <button onclick="deleteModal.showModal()" class="btn btn-error btn-outline">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete
+            </button>
+        </div>
+    </div>
+
+    <!-- Status Badge -->
+    <div class="mb-6">
+        {% if customer.is_active %}
+            <div class="badge badge-success gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Active Customer
+            </div>
+        {% else %}
+            <div class="badge badge-ghost gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Inactive Customer
+            </div>
+        {% endif %}
+        <div class="badge badge-outline ml-2">{{ customer.company_category|title }}</div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs tabs-boxed bg-base-200 mb-6" x-data="{ activeTab: 'overview' }">
+        <a class="tab" :class="activeTab === 'overview' && 'tab-active'" @click="activeTab = 'overview'">Overview</a>
+        <a class="tab" :class="activeTab === 'addresses' && 'tab-active'" @click="activeTab = 'addresses'">Addresses</a>
+        <a class="tab" :class="activeTab === 'contacts' && 'tab-active'" @click="activeTab = 'contacts'">Contacts</a>
+        <a class="tab" :class="activeTab === 'notes' && 'tab-active'" @click="activeTab = 'notes'">Notes</a>
+        <a class="tab" :class="activeTab === 'documents' && 'tab-active'" @click="activeTab = 'documents'">Documents</a>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Information Card -->
+        <div class="lg:col-span-2">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Customer Information</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="label">
+                                <span class="label-text font-semibold">First Name</span>
+                            </label>
+                            <p class="text-lg">{{ customer.first_name|default:"-" }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="label">
+                                <span class="label-text font-semibold">Last Name</span>
+                            </label>
+                            <p class="text-lg">{{ customer.last_name|default:"-" }}</p>
+                        </div>
+                        
+                        <div>
+                            <label class="label">
+                                <span class="label-text font-semibold">Email</span>
+                            </label>
+                            <p class="text-lg">
+                                <a href="mailto:{{ customer.email }}" class="link link-primary">{{ customer.email }}</a>
+                            </p>
+                        </div>
+                        
+                        <div>
+                            <label class="label">
+                                <span class="label-text font-semibold">Phone</span>
+                            </label>
+                            <p class="text-lg">
+                                {% if customer.phone %}
+                                    <a href="tel:{{ customer.phone }}" class="link link-primary">{{ customer.phone }}</a>
+                                {% else %}
+                                    <span class="text-base-content/40">Not provided</span>
+                                {% endif %}
+                            </p>
+                        </div>
+                        
+                        {% if customer.company_name %}
+                        <div class="md:col-span-2">
+                            <label class="label">
+                                <span class="label-text font-semibold">Company</span>
+                            </label>
+                            <p class="text-lg">{{ customer.company_name }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Address Section -->
+                    <div class="divider"></div>
+                    <h3 class="text-lg font-semibold mb-3">Primary Address</h3>
+                    
+                    {% if customer.full_address %}
+                    <div class="bg-base-200 rounded-lg p-4">
+                        <address class="not-italic">
+                            {% if customer.address_line1 %}{{ customer.address_line1 }}<br>{% endif %}
+                            {% if customer.address_line2 %}{{ customer.address_line2 }}<br>{% endif %}
+                            {% if customer.city or customer.state or customer.postal_code %}
+                                {{ customer.city }}{% if customer.city and customer.state %}, {% endif %}
+                                {{ customer.state }} {{ customer.postal_code }}<br>
+                            {% endif %}
+                            {% if customer.country %}{{ customer.country }}{% endif %}
+                        </address>
+                    </div>
+                    {% else %}
+                    <p class="text-base-content/40">No address information provided</p>
+                    {% endif %}
+
+                    <!-- Internal Notes Section -->
+                    {% if customer.internal_notes %}
+                    <div class="divider"></div>
+                    <h3 class="text-lg font-semibold mb-3">Internal Notes</h3>
+                    <div class="bg-warning/10 border border-warning/20 rounded-lg p-4">
+                        <p class="whitespace-pre-wrap">{{ customer.internal_notes }}</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Additional Addresses Card -->
+            {% if customer.addresses.exists %}
+            <div class="card bg-base-100 shadow-xl mt-6">
+                <div class="card-body">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="card-title">Additional Addresses</h2>
+                        <a href="{% url 'customer:customer_address_create' customer.pk %}" class="btn btn-sm btn-primary">Add Address</a>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Type</th>
+                                    <th>Address</th>
+                                    <th>Default</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for address in customer.addresses.all %}
+                                <tr>
+                                    <td>
+                                        <div class="badge badge-outline">{{ address.get_address_type_display }}</div>
+                                    </td>
+                                    <td>
+                                        <div class="text-sm">
+                                            {{ address.street_address }}<br>
+                                            {% if address.apartment_suite %}{{ address.apartment_suite }}<br>{% endif %}
+                                            {{ address.city }}, {{ address.state }} {{ address.postal_code }}
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if address.is_default %}
+                                            <div class="badge badge-success badge-sm">Default</div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="flex gap-1">
+                                            <a href="{% url 'customer:address_update' address.pk %}" class="btn btn-ghost btn-xs">Edit</a>
+                                            <a href="{% url 'customer:address_delete' address.pk %}" class="btn btn-ghost btn-xs text-error">Delete</a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Side Panel -->
+        <div class="lg:col-span-1">
+            <!-- Quick Stats Card -->
+            <div class="card bg-base-100 shadow-xl mb-6">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Quick Stats</h2>
+                    
+                    <div class="stats stats-vertical shadow">
+                        <div class="stat">
+                            <div class="stat-title">Total Orders</div>
+                            <div class="stat-value text-primary">{{ customer.orders.count|default:0 }}</div>
+                        </div>
+                        
+                        <div class="stat">
+                            <div class="stat-title">Total Spent</div>
+                            <div class="stat-value text-secondary">${{ customer.total_spent|default:"0.00" }}</div>
+                        </div>
+                        
+                        <div class="stat">
+                            <div class="stat-title">Member Since</div>
+                            <div class="stat-value text-base text-base-content">{{ customer.date_joined|date:"M Y" }}</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quick Actions Card -->
+            <div class="card bg-base-100 shadow-xl mb-6">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Quick Actions</h2>
+                    <div class="flex flex-col gap-2">
+                        <a href="{% url 'customer:customer_address_create' customer.pk %}" class="btn btn-outline btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            Add Address
+                        </a>
+                        <a href="{% url 'customer:contact_create' customer.pk %}" class="btn btn-outline btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                            </svg>
+                            Add Contact
+                        </a>
+                        <a href="{% url 'customer:note_create' customer.pk %}" class="btn btn-outline btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            Add Note
+                        </a>
+                        <a href="{% url 'customer:document_create' customer.pk %}" class="btn btn-outline btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                            Add Document
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Linked User Card -->
+            {% if customer.user %}
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Linked User Account</h2>
+                    <div class="flex items-center gap-3">
+                        <div class="avatar placeholder">
+                            <div class="bg-neutral text-neutral-content rounded-full w-12">
+                                <span>{{ customer.user.username.0|upper }}</span>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="font-semibold">{{ customer.user.username }}</p>
+                            <p class="text-sm text-base-content/60">{{ customer.user.email }}</p>
+                        </div>
+                    </div>
+                    {% if customer.user.is_staff %}
+                    <div class="badge badge-info mt-3">Staff Member</div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Delete Confirmation Modal -->
+<dialog id="deleteModal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Confirm Deletion</h3>
+        <p class="py-4">Are you sure you want to delete this customer?</p>
+        <p class="text-warning">
+            <strong>{{ customer.get_full_name }}</strong><br>
+            This action cannot be undone.
+        </p>
+        <div class="modal-action">
+            <form method="post" action="{% url 'customer:customer_delete' customer.pk %}">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-error">Delete Customer</button>
+            </form>
+            <form method="dialog">
+                <button class="btn">Cancel</button>
+            </form>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+{% endblock %}

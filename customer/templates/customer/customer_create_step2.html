@@ -1,0 +1,237 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}Create Customer - Step 2{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs mb-6">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+            <li><a href="{% url 'customer:customer_list' %}">Customers</a></li>
+            <li>Create New Customer</li>
+        </ul>
+    </div>
+
+    <!-- Progress Steps -->
+    <ul class="steps steps-horizontal w-full mb-8">
+        <li class="step step-primary">Basic Information</li>
+        <li class="step step-primary">Add Address</li>
+        <li class="step">Complete</li>
+    </ul>
+
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold">Add Customer Address</h1>
+        <p class="text-base-content/60 mt-2">Step 2: Add an address for {{ customer.get_full_name }}</p>
+    </div>
+
+    <!-- Customer Summary Card -->
+    <div class="card bg-base-200 mb-6">
+        <div class="card-body">
+            <div class="flex items-center gap-4">
+                <div class="avatar placeholder">
+                    <div class="bg-neutral text-neutral-content rounded-full w-12">
+                        <span>{{ customer.first_name.0|upper }}{{ customer.last_name.0|upper }}</span>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-semibold">{{ customer.get_full_name }}</h3>
+                    <p class="text-sm text-base-content/60">{{ customer.email }}</p>
+                    {% if customer.company_name %}
+                    <div class="badge badge-outline badge-sm mt-1">{{ customer.company_name }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="alert alert-error">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                        {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Address Type -->
+                <div>
+                    <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        Address Information
+                    </h2>
+
+                    <!-- Address Type Selection -->
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">Address Type <span class="text-error">*</span></span>
+                        </label>
+                        <div class="flex gap-4">
+                            {% for value, label in form.fields.address_type.choices %}
+                            <label class="label cursor-pointer">
+                                <input type="radio" name="address_type" value="{{ value }}" class="radio radio-primary" {% if form.address_type.value == value %}checked{% endif %}>
+                                <span class="label-text ml-2">{{ label }}</span>
+                            </label>
+                            {% endfor %}
+                        </div>
+                        {% if form.address_type.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.address_type.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Street Address -->
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">{{ form.street_address.label }} <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.street_address }}
+                        {% if form.street_address.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.street_address.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Apartment/Suite -->
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">{{ form.apartment_suite.label }}</span>
+                        </label>
+                        {{ form.apartment_suite }}
+                        {% if form.apartment_suite.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.apartment_suite.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <!-- City -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">{{ form.city.label }} <span class="text-error">*</span></span>
+                            </label>
+                            {{ form.city }}
+                            {% if form.city.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.city.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        <!-- State -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">{{ form.state.label }} <span class="text-error">*</span></span>
+                            </label>
+                            {{ form.state }}
+                            {% if form.state.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.state.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        <!-- Postal Code -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">{{ form.postal_code.label }} <span class="text-error">*</span></span>
+                            </label>
+                            {{ form.postal_code }}
+                            {% if form.postal_code.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.postal_code.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Country -->
+                    <div class="form-control mt-4">
+                        <label class="label">
+                            <span class="label-text">{{ form.country.label }} <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.country }}
+                        {% if form.country.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.country.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Set as Default -->
+                    <div class="form-control mt-4">
+                        <label class="label cursor-pointer justify-start gap-4">
+                            {% if form.is_default %}
+                                {{ form.is_default }}
+                            {% else %}
+                                <input type="checkbox" name="is_default" class="checkbox checkbox-primary">
+                            {% endif %}
+                            <span class="label-text">Set as default address</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex justify-between pt-4">
+                    <a href="{% url 'customer:customer_detail' customer.pk %}" class="btn btn-ghost">Skip This Step</a>
+                    <button type="submit" class="btn btn-primary">
+                        Complete
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Add DaisyUI styling to Django form fields */
+    input[type="text"]:not(.input),
+    input[type="email"]:not(.input),
+    input[type="tel"]:not(.input),
+    input[type="number"]:not(.input),
+    input[type="password"]:not(.input),
+    input[type="date"]:not(.input),
+    input[type="datetime-local"]:not(.input),
+    input[type="time"]:not(.input),
+    input[type="url"]:not(.input),
+    input[type="search"]:not(.input) {
+        @apply input input-bordered w-full;
+    }
+    
+    select:not(.select) {
+        @apply select select-bordered w-full;
+    }
+    
+    textarea:not(.textarea) {
+        @apply textarea textarea-bordered w-full h-24;
+    }
+    
+    input[type="checkbox"]:not(.checkbox) {
+        @apply checkbox checkbox-primary;
+    }
+    
+    input[type="radio"]:not(.radio) {
+        @apply radio radio-primary;
+    }
+</style>
+{% endblock %}

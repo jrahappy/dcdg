@@ -1,0 +1,227 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}{% if organization %}Edit Organization{% else %}Create Organization{% endif %}{% endblock %}
+
+{% block dashboard_content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold">{% if organization %}Edit Organization{% else %}Create Organization{% endif %}</h1>
+            <div class="text-sm breadcrumbs">
+                <ul>
+                    <li><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+                    <li><a href="{% url 'customer:organization_list' %}">Organizations</a></li>
+                    {% if organization %}
+                    <li><a href="{% url 'customer:organization_detail' organization.pk %}">{{ organization.name }}</a></li>
+                    <li>Edit</li>
+                    {% else %}
+                    <li>Create</li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Organization Form -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title mb-4">Organization Information</h2>
+            
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                <!-- Basic Information -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Organization Name <span class="text-error">*</span></span>
+                        </label>
+                        <input type="text" name="name" 
+                               value="{% if organization %}{{ organization.name }}{% endif %}"
+                               placeholder="Enter organization name" 
+                               class="input input-bordered" required maxlength="255">
+                        <label class="label">
+                            <span class="label-text-alt">The official name of your organization</span>
+                        </label>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Organization Type</span>
+                        </label>
+                        <select name="organization_type" class="select select-bordered">
+                            {% for value, label in organization_types %}
+                            <option value="{{ value }}" 
+                                    {% if organization and organization.organization_type == value %}selected
+                                    {% elif not organization and value == 'dental_practice' %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Tax ID</span>
+                        </label>
+                        <input type="text" name="tax_id" 
+                               value="{% if organization %}{{ organization.tax_id }}{% endif %}"
+                               placeholder="Tax ID / EIN" 
+                               class="input input-bordered" maxlength="50">
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Website</span>
+                        </label>
+                        <input type="url" name="website" 
+                               value="{% if organization %}{{ organization.website }}{% endif %}"
+                               placeholder="https://example.com" 
+                               class="input input-bordered">
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="divider">Contact Information</div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Email</span>
+                        </label>
+                        <input type="email" name="email" 
+                               value="{% if organization %}{{ organization.email }}{% endif %}"
+                               placeholder="contact@organization.com" 
+                               class="input input-bordered">
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Phone</span>
+                        </label>
+                        <input type="tel" name="phone" 
+                               value="{% if organization %}{{ organization.phone }}{% endif %}"
+                               placeholder="+1 (555) 123-4567" 
+                               class="input input-bordered" pattern="^\+?1?\d{9,15}$" maxlength="17">
+                    </div>
+                </div>
+
+                <!-- Address Information -->
+                <div class="divider">Address</div>
+                
+                <div class="space-y-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Address Line 1</span>
+                        </label>
+                        <input type="text" name="address_line1" 
+                               value="{% if organization %}{{ organization.address_line1 }}{% endif %}"
+                               placeholder="Street address" 
+                               class="input input-bordered" maxlength="255">
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Address Line 2</span>
+                        </label>
+                        <input type="text" name="address_line2" 
+                               value="{% if organization %}{{ organization.address_line2 }}{% endif %}"
+                               placeholder="Apartment, suite, etc. (optional)" 
+                               class="input input-bordered" maxlength="255">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">City</span>
+                            </label>
+                            <input type="text" name="city" 
+                                   value="{% if organization %}{{ organization.city }}{% endif %}"
+                                   placeholder="City" 
+                                   class="input input-bordered" maxlength="100">
+                        </div>
+                        
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">State/Province</span>
+                            </label>
+                            <input type="text" name="state" 
+                                   value="{% if organization %}{{ organization.state }}{% endif %}"
+                                   placeholder="State" 
+                                   class="input input-bordered" maxlength="100">
+                        </div>
+                        
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Postal Code</span>
+                            </label>
+                            <input type="text" name="postal_code" 
+                                   value="{% if organization %}{{ organization.postal_code }}{% endif %}"
+                                   placeholder="ZIP/Postal Code" 
+                                   class="input input-bordered" maxlength="20">
+                        </div>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Country</span>
+                        </label>
+                        <input type="text" name="country" 
+                               value="{% if organization %}{{ organization.country }}{% else %}United States{% endif %}"
+                               placeholder="Country" 
+                               class="input input-bordered" maxlength="100">
+                    </div>
+                </div>
+
+                <!-- Status -->
+                {% if organization %}
+                <div class="divider">Status</div>
+                
+                <div class="form-control">
+                    <label class="cursor-pointer label justify-start gap-4">
+                        <input type="checkbox" name="is_active" 
+                               {% if organization.is_active %}checked{% endif %}
+                               class="checkbox checkbox-primary">
+                        <div>
+                            <span class="label-text font-semibold">Organization is Active</span>
+                            <p class="label-text-alt">Uncheck to deactivate this organization</p>
+                        </div>
+                    </label>
+                </div>
+                {% endif %}
+
+                <!-- Notes -->
+                <div class="divider">Additional Information</div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Notes</span>
+                    </label>
+                    <textarea name="notes" placeholder="Additional notes or description..." 
+                              class="textarea textarea-bordered h-24">{% if organization %}{{ organization.notes }}{% endif %}</textarea>
+                    <label class="label">
+                        <span class="label-text-alt">Optional notes about the organization</span>
+                    </label>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="divider"></div>
+                
+                <div class="flex justify-end gap-2">
+                    <a href="{% if organization %}{% url 'customer:organization_detail' organization.pk %}{% else %}{% url 'customer:organization_list' %}{% endif %}" 
+                       class="btn btn-ghost">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {% if organization %}Update Organization{% else %}Create Organization{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

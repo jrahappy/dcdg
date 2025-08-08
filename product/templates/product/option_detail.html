@@ -1,0 +1,351 @@
+{% extends 'dashboard/base_daisyui.html' %}
+{% load static %}
+
+{% block title %}{{ option.name }} - Product Option{% endblock %}
+
+{% block dashboard_content %}
+<div class="h-full flex flex-col bg-white">
+    <!-- Breadcrumb -->
+    <div class="px-4 py-2 border-b border-gray-200 bg-gray-50">
+        <nav class="text-sm breadcrumbs">
+            <ul>
+                <li><a href="{% url 'dashboard:home' %}" class="link link-hover">Dashboard</a></li>
+                <li><a href="{% url 'product:option_list' %}" class="link link-hover">Product Options</a></li>
+                <li>{{ option.name }}</li>
+            </ul>
+        </nav>
+    </div>
+    
+    <!-- Header -->
+    <div class="border-b border-gray-200 bg-white px-6 py-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <button onclick="window.location.href='{% url 'product:option_list' %}'" class="mr-4 text-gray-600 hover:text-gray-900">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h1 class="text-2xl font-semibold text-gray-900">{{ option.name }}</h1>
+                <span class="ml-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium 
+                    {% if option.is_active %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                    {% if option.is_active %}Active{% else %}Inactive{% endif %}
+                </span>
+            </div>
+            <div class="flex gap-2">
+                <a href="{% url 'product:option_update' option.pk %}" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    <i class="fas fa-edit mr-2"></i>
+                    Edit
+                </a>
+                <a href="{% url 'product:option_delete' option.pk %}" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200">
+                    <i class="fas fa-trash mr-2"></i>
+                    Delete
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto p-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Option Information -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Option Information</h2>
+                        </div>
+                        <div class="p-6">
+                            <dl class="grid grid-cols-1 gap-4">
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Name</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ option.name }}</dd>
+                                </div>
+                                {% if option.description %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Description</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ option.description }}</dd>
+                                </div>
+                                {% endif %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Status</dt>
+                                    <dd class="mt-1">
+                                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                            {% if option.is_active %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                            {% if option.is_active %}Active{% else %}Inactive{% endif %}
+                                        </span>
+                                    </dd>
+                                </div>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <!-- Option Items -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-lg font-semibold text-gray-900">Option Items</h2>
+                                <button onclick="addNewItem()" class="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm">
+                                    <i class="fas fa-plus mr-1"></i> Add Item
+                                </button>
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Value</th>
+                                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Order</th>
+                                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200" id="itemsTableBody">
+                                    {% for item in items %}
+                                    <tr data-item-id="{{ item.pk }}">
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{{ item.value }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">{{ item.ordering }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-center">
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                                                {% if item.is_active %}bg-green-100 text-green-800{% else %}bg-gray-100 text-gray-800{% endif %}">
+                                                {% if item.is_active %}Active{% else %}Inactive{% endif %}
+                                            </span>
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <button onclick="deleteItem({{ item.pk }})" class="text-red-600 hover:text-red-900">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr id="noItemsRow">
+                                        <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                                            No items added yet
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <!-- Metadata -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Metadata</h2>
+                        </div>
+                        <div class="p-6">
+                            <dl class="space-y-4">
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Total Items</dt>
+                                    <dd class="mt-1 text-sm text-gray-900" id="totalItemsCount">{{ items.count }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Created</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ option.created_at|date:"F d, Y at g:i A" }}</dd>
+                                </div>
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Last Updated</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ option.updated_at|date:"F d, Y at g:i A" }}</dd>
+                                </div>
+                            </dl>
+                        </div>
+                    </div>
+
+                    <!-- Quick Actions -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Quick Actions</h2>
+                        </div>
+                        <div class="p-6 space-y-3">
+                            <a href="{% url 'product:option_update' option.pk %}" class="w-full inline-flex items-center justify-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                                <i class="fas fa-edit mr-2"></i>
+                                Edit Option
+                            </a>
+                            <button onclick="addNewItem()" class="w-full inline-flex items-center justify-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
+                                <i class="fas fa-plus mr-2"></i>
+                                Add New Item
+                            </button>
+                            <a href="{% url 'product:option_list' %}" class="w-full inline-flex items-center justify-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors duration-200">
+                                <i class="fas fa-arrow-left mr-2"></i>
+                                Back to List
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Item Modal -->
+<div id="addItemModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div class="p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Add New Item</h2>
+                <form id="addItemForm">
+                    {% csrf_token %}
+                    <div class="space-y-4">
+                        <div>
+                            <label for="itemValue" class="block text-sm font-medium text-gray-700 mb-1">Value</label>
+                            <input type="text" id="itemValue" name="value" required
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500"
+                                   placeholder="e.g., Red, Large, etc.">
+                        </div>
+                        <div>
+                            <label for="itemOrdering" class="block text-sm font-medium text-gray-700 mb-1">Display Order</label>
+                            <input type="number" id="itemOrdering" name="ordering" value="0"
+                                   class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                    <div class="flex justify-end gap-3 mt-6">
+                        <button type="button" onclick="closeAddItemModal()" 
+                                class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors duration-200">
+                            Cancel
+                        </button>
+                        <button type="submit" 
+                                class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                            Add Item
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+function addNewItem() {
+    document.getElementById('addItemModal').classList.remove('hidden');
+    document.getElementById('itemValue').focus();
+}
+
+function closeAddItemModal() {
+    document.getElementById('addItemModal').classList.add('hidden');
+    document.getElementById('addItemForm').reset();
+}
+
+document.getElementById('addItemForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const formData = new FormData(this);
+    
+    fetch(`{% url 'product:option_item_create' option.pk %}`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+        },
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Add the new item to the table
+            const tbody = document.getElementById('itemsTableBody');
+            const noItemsRow = document.getElementById('noItemsRow');
+            if (noItemsRow) {
+                noItemsRow.remove();
+            }
+            
+            const newRow = document.createElement('tr');
+            newRow.dataset.itemId = data.item.id;
+            newRow.innerHTML = `
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${data.item.value}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500 text-center">${data.item.ordering}</td>
+                <td class="px-6 py-4 whitespace-nowrap text-center">
+                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Active
+                    </span>
+                </td>
+                <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button onclick="deleteItem(${data.item.id})" class="text-red-600 hover:text-red-900">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </td>
+            `;
+            tbody.appendChild(newRow);
+            
+            // Update total count
+            const countElement = document.getElementById('totalItemsCount');
+            countElement.textContent = parseInt(countElement.textContent) + 1;
+            
+            closeAddItemModal();
+            
+            // Show success message
+            alert('Item added successfully!');
+        } else {
+            alert('Error: ' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while adding the item');
+    });
+});
+
+function deleteItem(itemId) {
+    if (!confirm('Are you sure you want to delete this item?')) {
+        return;
+    }
+    
+    fetch(`{% url 'product:option_item_delete' 0 %}`.replace('0', itemId), {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': csrftoken,
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Remove the row from the table
+            const row = document.querySelector(`tr[data-item-id="${itemId}"]`);
+            if (row) {
+                row.remove();
+            }
+            
+            // Update total count
+            const countElement = document.getElementById('totalItemsCount');
+            countElement.textContent = Math.max(0, parseInt(countElement.textContent) - 1);
+            
+            // Check if table is empty
+            const tbody = document.getElementById('itemsTableBody');
+            if (tbody.children.length === 0) {
+                tbody.innerHTML = `
+                    <tr id="noItemsRow">
+                        <td colspan="4" class="px-6 py-4 text-center text-sm text-gray-500">
+                            No items added yet
+                        </td>
+                    </tr>
+                `;
+            }
+            
+            // Show success message
+            alert('Item deleted successfully!');
+        } else {
+            alert('Error deleting item');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('An error occurred while deleting the item');
+    });
+}
+</script>
+{% endblock %}

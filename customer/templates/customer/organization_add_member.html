@@ -1,0 +1,110 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}Add Member - {{ organization.name }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold">Add Member</h1>
+            <div class="text-sm breadcrumbs">
+                <ul>
+                    <li><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+                    <li><a href="{% url 'customer:organization_list' %}">Organizations</a></li>
+                    <li><a href="{% url 'customer:organization_detail' organization.pk %}">{{ organization.name }}</a></li>
+                    <li>Add Member</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Organization Info -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">{{ organization.name }}</h2>
+            <p class="text-base-content/70">Add a new admin user to this organization.</p>
+            
+            <div class="alert alert-info mt-4">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <div>
+                    <h3 class="font-bold">Admin Users Only</h3>
+                    <div class="text-sm">Only superuser accounts can be added to organizations. Regular customers should not be added to organizations.</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Member Form -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title mb-4">Select User to Add</h2>
+            
+            {% if available_users %}
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text font-semibold">Available Admin Users</span>
+                    </label>
+                    <select name="user_id" class="select select-bordered" required>
+                        <option value="">Select a user to add...</option>
+                        {% for user in available_users %}
+                        <option value="{{ user.pk }}">
+                            {% if user.get_full_name %}
+                            {{ user.get_full_name }} ({{ user.email }})
+                            {% else %}
+                            {{ user.email }}
+                            {% endif %}
+                            {% if user.is_superuser %} - Superuser{% elif user.is_staff %} - Staff{% endif %}
+                        </option>
+                        {% endfor %}
+                    </select>
+                    <label class="label">
+                        <span class="label-text-alt">Select from available admin users who don't belong to any organization</span>
+                    </label>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex justify-end gap-2 pt-4 border-t border-base-300">
+                    <a href="{% url 'customer:organization_detail' organization.pk %}" 
+                       class="btn btn-ghost">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                        </svg>
+                        Add Member
+                    </button>
+                </div>
+            </form>
+            {% else %}
+            <!-- No Available Users -->
+            <div class="text-center py-8">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                </svg>
+                <h3 class="text-lg font-semibold mb-2">No Available Users</h3>
+                <p class="text-base-content/60 mb-4">
+                    All admin users are already assigned to organizations, or there are no other admin users in the system.
+                </p>
+                <div class="flex justify-center gap-2">
+                    <a href="{% url 'customer:organization_detail' organization.pk %}" 
+                       class="btn btn-primary">
+                        Back to Organization
+                    </a>
+                    <a href="{% url 'customer:organization_list' %}" 
+                       class="btn btn-ghost">
+                        View All Organizations
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

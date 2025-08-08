@@ -1,0 +1,150 @@
+{% extends 'dashboard/generic_list_daisyui.html' %}
+
+{% block page_title %}Blog Posts{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'dashboard:blog_create' %}" class="btn btn-primary">
+    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+    </svg>
+    New Post
+</a>
+{% endblock %}
+
+{% block table_header %}
+<th>
+    <label>
+        <input type="checkbox" class="checkbox" />
+    </label>
+</th>
+<th>Title</th>
+<th>Author</th>
+<th>Status</th>
+<th>Views</th>
+<th>Published</th>
+<th>Actions</th>
+{% endblock %}
+
+{% block table_row %}
+<th>
+    <label>
+        <input type="checkbox" class="checkbox" value="{{ item.id }}" />
+    </label>
+</th>
+<td>
+    <div class="font-bold">{{ item.title|truncatechars:50 }}</div>
+    <div class="text-sm opacity-50">{{ item.excerpt|truncatechars:80 }}</div>
+</td>
+<td>
+    <div class="flex items-center space-x-3">
+        <div class="avatar placeholder">
+            <div class="bg-neutral text-neutral-content rounded-full w-8">
+                <span class="text-xs">{{ item.author.username.0|upper }}</span>
+            </div>
+        </div>
+        <div>
+            <div class="font-bold">{{ item.author.get_full_name|default:item.author.username }}</div>
+        </div>
+    </div>
+</td>
+<td>
+    {% if item.status == 'published' %}
+        <div class="badge badge-success">Published</div>
+    {% elif item.status == 'draft' %}
+        <div class="badge badge-warning">Draft</div>
+    {% else %}
+        <div class="badge badge-ghost">{{ item.get_status_display }}</div>
+    {% endif %}
+</td>
+<td>
+    <div class="flex items-center gap-1">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+        </svg>
+        {{ item.views|default:0 }}
+    </div>
+</td>
+<td>{{ item.created_at|date:"M d, Y" }}</td>
+<td>
+    <div class="dropdown dropdown-end">
+        <label tabindex="0" class="btn btn-ghost btn-xs">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+            </svg>
+        </label>
+        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+            <li><a href="{% url 'dashboard:blog_detail' item.id %}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                </svg>
+                View
+            </a></li>
+            <li><a href="{% url 'dashboard:blog_edit' item.id %}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit
+            </a></li>
+            <div class="divider my-0"></div>
+            <li><a href="{% url 'dashboard:blog_delete' item.id %}" class="text-error">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete
+            </a></li>
+        </ul>
+    </div>
+</td>
+{% endblock %}
+
+{% block grid_card %}
+<div class="card-body">
+    <div class="flex justify-between items-start">
+        <div class="flex-1">
+            <h2 class="card-title">{{ item.title|truncatechars:40 }}</h2>
+            {% if item.status == 'published' %}
+                <div class="badge badge-success badge-sm">Published</div>
+            {% elif item.status == 'draft' %}
+                <div class="badge badge-warning badge-sm">Draft</div>
+            {% endif %}
+        </div>
+        <div class="dropdown dropdown-end">
+            <label tabindex="0" class="btn btn-ghost btn-xs">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                </svg>
+            </label>
+            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                <li><a href="{% url 'dashboard:blog_detail' item.id %}">View</a></li>
+                <li><a href="{% url 'dashboard:blog_edit' item.id %}">Edit</a></li>
+                <li><a href="{% url 'dashboard:blog_delete' item.id %}" class="text-error">Delete</a></li>
+            </ul>
+        </div>
+    </div>
+    
+    <p class="text-sm text-base-content/60 mt-2">{{ item.excerpt|truncatechars:120 }}</p>
+    
+    <div class="flex items-center gap-4 text-sm text-base-content/50 mt-4">
+        <div class="flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+            {{ item.author.username }}
+        </div>
+        <div class="flex items-center gap-1">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+            </svg>
+            {{ item.views|default:0 }}
+        </div>
+    </div>
+    
+    <div class="card-actions justify-between items-center mt-4">
+        <div class="text-xs text-base-content/50">{{ item.created_at|date:"M d, Y" }}</div>
+        <a href="{% url 'dashboard:blog_detail' item.id %}" class="btn btn-primary btn-sm">Read More</a>
+    </div>
+</div>
+{% endblock %}

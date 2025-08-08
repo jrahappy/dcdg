@@ -1,0 +1,510 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}Preview: {{ template.title }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="h-full bg-base-200">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs px-6 pt-4">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </a></li>
+            <li><a href="{% url 'email_templates:template_list' %}">Email Templates</a></li>
+            <li><a href="{% url 'email_templates:template_detail' template.pk %}">{{ template.title }}</a></li>
+            <li>Preview</li>
+        </ul>
+    </div>
+    
+    <!-- Preview Header -->
+    <div class="bg-base-100 border-b border-base-300 px-6 py-4">
+        <div class="flex items-center justify-between">
+            <div>
+                <h2 class="text-2xl font-bold">Email Template Preview</h2>
+                <p class="text-base-content/60 mt-1">{{ template.title }}</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <div class="btn-group">
+                    <button onclick="switchView('desktop')" 
+                            id="desktop-btn"
+                            class="btn btn-sm btn-active">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        Desktop
+                    </button>
+                    <button onclick="switchView('mobile')" 
+                            id="mobile-btn"
+                            class="btn btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                        </svg>
+                        Mobile
+                    </button>
+                </div>
+                <div class="divider divider-horizontal mx-1"></div>
+                <a href="{% url 'email_templates:template_edit' template.pk %}" 
+                   class="btn btn-sm btn-outline">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    Edit
+                </a>
+                <a href="{% url 'email_templates:template_detail' template.pk %}" 
+                   class="btn btn-sm btn-ghost btn-square">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Info Alert -->
+    <div class="px-6 py-3">
+        <div class="alert alert-info shadow-lg">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <div>
+                <h3 class="font-bold">This is a preview with sample data</h3>
+                <div class="text-xs">Variables like {% templatetag openvariable %}first_name{% templatetag closevariable %} are replaced with example values shown in the sidebar.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Preview Container -->
+    <div class="flex h-full">
+        <!-- Sample Data Sidebar -->
+        <div class="w-96 bg-base-100 border-r border-base-300 overflow-y-auto">
+            <!-- Variable Management Section -->
+            <div class="p-6 border-b border-base-200">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-semibold">Template Variables</h3>
+                    <button onclick="variableModal.showModal()" 
+                            class="btn btn-xs btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Variable
+                    </button>
+                </div>
+                
+                <!-- Custom Variables List -->
+                {% if custom_variables %}
+                <div class="space-y-2 mb-4" id="custom-variables-list">
+                    {% for var in custom_variables %}
+                    <div class="card bg-base-200 p-3" data-variable-id="{{ var.id }}">
+                        <div class="flex items-start justify-between">
+                            <div class="flex-1">
+                                <div class="font-mono text-sm text-primary">{{ var.get_variable_tag }}</div>
+                                <div class="text-xs opacity-70 mt-1">
+                                    Type: {{ var.get_type_display|default:var.type }}
+                                    {% if var.is_required %}<span class="badge badge-error badge-xs ml-1">Required</span>{% endif %}
+                                </div>
+                                {% if var.description %}
+                                <div class="text-xs mt-1">{{ var.description }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="dropdown dropdown-end">
+                                <div tabindex="0" role="button" class="btn btn-ghost btn-xs">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                    </svg>
+                                </div>
+                                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-32">
+                                    <li><a onclick="editVariable({{ var.id }})">Edit</a></li>
+                                    <li><a onclick="deleteVariable({{ var.id }})" class="text-error">Delete</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="text-center py-4 text-base-content/40">
+                    <p class="text-sm">No custom variables defined.</p>
+                </div>
+                {% endif %}
+            </div>
+            
+            <!-- Sample Data Section -->
+            <div class="p-6">
+                <h3 class="text-lg font-semibold mb-4">Sample Data</h3>
+                <div class="space-y-3">
+                    {% for var, value in sample_data.items %}
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text text-xs font-mono">{% templatetag openvariable %}{{ var }}{% templatetag closevariable %}</span>
+                        </label>
+                        <input type="text" value="{{ value }}" readonly class="input input-bordered input-sm" />
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Email Preview -->
+        <div class="flex-1 flex justify-center p-8 overflow-auto">
+            <div id="preview-container" class="bg-base-100 shadow-2xl transition-all duration-300 h-fit" style="width: 100%; max-width: 800px;">
+                <!-- Email Header -->
+                <div class="border-b border-base-200 p-4 bg-base-200">
+                    <div class="space-y-2">
+                        <div class="flex items-center gap-2 text-sm">
+                            <span class="font-semibold opacity-60">From:</span>
+                            <span>{{ template.get_sender_display }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-sm">
+                            <span class="font-semibold opacity-60">Subject:</span>
+                            <span>{{ subject_preview }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Email Content -->
+                <div class="p-6 bg-white">
+                    <!-- Content Type Tabs -->
+                    {% if template.content_type == 'both' %}
+                    <div class="tabs tabs-boxed mb-6">
+                        <a onclick="switchContent('html')" 
+                           id="html-tab"
+                           class="tab tab-active">
+                            HTML Version
+                        </a>
+                        <a onclick="switchContent('plain')" 
+                           id="plain-tab"
+                           class="tab">
+                            Plain Text Version
+                        </a>
+                    </div>
+                    {% endif %}
+
+                    <!-- HTML Content -->
+                    {% if template.has_html_content %}
+                    <div id="html-content" class="prose max-w-none overflow-x-auto break-words whitespace-pre-wrap">
+                        {{ html_preview|safe }}
+                    </div>
+                    {% endif %}
+
+                    <!-- Plain Text Content -->
+                    {% if template.has_plain_content %}
+                    <div id="plain-content" {% if template.content_type == 'both' %}style="display: none;"{% endif %}>
+                        <pre class="whitespace-pre-wrap text-sm font-mono break-words overflow-x-auto">{{ plain_preview }}</pre>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Email content styling */
+.prose table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.prose table td,
+.prose table th {
+    border: 1px solid var(--fallback-bc,oklch(var(--bc)/0.2));
+    padding: 8px;
+}
+</style>
+
+<script>
+function switchView(view) {
+    const container = document.getElementById('preview-container');
+    const desktopBtn = document.getElementById('desktop-btn');
+    const mobileBtn = document.getElementById('mobile-btn');
+    
+    if (view === 'mobile') {
+        container.style.maxWidth = '375px';
+        mobileBtn.classList.add('btn-active');
+        desktopBtn.classList.remove('btn-active');
+    } else {
+        container.style.maxWidth = '800px';
+        desktopBtn.classList.add('btn-active');
+        mobileBtn.classList.remove('btn-active');
+    }
+}
+
+function switchContent(type) {
+    const htmlContent = document.getElementById('html-content');
+    const plainContent = document.getElementById('plain-content');
+    const htmlTab = document.getElementById('html-tab');
+    const plainTab = document.getElementById('plain-tab');
+    
+    if (type === 'html') {
+        htmlContent.style.display = 'block';
+        plainContent.style.display = 'none';
+        htmlTab.classList.add('tab-active');
+        plainTab.classList.remove('tab-active');
+    } else {
+        htmlContent.style.display = 'none';
+        plainContent.style.display = 'block';
+        plainTab.classList.add('tab-active');
+        htmlTab.classList.remove('tab-active');
+    }
+}
+
+// Variable Management Functions
+const templateId = {{ template.pk }};
+let currentVariableId = null;
+let variablesData = {};
+
+// Load variables data on page load
+document.addEventListener('DOMContentLoaded', function() {
+    loadVariables();
+});
+
+function loadVariables() {
+    fetch(`{% url 'email_templates:variable_list' template.pk %}`)
+        .then(response => response.json())
+        .then(data => {
+            data.variables.forEach(variable => {
+                variablesData[variable.id] = variable;
+            });
+        });
+}
+
+function showAddVariableModal() {
+    currentVariableId = null;
+    document.getElementById('variable-modal-title').textContent = 'Add Variable';
+    document.getElementById('variable-form').reset();
+    document.getElementById('variable-type').value = 'text';
+    updateTypeFields('text');
+    variableModal.showModal();
+}
+
+function editVariable(variableId) {
+    currentVariableId = variableId;
+    const variable = variablesData[variableId];
+    
+    document.getElementById('variable-modal-title').textContent = 'Edit Variable';
+    document.getElementById('variable-name').value = variable.name;
+    document.getElementById('variable-type').value = variable.type;
+    document.getElementById('variable-description').value = variable.description || '';
+    document.getElementById('variable-default-value').value = variable.default_value || '';
+    document.getElementById('variable-required').checked = variable.is_required;
+    
+    updateTypeFields(variable.type);
+    
+    if (variable.type === 'text' || variable.type === 'url' || variable.type === 'email') {
+        document.getElementById('variable-length').value = variable.length || '';
+    }
+    
+    if (variable.type === 'choice' && variable.choices) {
+        document.getElementById('variable-choices').value = variable.choices.join('\n');
+    }
+    
+    variableModal.showModal();
+}
+
+function updateTypeFields(type) {
+    // Hide all optional fields first
+    document.getElementById('length-field').classList.add('hidden');
+    document.getElementById('choices-field').classList.add('hidden');
+    
+    // Show relevant fields based on type
+    if (type === 'text' || type === 'url' || type === 'email') {
+        document.getElementById('length-field').classList.remove('hidden');
+    } else if (type === 'choice') {
+        document.getElementById('choices-field').classList.remove('hidden');
+    }
+}
+
+function saveVariable() {
+    const form = document.getElementById('variable-form');
+    const formData = new FormData(form);
+    
+    const data = {
+        name: formData.get('name'),
+        type: formData.get('type'),
+        description: formData.get('description'),
+        default_value: formData.get('default_value'),
+        is_required: formData.get('is_required') === 'on'
+    };
+    
+    // Add type-specific fields
+    if (data.type === 'text' || data.type === 'url' || data.type === 'email') {
+        const length = formData.get('length');
+        if (length) data.length = parseInt(length);
+    } else if (data.type === 'choice') {
+        const choices = formData.get('choices');
+        if (choices) {
+            data.choices = choices.split('\n').filter(c => c.trim()).map(c => c.trim());
+        }
+    }
+    
+    const url = currentVariableId 
+        ? `{% url 'email_templates:variable_update' template.pk 0 %}`.replace('0', currentVariableId)
+        : `{% url 'email_templates:variable_create' template.pk %}`;
+    
+    fetch(url, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.error) {
+            showError(data.error);
+        } else {
+            variableModal.close();
+            location.reload(); // Reload to show updated variables
+        }
+    })
+    .catch(error => {
+        showError('An error occurred while saving the variable.');
+    });
+}
+
+function deleteVariable(variableId) {
+    if (confirm('Are you sure you want to delete this variable?')) {
+        fetch(`{% url 'email_templates:variable_delete' template.pk 0 %}`.replace('0', variableId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken')
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload(); // Reload to show updated variables
+            } else {
+                showError('An error occurred while deleting the variable.');
+            }
+        });
+    }
+}
+
+function showError(message) {
+    alert(message); // You can replace this with a better notification system
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+
+<!-- Variable Modal -->
+<dialog id="variableModal" class="modal">
+    <div class="modal-box">
+        <h3 id="variable-modal-title" class="font-bold text-lg mb-4">Add Variable</h3>
+        
+        <form id="variable-form" class="space-y-4">
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Variable Name <span class="text-error">*</span></span>
+                </label>
+                <input type="text" 
+                       id="variable-name" 
+                       name="name" 
+                       required
+                       class="input input-bordered"
+                       placeholder="e.g., discount_code">
+                <label class="label">
+                    <span class="label-text-alt">Use lowercase with underscores</span>
+                </label>
+            </div>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Type</span>
+                </label>
+                <select id="variable-type" 
+                        name="type" 
+                        onchange="updateTypeFields(this.value)"
+                        class="select select-bordered">
+                    <option value="text">Text</option>
+                    <option value="number">Number</option>
+                    <option value="date">Date</option>
+                    <option value="url">URL</option>
+                    <option value="email">Email</option>
+                    <option value="boolean">Boolean</option>
+                    <option value="choice">Choice</option>
+                </select>
+            </div>
+            
+            <div id="length-field" class="form-control hidden">
+                <label class="label">
+                    <span class="label-text">Maximum Length</span>
+                </label>
+                <input type="number" 
+                       id="variable-length" 
+                       name="length" 
+                       min="1"
+                       class="input input-bordered">
+            </div>
+            
+            <div id="choices-field" class="form-control hidden">
+                <label class="label">
+                    <span class="label-text">Choices (one per line)</span>
+                </label>
+                <textarea id="variable-choices" 
+                          name="choices" 
+                          rows="3"
+                          class="textarea textarea-bordered"></textarea>
+            </div>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Description</span>
+                </label>
+                <input type="text" 
+                       id="variable-description" 
+                       name="description"
+                       class="input input-bordered"
+                       placeholder="What this variable represents">
+            </div>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Default Value</span>
+                </label>
+                <input type="text" 
+                       id="variable-default-value" 
+                       name="default_value"
+                       class="input input-bordered">
+            </div>
+            
+            <div class="form-control">
+                <label class="label cursor-pointer">
+                    <input type="checkbox" 
+                           id="variable-required" 
+                           name="is_required"
+                           checked
+                           class="checkbox checkbox-primary">
+                    <span class="label-text ml-2">Required variable</span>
+                </label>
+            </div>
+        </form>
+        
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Cancel</button>
+            </form>
+            <button onclick="saveVariable()" class="btn btn-primary">Save Variable</button>
+        </div>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+{% endblock %}

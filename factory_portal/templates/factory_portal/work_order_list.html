@@ -1,0 +1,320 @@
+{% extends 'factory_portal/base.html' %}
+
+{% block title %}Customer Orders{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Header -->
+    <div class="flex justify-between items-center">
+        <div>
+            <h1 class="text-3xl font-bold">Customer Orders</h1>
+            <p class="text-base-content/60 mt-1">Manage customer orders containing your products</p>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card bg-base-200">
+        <div class="card-body">
+            <form method="get" class="flex flex-wrap gap-4">
+                <!-- Search -->
+                <div class="form-control flex-1 min-w-[200px]">
+                    <input type="text" name="search" value="{{ search }}" 
+                           placeholder="Search by invoice # or customer..." 
+                           class="input input-bordered" />
+                </div>
+                
+                <!-- Status Filter -->
+                <div class="form-control">
+                    <select name="status" class="select select-bordered">
+                        <option value="">All Status</option>
+                        {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if status_filter == value %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <!-- Submit -->
+                <button type="submit" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    Filter
+                </button>
+                
+                {% if search or status_filter %}
+                <a href="{% url 'factory_portal:work_order_list' %}" class="btn btn-ghost">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Orders Table -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            {% if invoices %}
+            <div class="overflow-x-auto">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Invoice #</th>
+                            <th>Customer</th>
+                            <th>Your Products</th>
+                            <th>Order Date</th>
+                            <th>Shipping Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for invoice in invoices %}
+                        <tr class="hover">
+                            <td>
+                                <a href="{% url 'factory_portal:packing_slip' invoice.pk %}" class="link link-primary font-medium">
+                                    {{ invoice.invoice_number }}
+                                </a>
+                            </td>
+                            <td>
+                                <div>
+                                    <div class="font-medium">
+                                        {% if invoice.customer %}
+                                            {{ invoice.customer.get_full_name }}
+                                        {% else %}
+                                            {{ invoice.first_name }} {{ invoice.last_name }}
+                                        {% endif %}
+                                    </div>
+                                    {% if invoice.customer and invoice.customer.company_name %}
+                                    <div class="text-sm opacity-50">{{ invoice.customer.company_name }}</div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <div class="text-sm">
+                                    {% for item in invoice.supplier_items %}
+                                        <div>{{ item.product.name }} ({{ item.quantity|floatformat:0 }})</div>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                            <td>{{ invoice.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                {% if invoice.shipping_status == 'shipped' %}
+                                    <span class="badge badge-success gap-1">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        Shipped
+                                    </span>
+                                {% elif invoice.shipping_status == 'in_transit' %}
+                                    <span class="badge badge-info">In Transit</span>
+                                {% elif invoice.shipping_status == 'delivered' %}
+                                    <span class="badge badge-success">Delivered</span>
+                                {% elif invoice.shipping_status == 'preparing' %}
+                                    <span class="badge badge-warning">Preparing</span>
+                                {% elif invoice.shipping_status == 'pending' %}
+                                    <span class="badge badge-ghost">Pending</span>
+                                {% elif invoice.shipping_status == 'returned' %}
+                                    <span class="badge badge-error">Returned</span>
+                                {% elif invoice.shipping_status == 'cancelled' %}
+                                    <span class="badge badge-error">Cancelled</span>
+                                {% else %}
+                                    <span class="badge">{{ invoice.get_shipping_status_display|default:"Pending" }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="flex gap-2">
+                                    <a href="{% url 'factory_portal:packing_slip' invoice.pk %}" class="btn btn-sm btn-ghost">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                        </svg>
+                                        View
+                                    </a>
+                                    {% if invoice.shipping_status == 'pending' or invoice.shipping_status == 'preparing' or not invoice.shipping_status %}
+                                    <button onclick="openShipModal('{{ invoice.pk }}', '{{ invoice.invoice_number }}')" 
+                                            class="btn btn-sm btn-primary">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                        </svg>
+                                        Ship Order
+                                    </button>
+                                    {% elif invoice.shipping_status == 'shipped' or invoice.shipping_status == 'in_transit' or invoice.shipping_status == 'delivered' %}
+                                    <button class="btn btn-sm btn-success btn-disabled">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        Shipped
+                                    </button>
+                                    {% if invoice.related_po %}
+                                    <a href="{% url 'factory_portal:view_billing_invoice' invoice.related_po.pk %}" 
+                                       class="btn btn-sm btn-info">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        View Invoice
+                                    </a>
+                                    {% else %}
+                                    <button onclick="openCreateInvoiceModal('{{ invoice.pk }}', '{{ invoice.invoice_number }}')" 
+                                            class="btn btn-sm btn-warning">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                                        </svg>
+                                        Create Invoice
+                                    </button>
+                                    {% endif %}
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <div class="flex justify-center mt-4">
+                <div class="btn-group">
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" 
+                       class="btn">«</a>
+                    {% endif %}
+                    
+                    <button class="btn btn-active">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</button>
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if search %}&search={{ search }}{% endif %}{% if status_filter %}&status={{ status_filter }}{% endif %}" 
+                       class="btn">»</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-8">
+                <p class="text-base-content/60">No orders found.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Ship Order Modal -->
+<dialog id="ship_modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Ship Order</h3>
+        <p class="py-4">Mark order <span id="modal_invoice_number" class="font-bold"></span> as shipped?</p>
+        
+        <form method="post" action="{% url 'factory_portal:ship_order' %}" id="ship_form">
+            {% csrf_token %}
+            <input type="hidden" name="invoice_id" id="ship_invoice_id" />
+            
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text">Tracking Number (Optional)</span>
+                </label>
+                <input type="text" name="tracking_number" class="input input-bordered w-full" 
+                       placeholder="Enter tracking number..." />
+            </div>
+            
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text">Shipping Carrier</span>
+                </label>
+                <select name="carrier" class="select select-bordered w-full">
+                    <option value="">Select carrier...</option>
+                    <option value="ups">UPS</option>
+                    <option value="fedex">FedEx</option>
+                    <option value="usps">USPS</option>
+                    <option value="dhl">DHL</option>
+                    <option value="other">Other</option>
+                </select>
+            </div>
+            
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text">Notes (Optional)</span>
+                </label>
+                <textarea name="notes" class="textarea textarea-bordered w-full" 
+                          placeholder="Any special notes about this shipment..."></textarea>
+            </div>
+            
+            <div class="modal-action">
+                <button type="button" onclick="ship_modal.close()" class="btn btn-ghost">Cancel</button>
+                <button type="submit" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                    </svg>
+                    Confirm Shipment
+                </button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<!-- Create Invoice Modal -->
+<dialog id="create_invoice_modal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Create Purchase Order</h3>
+        <p class="py-4">Create a purchase order to bill for order <span id="invoice_number_display" class="font-bold"></span>?</p>
+        <p class="text-sm text-base-content/70">This will create a new purchase order with all items from this customer order that belong to your supplier.</p>
+        
+        <form method="post" action="{% url 'factory_portal:create_invoice' %}">
+            {% csrf_token %}
+            <input type="hidden" name="invoice_id" id="create_invoice_id" />
+            
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text">Shipping Cost (Optional)</span>
+                    <span class="label-text-alt text-base-content/60">Total shipping and handling fee for this order</span>
+                </label>
+                <div class="input-group">
+                    <span class="bg-base-200 px-3 flex items-center">$</span>
+                    <input type="number" name="shipping_cost" step="0.01" min="0" 
+                           class="input input-bordered w-full" 
+                           placeholder="0.00" />
+                </div>
+                <label class="label">
+                    <span class="label-text-alt">This will be added as a separate line item on the invoice</span>
+                </label>
+            </div>
+            
+            <div class="form-control mb-4">
+                <label class="label">
+                    <span class="label-text">PO Reference/Notes (Optional)</span>
+                </label>
+                <textarea name="notes" class="textarea textarea-bordered w-full" 
+                          placeholder="Add any reference notes for this purchase order..."></textarea>
+            </div>
+            
+            <div class="modal-action">
+                <button type="button" onclick="create_invoice_modal.close()" class="btn btn-ghost">Cancel</button>
+                <button type="submit" class="btn btn-warning">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Create Purchase Order
+                </button>
+            </div>
+        </form>
+    </div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
+
+<script>
+function openShipModal(invoiceId, invoiceNumber) {
+    document.getElementById('ship_invoice_id').value = invoiceId;
+    document.getElementById('modal_invoice_number').textContent = invoiceNumber;
+    document.getElementById('ship_modal').showModal();
+}
+
+function openCreateInvoiceModal(invoiceId, invoiceNumber) {
+    document.getElementById('create_invoice_id').value = invoiceId;
+    document.getElementById('invoice_number_display').textContent = invoiceNumber;
+    document.getElementById('create_invoice_modal').showModal();
+}
+</script>
+{% endblock %}

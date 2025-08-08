@@ -1,0 +1,187 @@
+{% extends 'shop/base.html' %}
+{% load static %}
+
+{% block title %}Order Confirmed{% endblock %}
+
+{% block content %}
+<div class="bg-white">
+    <div class="mx-auto max-w-3xl px-4 py-16 sm:px-6 sm:py-24 lg:px-8">
+        <div class="max-w-xl">
+            <div class="flex items-center mb-8">
+                <svg class="h-12 w-12 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <h1 class="ml-3 text-3xl font-bold tracking-tight text-gray-900">Order Confirmed!</h1>
+            </div>
+            
+            <p class="text-base text-gray-500">
+                Thank you for your order. We've received your order and will begin processing it right away.
+            </p>
+
+            {% if order %}
+            <div class="mt-8 border-t border-gray-200 pt-8">
+                <dl class="text-sm font-medium">
+                    <dt class="text-gray-900">Order number</dt>
+                    <dd class="mt-2 text-indigo-600 text-2xl">{{ order.order_number }}</dd>
+                </dl>
+
+                <dl class="mt-6 text-sm font-medium">
+                    <dt class="text-gray-900">Tracking code</dt>
+                    <dd class="mt-2 text-gray-600">{{ order.tracking_code }}</dd>
+                </dl>
+
+                <div class="mt-6 rounded-lg bg-gray-50 p-4">
+                    <p class="text-sm text-gray-600">
+                        <svg class="inline h-5 w-5 text-gray-400 mr-2" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z" />
+                        </svg>
+                        We've sent a confirmation email to <strong>{{ order.email }}</strong> with your order details and tracking information.
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-10 border-t border-gray-200 pt-8">
+                <h2 class="text-base font-medium text-gray-900">Order Summary</h2>
+                
+                <div class="mt-4 rounded-lg border border-gray-200 bg-white shadow-sm">
+                    <ul role="list" class="divide-y divide-gray-200">
+                        {% for item in order.items.all %}
+                        <li class="flex px-4 py-6 sm:px-6">
+                            <div class="flex-shrink-0">
+                                <div class="h-20 w-20 overflow-hidden rounded-md">
+                                    {% if item.product.main_image %}
+                                    <img src="{{ item.product.main_image.url }}" alt="{{ item.product_name }}" class="h-full w-full object-cover object-center">
+                                    {% else %}
+                                    <div class="h-full w-full flex items-center justify-center bg-gray-200">
+                                        <svg class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                                        </svg>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <div class="ml-6 flex flex-1 flex-col">
+                                <div class="flex">
+                                    <div class="min-w-0 flex-1">
+                                        <h4 class="text-sm">
+                                            <span class="font-medium text-gray-700">{{ item.description }}</span>
+                                        </h4>
+                                        {% if item.product_options %}
+                                        <p class="mt-1 text-sm text-indigo-600">
+                                            {% for key, value in item.product_options.items %}
+                                                {{ key }}: {{ value }}{% if not forloop.last %}, {% endif %}
+                                            {% endfor %}
+                                        </p>
+                                        {% endif %}
+                                        <p class="mt-1 text-sm text-gray-500">Qty: {{ item.quantity }}</p>
+                                    </div>
+
+                                    <div class="ml-4 flow-root flex-shrink-0">
+                                        <p class="text-sm font-medium text-gray-900">${{ item.line_total|floatformat:2 }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    
+                    <dl class="space-y-6 border-t border-gray-200 px-4 py-6 sm:px-6">
+                        <div class="flex items-center justify-between">
+                            <dt class="text-sm">Subtotal</dt>
+                            <dd class="text-sm font-medium text-gray-900">${{ order.subtotal|floatformat:2 }}</dd>
+                        </div>
+                        {% if order.discount_amount > 0 %}
+                        <div class="flex items-center justify-between">
+                            <dt class="text-sm">Discount</dt>
+                            <dd class="text-sm font-medium text-gray-900">-${{ order.discount_amount|floatformat:2 }}</dd>
+                        </div>
+                        {% endif %}
+                        <div class="flex items-center justify-between">
+                            <dt class="text-sm">Shipping</dt>
+                            <dd class="text-sm font-medium text-gray-900">${{ order.shipping_cost|floatformat:2 }}</dd>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <dt class="text-sm">Tax</dt>
+                            <dd class="text-sm font-medium text-gray-900">${{ order.tax_amount|floatformat:2 }}</dd>
+                        </div>
+                        <div class="flex items-center justify-between border-t border-gray-200 pt-6">
+                            <dt class="text-base font-medium">Total</dt>
+                            <dd class="text-base font-medium text-gray-900">${{ order.total_amount|floatformat:2 }}</dd>
+                        </div>
+                    </dl>
+                </div>
+            </div>
+
+            <div class="mt-10 border-t border-gray-200 pt-8">
+                <h3 class="text-base font-medium text-gray-900">Shipping Information</h3>
+                <div class="mt-4 rounded-lg border border-gray-200 p-4">
+                    <address class="text-sm text-gray-600 not-italic">
+                        {{ order.customer_name }}<br>
+                        {{ order.shipping_address_line1 }}<br>
+                        {% if order.shipping_address_line2 %}{{ order.shipping_address_line2 }}<br>{% endif %}
+                        {{ order.shipping_city }}, {{ order.shipping_state }} {{ order.shipping_postal_code }}<br>
+                        {% if order.phone %}Phone: {{ order.phone }}{% endif %}
+                    </address>
+                </div>
+            </div>
+
+            <div class="mt-10 flex space-x-6">
+                <a href="{% url 'shop:order_tracking' %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                    Track order<span aria-hidden="true"> &rarr;</span>
+                </a>
+                <a href="{% url 'shop:product_list' %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                    Continue shopping<span aria-hidden="true"> &rarr;</span>
+                </a>
+            </div>
+
+            {% else %}
+            <div class="mt-8 rounded-lg bg-yellow-50 p-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M8.485 2.495c.673-1.167 2.357-1.167 3.03 0l6.28 10.875c.673 1.167-.17 2.625-1.516 2.625H3.72c-1.347 0-2.189-1.458-1.515-2.625L8.485 2.495zM10 5a.75.75 0 01.75.75v3.5a.75.75 0 01-1.5 0v-3.5A.75.75 0 0110 5zm0 9a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+                        </svg>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-yellow-700">
+                            Order information not found. Please check your email for order details.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-6">
+                <a href="{% url 'shop:product_list' %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
+                    Continue shopping<span aria-hidden="true"> &rarr;</span>
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% if order and not user.is_authenticated %}
+<script>
+// Store tracking info for anonymous users
+if (!localStorage.getItem('orderHistory')) {
+    localStorage.setItem('orderHistory', JSON.stringify([]));
+}
+
+const orderHistory = JSON.parse(localStorage.getItem('orderHistory'));
+orderHistory.push({
+    orderNumber: '{{ order.order_number }}',
+    trackingCode: '{{ order.tracking_code }}',
+    date: '{{ order.order_date|date:"c" }}',
+    total: {{ order.total_amount }}
+});
+
+// Keep only last 10 orders
+if (orderHistory.length > 10) {
+    orderHistory.shift();
+}
+
+localStorage.setItem('orderHistory', JSON.stringify(orderHistory));
+</script>
+{% endif %}
+{% endblock %}

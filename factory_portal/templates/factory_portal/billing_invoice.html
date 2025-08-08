@@ -1,0 +1,254 @@
+{% extends 'factory_portal/base.html' %}
+
+{% block title %}Billing Invoice - {{ purchase_order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900">Billing Invoice</h1>
+                <p class="mt-1 text-sm text-gray-600">Purchase Order #{{ purchase_order.order_number }}</p>
+                {% if original_invoice %}
+                <p class="text-xs text-gray-500 mt-1">For Customer Invoice #{{ original_invoice.invoice_number }}</p>
+                {% endif %}
+            </div>
+            <div class="flex gap-2">
+                <button onclick="window.print()" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Print
+                </button>
+                <a href="{% url 'factory_portal:work_order_list' %}" class="btn btn-ghost">
+                    Back to Orders
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Billing Information -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h2 class="text-lg font-medium text-gray-900 mb-4">Billing From</h2>
+                <dl class="grid grid-cols-1 gap-y-3">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Supplier</dt>
+                        <dd class="mt-1 text-sm text-gray-900 font-bold">{{ purchase_order.supplier.name }}</dd>
+                    </div>
+                    {% if purchase_order.supplier.tax_id %}
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Tax ID</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ purchase_order.supplier.tax_id }}</dd>
+                    </div>
+                    {% endif %}
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Address</dt>
+                        <dd class="mt-1 text-sm text-gray-900">
+                            {% if purchase_order.supplier.address_line1 %}{{ purchase_order.supplier.address_line1 }}<br>{% endif %}
+                            {% if purchase_order.supplier.address_line2 %}{{ purchase_order.supplier.address_line2 }}<br>{% endif %}
+                            {% if purchase_order.supplier.city %}{{ purchase_order.supplier.city }}, {% endif %}
+                            {% if purchase_order.supplier.state %}{{ purchase_order.supplier.state }} {% endif %}
+                            {% if purchase_order.supplier.postal_code %}{{ purchase_order.supplier.postal_code }}{% endif %}
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+
+        <!-- Order Information -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h2 class="text-lg font-medium text-gray-900 mb-4">Order Information</h2>
+                <dl class="grid grid-cols-1 gap-y-3">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">PO Number</dt>
+                        <dd class="mt-1 text-sm text-gray-900 font-bold">{{ purchase_order.order_number }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Order Date</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ purchase_order.order_date|date:"F d, Y" }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Payment Terms</dt>
+                        <dd class="mt-1 text-sm text-gray-900">Net 30 Days</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Due Date</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ purchase_order.expected_delivery_date|date:"F d, Y" }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Status</dt>
+                        <dd class="mt-1">
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
+                                {% if purchase_order.status == 'sent' %}bg-yellow-100 text-yellow-800
+                                {% elif purchase_order.status == 'confirmed' %}bg-green-100 text-green-800
+                                {% elif purchase_order.status == 'received' %}bg-blue-100 text-blue-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ purchase_order.get_status_display }}
+                            </span>
+                        </dd>
+                    </div>
+                </dl>
+            </div>
+        </div>
+    </div>
+
+    <!-- Items List -->
+    <div class="bg-white shadow sm:rounded-lg mb-6">
+        <div class="px-4 py-5 sm:p-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Billable Items</h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Item
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                SKU
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Quantity
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Unit Cost
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Line Total
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for item in po_items %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">
+                                        {{ item.description }}
+                                    </div>
+                                    {% if item.product %}
+                                    <div class="text-sm text-gray-500">
+                                        {{ item.product.name }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {% if item.product %}
+                                    {{ item.product.sku }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                                {{ item.quantity|floatformat:0 }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+                                ${{ item.unit_cost|floatformat:2 }}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">
+                                ${{ item.line_total|floatformat:2 }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    <tfoot class="bg-gray-50">
+                        <tr>
+                            <th colspan="4" class="px-6 py-3 text-right text-sm font-medium text-gray-900">
+                                Subtotal:
+                            </th>
+                            <td class="px-6 py-3 text-right text-sm font-bold text-gray-900">
+                                ${{ purchase_order.subtotal|floatformat:2 }}
+                            </td>
+                        </tr>
+                        {% if purchase_order.tax_amount > 0 %}
+                        <tr>
+                            <th colspan="4" class="px-6 py-3 text-right text-sm font-medium text-gray-900">
+                                Tax ({{ purchase_order.tax_rate }}%):
+                            </th>
+                            <td class="px-6 py-3 text-right text-sm font-bold text-gray-900">
+                                ${{ purchase_order.tax_amount|floatformat:2 }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if purchase_order.shipping_cost > 0 %}
+                        <tr>
+                            <th colspan="4" class="px-6 py-3 text-right text-sm font-medium text-gray-900">
+                                Shipping:
+                            </th>
+                            <td class="px-6 py-3 text-right text-sm font-bold text-gray-900">
+                                ${{ purchase_order.shipping_cost|floatformat:2 }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        {% if purchase_order.discount_amount > 0 %}
+                        <tr>
+                            <th colspan="4" class="px-6 py-3 text-right text-sm font-medium text-gray-900">
+                                Discount ({{ purchase_order.discount_percent }}%):
+                            </th>
+                            <td class="px-6 py-3 text-right text-sm font-bold text-gray-900">
+                                -${{ purchase_order.discount_amount|floatformat:2 }}
+                            </td>
+                        </tr>
+                        {% endif %}
+                        <tr class="bg-primary text-primary-content">
+                            <th colspan="4" class="px-6 py-4 text-right text-base font-bold">
+                                Total Amount Due:
+                            </th>
+                            <td class="px-6 py-4 text-right text-base font-bold">
+                                ${{ purchase_order.total_amount|floatformat:2 }}
+                            </td>
+                        </tr>
+                    </tfoot>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notes -->
+    {% if purchase_order.notes %}
+    <div class="bg-white shadow sm:rounded-lg mb-6">
+        <div class="px-4 py-5 sm:p-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Notes</h2>
+            <div class="text-sm text-gray-700">{{ purchase_order.notes|linebreaks }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Payment Instructions -->
+    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                    <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+            </div>
+            <div class="ml-3">
+                <p class="text-sm text-blue-700">
+                    <strong>Payment Instructions:</strong> This purchase order represents billable items fulfilled for customer orders. 
+                    Please process payment according to the agreed terms. For questions, contact the accounting department.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Print Styles -->
+<style media="print">
+    .navbar, .btn, footer {
+        display: none !important;
+    }
+    
+    @page {
+        margin: 0.5in;
+    }
+    
+    .bg-white {
+        box-shadow: none !important;
+        border: 1px solid #e5e7eb;
+    }
+</style>
+{% endblock %}

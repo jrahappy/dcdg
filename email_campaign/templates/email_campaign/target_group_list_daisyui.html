@@ -1,0 +1,116 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block dashboard_content %}
+<div class="space-y-4">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold">Target Groups</h1>
+            <div class="text-sm breadcrumbs">
+                <ul>
+                    <li><a href="{% url 'dashboard:home' %}" class="link link-hover">Dashboard</a></li>
+                    <li>Target Groups</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex gap-2">
+            <a href="{% url 'email_campaign:customer_selection' %}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                New Target Group
+            </a>
+        </div>
+    </div>
+
+    <!-- Search -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body p-4">
+            <form method="get" class="flex flex-col lg:flex-row gap-4">
+                <div class="form-control flex-1">
+                    <input type="text" name="search" value="{{ search_query }}" 
+                           placeholder="Search target groups..." 
+                           class="input input-bordered" />
+                </div>
+                <button type="submit" class="btn btn-primary">Search</button>
+                {% if search_query %}
+                <a href="{% url 'email_campaign:target_group_list' %}" class="btn btn-ghost">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Target Groups Grid -->
+    {% if target_groups %}
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for group in target_groups %}
+        <div class="card bg-base-100 shadow-xl hover:shadow-2xl transition-shadow">
+            <div class="card-body">
+                <h2 class="card-title">
+                    {{ group.name }}
+                    <div class="badge badge-secondary">{{ group.customers.count }} customers</div>
+                </h2>
+                <p class="text-sm text-base-content/60">{{ group.description|truncatechars:100 }}</p>
+                
+                <div class="mt-4">
+                    <div class="text-xs text-base-content/50 mb-2">Filters:</div>
+                    <div class="flex flex-wrap gap-1">
+                        {% if group.age_min or group.age_max %}
+                        <div class="badge badge-outline badge-sm">
+                            Age: {{ group.age_min|default:"0" }}-{{ group.age_max|default:"∞" }}
+                        </div>
+                        {% endif %}
+                        {% if group.gender %}
+                        <div class="badge badge-outline badge-sm">{{ group.get_gender_display }}</div>
+                        {% endif %}
+                        {% if group.city %}
+                        <div class="badge badge-outline badge-sm">{{ group.city }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="card-actions justify-between items-center mt-4">
+                    <div class="text-xs text-base-content/50">
+                        Created {{ group.created_at|date:"M d, Y" }}
+                    </div>
+                    <div class="dropdown dropdown-end">
+                        <label tabindex="0" class="btn btn-ghost btn-sm">
+                            Actions
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                            </svg>
+                        </label>
+                        <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                            <li><a href="{% url 'email_campaign:target_group_detail' group.id %}">View Details</a></li>
+                            <li><a href="{% url 'email_campaign:target_group_edit' group.id %}">Edit</a></li>
+                            <li><a href="{% url 'email_campaign:campaign_create_with_group' group.id %}">Create Campaign</a></li>
+                            <div class="divider my-0"></div>
+                            <li><a href="{% url 'email_campaign:target_group_delete' group.id %}" class="text-error">Delete</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body text-center py-16">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto mb-4 text-base-content/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+            </svg>
+            <h3 class="text-xl font-semibold">No target groups found</h3>
+            <p class="text-base-content/60">Create target groups to segment your customers</p>
+            <div class="card-actions justify-center mt-4">
+                <a href="{% url 'email_campaign:customer_selection' %}" class="btn btn-primary">
+                    Create Target Group
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

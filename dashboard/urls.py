@@ -22,4 +22,11 @@ urlpatterns = [
     path('blog/<int:pk>/', views.blog_detail, name='blog_detail'),
     path('blog/<int:pk>/edit/', views.blog_edit, name='blog_edit'),
     path('blog/<int:pk>/delete/', views.blog_delete, name='blog_delete'),
+    
+    # Notification URLs
+    path('notifications/', views.notification_manage, name='notification_manage'),
+    path('notifications/list/', views.notification_list, name='notification_list'),
+    path('notifications/create/', views.notification_create, name='notification_create'),
+    path('notifications/<int:pk>/delete/', views.notification_delete, name='notification_delete'),
+    path('notifications/bulk-action/', views.notification_bulk_action, name='notification_bulk_action'),
 ]

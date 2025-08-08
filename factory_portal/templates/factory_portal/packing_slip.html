@@ -1,0 +1,398 @@
+{% extends 'factory_portal/base.html' %}
+
+{% block title %}Packing Slip - {{ invoice.invoice_number }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    @media print {
+        /* Hide navigation and footer when printing */
+        .navbar, footer, .btn, .print-hide {
+            display: none !important;
+        }
+        
+        /* Reset page margins */
+        @page {
+            margin: 0.5in;
+            size: letter;
+        }
+        
+        /* Make content full width */
+        body {
+            font-size: 12pt;
+            line-height: 1.5;
+        }
+        
+        .container {
+            max-width: 100% !important;
+            padding: 0 !important;
+        }
+        
+        /* Keep order and shipping info side by side */
+        .grid.grid-cols-1.lg\:grid-cols-2 {
+            display: grid !important;
+            grid-template-columns: 1fr 1fr !important;
+            gap: 20px !important;
+        }
+        
+        /* Ensure backgrounds and borders are visible */
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+            color-adjust: exact !important;
+        }
+        
+        /* Style the cards for print */
+        .bg-white, .shadow, .sm\:rounded-lg {
+            box-shadow: none !important;
+            border: 1px solid #000 !important;
+            margin-bottom: 20px !important;
+            page-break-inside: avoid;
+        }
+        
+        /* Table styling for print */
+        table {
+            border-collapse: collapse !important;
+            width: 100% !important;
+        }
+        
+        table th {
+            background-color: #f3f4f6 !important;
+            border: 1px solid #000 !important;
+            padding: 8px !important;
+            text-align: left !important;
+            font-weight: bold !important;
+        }
+        
+        table td {
+            border: 1px solid #000 !important;
+            padding: 8px !important;
+        }
+        
+        table thead {
+            display: table-header-group;
+        }
+        
+        table tbody tr {
+            page-break-inside: avoid;
+        }
+        
+        /* Ensure text is black for better printing */
+        .text-gray-500, .text-gray-600, .text-gray-700, .text-gray-900 {
+            color: #000 !important;
+        }
+        
+        /* Hide interactive elements */
+        a[href]:after {
+            content: none !important;
+        }
+        
+        /* Page break control */
+        .page-break-before {
+            page-break-before: always;
+        }
+        
+        .page-break-after {
+            page-break-after: always;
+        }
+        
+        /* Hide the back link and action buttons */
+        .flex.justify-between.items-center {
+            display: none !important;
+        }
+        
+        /* Adjust heading sizes for print */
+        h1 { font-size: 24pt !important; }
+        h2 { font-size: 18pt !important; }
+        h3 { font-size: 14pt !important; }
+        
+        /* Make addresses and important info stand out */
+        .font-medium {
+            font-weight: bold !important;
+        }
+        
+        /* Hide note about filtered view in print */
+        .text-xs.text-gray-500 {
+            display: none !important;
+        }
+        
+        /* Show print-only elements */
+        .print\:block {
+            display: block !important;
+        }
+        
+        /* Adjust font sizes for print header */
+        .print\:text-xl {
+            font-size: 18pt !important;
+        }
+    }
+    
+    /* Screen styles for better table visibility */
+    @media screen {
+        table {
+            border: 1px solid #e5e7eb;
+        }
+        
+        table th, table td {
+            border: 1px solid #e5e7eb;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="max-w-6xl mx-auto">
+    <!-- Print Header (visible only when printing) -->
+    <div class="hidden print:block mb-8 pb-4 border-b-2 border-gray-300">
+        <div class="flex justify-between items-start">
+            <div>
+                <h1 class="text-2xl font-bold">DCDG Dental Supply</h1>
+                <p class="text-sm">Professional Dental Products & Equipment</p>
+            </div>
+            <div class="text-right">
+                <p class="text-lg font-bold">PACKING SLIP</p>
+                <p class="text-sm">Date: {{ invoice.created_at|date:"F d, Y" }}</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Header -->
+    <div class="mb-8">
+        <div class="flex justify-between items-center">
+            <div>
+                <h1 class="text-3xl font-bold text-gray-900 print:text-xl">Packing Slip</h1>
+                <p class="mt-1 text-sm text-gray-600 font-bold">Invoice #{{ invoice.invoice_number }}</p>
+            </div>
+            <div class="text-right print-hide">
+                <button onclick="window.print()" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                    </svg>
+                    Print
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <!-- Order Information -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h2 class="text-lg font-medium text-gray-900 mb-4">Order Information</h2>
+                <dl class="grid grid-cols-1 gap-y-3">
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Order Date</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ invoice.created_at|date:"F d, Y" }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Due Date</dt>
+                        <dd class="mt-1 text-sm text-gray-900">{{ invoice.due_date|date:"F d, Y" }}</dd>
+                    </div>
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Shipping Status</dt>
+                        <dd class="mt-1">
+                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
+                                {% if invoice.shipping_status == 'shipped' %}bg-green-100 text-green-800
+                                {% elif invoice.shipping_status == 'in_transit' %}bg-blue-100 text-blue-800
+                                {% elif invoice.shipping_status == 'delivered' %}bg-green-100 text-green-800
+                                {% elif invoice.shipping_status == 'preparing' %}bg-yellow-100 text-yellow-800
+                                {% elif invoice.shipping_status == 'returned' %}bg-red-100 text-red-800
+                                {% elif invoice.shipping_status == 'cancelled' %}bg-red-100 text-red-800
+                                {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                {{ invoice.get_shipping_status_display|default:"Pending" }}
+                            </span>
+                        </dd>
+                    </div>
+                    {% if invoice.is_shop_order %}
+                    <div>
+                        <dt class="text-sm font-medium text-gray-500">Order Type</dt>
+                        <dd class="mt-1 text-sm text-gray-900">Online Shop Order</dd>
+                    </div>
+                    {% endif %}
+                </dl>
+            </div>
+        </div>
+
+        <!-- Customer Information -->
+        <div class="bg-white shadow sm:rounded-lg">
+            <div class="px-4 py-5 sm:p-6">
+                <h2 class="text-lg font-medium text-gray-900 mb-4">Ship To</h2>
+                <address class="not-italic">
+                    <div class="font-medium text-gray-900">
+                        {% if invoice.customer %}
+                            {{ invoice.customer.get_full_name }}
+                        {% else %}
+                            {{ invoice.first_name }} {{ invoice.last_name }}
+                        {% endif %}
+                    </div>
+                    {% if invoice.customer and invoice.customer.company_name %}
+                    <div class="text-sm text-gray-600">{{ invoice.customer.company_name }}</div>
+                    {% endif %}
+                    <div class="mt-2 text-sm text-gray-600">
+                        {% if invoice.shipping_same_as_billing %}
+                            {{ invoice.billing_address_line1 }}<br>
+                            {% if invoice.billing_address_line2 %}{{ invoice.billing_address_line2 }}<br>{% endif %}
+                            {{ invoice.billing_city }}, {{ invoice.billing_state }} {{ invoice.billing_postal_code }}<br>
+                            {{ invoice.billing_country }}
+                        {% else %}
+                            {{ invoice.shipping_address_line1 }}<br>
+                            {% if invoice.shipping_address_line2 %}{{ invoice.shipping_address_line2 }}<br>{% endif %}
+                            {{ invoice.shipping_city }}, {{ invoice.shipping_state }} {{ invoice.shipping_postal_code }}<br>
+                            {{ invoice.shipping_country }}
+                        {% endif %}
+                    </div>
+                    {% if invoice.phone %}
+                    <div class="mt-2 text-sm text-gray-600">
+                        Phone: {{ invoice.phone }}
+                    </div>
+                    {% endif %}
+                </address>
+            </div>
+        </div>
+    </div>
+
+    <!-- Items List -->
+    <div class="bg-white shadow sm:rounded-lg mb-6">
+        <div class="px-4 py-5 sm:p-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">
+                Items to Ship
+            </h2>
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-gray-200">
+                    <thead class="bg-gray-50">
+                        <tr>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Item
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                SKU
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Quantity
+                            </th>
+                            <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                Notes
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody class="bg-white divide-y divide-gray-200">
+                        {% for item in invoice_items %}
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap">
+                                <div>
+                                    <div class="text-sm font-medium text-gray-900">
+                                        {{ item.description }}
+                                    </div>
+                                    {% if item.product %}
+                                    <div class="text-sm text-gray-500">
+                                        {{ item.product.name }}
+                                    </div>
+                                    {% endif %}
+                                    {% if item.product_options %}
+                                    <div class="text-xs text-gray-500 mt-1">
+                                        Options: 
+                                        {% for key, value in item.product_options.items %}
+                                            {{ key }}: {{ value }}{% if not forloop.last %}, {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {% if item.product %}
+                                    {{ item.product.sku }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                {{ item.quantity|floatformat:0 }}
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-500">
+                                {% if item.inventory %}
+                                    <div class="text-xs">
+                                        <span class="font-medium">Serial #:</span> {{ item.inventory.serial_number }}
+                                    </div>
+                                {% endif %}
+                                {% if item.product and item.product.weight %}
+                                    <div class="text-xs">
+                                        <span class="font-medium">Weight:</span> {{ item.product.weight }} kg
+                                    </div>
+                                {% endif %}
+                                {% if item.product and item.product.dimensions %}
+                                    <div class="text-xs">
+                                        <span class="font-medium">Dimensions:</span> {{ item.product.dimensions }}
+                                    </div>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Summary -->
+            <div class="mt-4 pt-4 border-t border-gray-200">
+                <div class="text-sm text-gray-600">
+                    <strong>Items in this shipment:</strong> {{ invoice_items|length }}
+                    {% if filtered_view %}
+                    <div class="text-xs text-gray-500 mt-1">
+                        Note: This packing slip shows items for your fulfillment only. The complete order may contain additional items handled by other parties.
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shipping Information -->
+    {% if invoice.is_shop_order %}
+    <div class="bg-white shadow sm:rounded-lg mb-6">
+        <div class="px-4 py-5 sm:p-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Shipping Information</h2>
+            <dl class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {% if invoice.delivery_service %}
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Delivery Service</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ invoice.get_delivery_service_display }}</dd>
+                </div>
+                {% endif %}
+                {% if invoice.post_tracking_number %}
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Tracking Number</dt>
+                    <dd class="mt-1 text-sm font-mono text-gray-900">{{ invoice.post_tracking_number }}</dd>
+                </div>
+                {% endif %}
+                {% if invoice.shipping_method %}
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Shipping Method</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ invoice.shipping_method }}</dd>
+                </div>
+                {% endif %}
+            </dl>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Special Instructions -->
+    {% if invoice.notes %}
+    <div class="bg-white shadow sm:rounded-lg mb-6">
+        <div class="px-4 py-5 sm:p-6">
+            <h2 class="text-lg font-medium text-gray-900 mb-4">Special Instructions</h2>
+            <div class="text-sm text-gray-700">{{ invoice.notes|linebreaks }}</div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Actions -->
+    <div class="flex justify-between items-center print-hide">
+        <a href="{% url 'factory_portal:dashboard' %}" class="text-sm text-gray-600 hover:text-gray-900">
+            ← Back to Dashboard
+        </a>
+        <div class="space-x-3">
+            <button onclick="window.print()" class="inline-flex justify-center rounded-md border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+                Print Packing Slip
+            </button>
+        </div>
+    </div>
+</div>
+{% endblock %}

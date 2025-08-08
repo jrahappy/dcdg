@@ -1,0 +1,300 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block dashboard_content %}
+<div class="space-y-4">
+    <!-- Page Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+            <h1 class="text-2xl font-bold">Notification Management</h1>
+            <div class="text-sm breadcrumbs">
+                <ul>
+                    <li><a href="{% url 'dashboard:home' %}" class="link link-hover">Dashboard</a></li>
+                    <li>Notifications</li>
+                </ul>
+            </div>
+        </div>
+        
+        <!-- Actions -->
+        <div class="flex gap-2">
+            <a href="{% url 'dashboard:notification_create' %}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Send Notification
+            </a>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Total Notifications</div>
+                <div class="stat-value text-primary">{{ stats.total|default:0 }}</div>
+            </div>
+        </div>
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Unread</div>
+                <div class="stat-value text-warning">{{ stats.unread|default:0 }}</div>
+            </div>
+        </div>
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">High Priority</div>
+                <div class="stat-value text-error">{{ stats.high_priority|default:0 }}</div>
+            </div>
+        </div>
+        <div class="stats shadow">
+            <div class="stat">
+                <div class="stat-title">Today's</div>
+                <div class="stat-value text-info">{{ stats.today|default:0 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body p-4">
+            <form method="get" class="flex flex-col lg:flex-row gap-4">
+                <select name="user" class="select select-bordered">
+                    <option value="">All Users</option>
+                    {% for user in users %}
+                    <option value="{{ user.id }}" {% if request.GET.user == user.id|stringformat:"s" %}selected{% endif %}>
+                        {{ user.get_full_name|default:user.username }}
+                    </option>
+                    {% endfor %}
+                </select>
+                
+                <select name="type" class="select select-bordered">
+                    <option value="">All Types</option>
+                    <option value="info" {% if request.GET.type == 'info' %}selected{% endif %}>Info</option>
+                    <option value="warning" {% if request.GET.type == 'warning' %}selected{% endif %}>Warning</option>
+                    <option value="error" {% if request.GET.type == 'error' %}selected{% endif %}>Error</option>
+                    <option value="success" {% if request.GET.type == 'success' %}selected{% endif %}>Success</option>
+                    <option value="order" {% if request.GET.type == 'order' %}selected{% endif %}>Order</option>
+                    <option value="payment" {% if request.GET.type == 'payment' %}selected{% endif %}>Payment</option>
+                </select>
+                
+                <select name="priority" class="select select-bordered">
+                    <option value="">All Priorities</option>
+                    <option value="low" {% if request.GET.priority == 'low' %}selected{% endif %}>Low</option>
+                    <option value="normal" {% if request.GET.priority == 'normal' %}selected{% endif %}>Normal</option>
+                    <option value="high" {% if request.GET.priority == 'high' %}selected{% endif %}>High</option>
+                    <option value="urgent" {% if request.GET.priority == 'urgent' %}selected{% endif %}>Urgent</option>
+                </select>
+                
+                <select name="status" class="select select-bordered">
+                    <option value="">All Status</option>
+                    <option value="unread" {% if request.GET.status == 'unread' %}selected{% endif %}>Unread</option>
+                    <option value="read" {% if request.GET.status == 'read' %}selected{% endif %}>Read</option>
+                </select>
+                
+                <button type="submit" class="btn btn-primary">Filter</button>
+                
+                {% if request.GET.user or request.GET.type or request.GET.priority or request.GET.status %}
+                <a href="{% url 'dashboard:notification_manage' %}" class="btn btn-ghost">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+
+    <!-- Notifications Table -->
+    {% if page_obj %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="overflow-x-auto">
+            <table class="table table-zebra">
+                <thead>
+                    <tr>
+                        <th>
+                            <label>
+                                <input type="checkbox" class="checkbox" id="select-all" />
+                            </label>
+                        </th>
+                        <th>User</th>
+                        <th>Title</th>
+                        <th>Type</th>
+                        <th>Priority</th>
+                        <th>Status</th>
+                        <th>Created</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for notification in page_obj %}
+                    <tr class="hover">
+                        <th>
+                            <label>
+                                <input type="checkbox" class="checkbox notification-checkbox" value="{{ notification.id }}" />
+                            </label>
+                        </th>
+                        <td>
+                            <div class="flex items-center space-x-3">
+                                <div class="avatar placeholder">
+                                    <div class="bg-neutral text-neutral-content rounded-full w-10">
+                                        <span class="text-xs">{{ notification.user.first_name.0|upper }}{{ notification.user.last_name.0|upper }}</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="font-bold">{{ notification.user.get_full_name|default:notification.user.username }}</div>
+                                    <div class="text-sm opacity-50">{{ notification.user.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="font-semibold">{{ notification.title }}</div>
+                            <div class="text-sm opacity-75">{{ notification.message|truncatechars:50 }}</div>
+                        </td>
+                        <td>
+                            {% if notification.notification_type == 'info' %}
+                                <div class="badge badge-info">Info</div>
+                            {% elif notification.notification_type == 'warning' %}
+                                <div class="badge badge-warning">Warning</div>
+                            {% elif notification.notification_type == 'error' %}
+                                <div class="badge badge-error">Error</div>
+                            {% elif notification.notification_type == 'success' %}
+                                <div class="badge badge-success">Success</div>
+                            {% elif notification.notification_type == 'order' %}
+                                <div class="badge badge-primary">Order</div>
+                            {% elif notification.notification_type == 'payment' %}
+                                <div class="badge badge-secondary">Payment</div>
+                            {% else %}
+                                <div class="badge">{{ notification.get_notification_type_display|default:notification.notification_type }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if notification.priority == 'urgent' %}
+                                <div class="badge badge-error">Urgent</div>
+                            {% elif notification.priority == 'high' %}
+                                <div class="badge badge-warning">High</div>
+                            {% elif notification.priority == 'normal' %}
+                                <div class="badge badge-ghost">Normal</div>
+                            {% elif notification.priority == 'low' %}
+                                <div class="badge badge-outline">Low</div>
+                            {% else %}
+                                <div class="badge">{{ notification.get_priority_display|default:"Normal" }}</div>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if notification.is_read %}
+                                <div class="badge badge-ghost">Read</div>
+                            {% else %}
+                                <div class="badge badge-warning">Unread</div>
+                            {% endif %}
+                        </td>
+                        <td>{{ notification.created_at|date:"M d, Y H:i" }}</td>
+                        <td>
+                            <div class="dropdown dropdown-end">
+                                <label tabindex="0" class="btn btn-ghost btn-xs">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                    </svg>
+                                </label>
+                                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                    <li><a href="{% url 'customer_portal:notification_detail' notification.id %}">View Details</a></li>
+                                    {% if not notification.is_read %}
+                                    <li><a href="#" onclick="markAsRead({{ notification.id }}); return false;">Mark as Read</a></li>
+                                    {% endif %}
+                                    <li><a href="{% url 'dashboard:notification_delete' notification.id %}" class="text-error">Delete</a></li>
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Bulk Actions -->
+        <div class="card-body border-t">
+            <div class="flex items-center gap-4">
+                <span class="text-sm">With selected:</span>
+                <button onclick="bulkAction('mark_read')" class="btn btn-sm btn-outline">Mark as Read</button>
+                <button onclick="bulkAction('delete')" class="btn btn-sm btn-outline btn-error">Delete</button>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body text-center py-16">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-24 w-24 mx-auto mb-4 text-base-content/20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+            </svg>
+            <h3 class="text-xl font-semibold">No notifications found</h3>
+            <p class="text-base-content/60">Send your first notification to users</p>
+            <div class="card-actions justify-center mt-4">
+                <a href="{% url 'dashboard:notification_create' %}" class="btn btn-primary">
+                    Send Notification
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="flex justify-center">
+        <div class="btn-group">
+            {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}" class="btn">«</a>
+            {% else %}
+                <button class="btn btn-disabled">«</button>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                    <button class="btn btn-active">{{ num }}</button>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}" class="btn">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}" class="btn">»</a>
+            {% else %}
+                <button class="btn btn-disabled">»</button>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+document.getElementById('select-all').addEventListener('change', function() {
+    const checkboxes = document.querySelectorAll('.notification-checkbox');
+    checkboxes.forEach(cb => cb.checked = this.checked);
+});
+
+function markAsRead(notificationId) {
+    fetch(`/customer-portal/notifications/${notificationId}/mark-read/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        }
+    }).then(() => location.reload());
+}
+
+function bulkAction(action) {
+    const selected = Array.from(document.querySelectorAll('.notification-checkbox:checked'))
+        .map(cb => cb.value);
+    
+    if (selected.length === 0) {
+        alert('Please select at least one notification');
+        return;
+    }
+    
+    const formData = new FormData();
+    formData.append('action', action);
+    selected.forEach(id => formData.append('notification_ids', id));
+    
+    fetch('{% url "dashboard:notification_bulk_action" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+        },
+        body: formData
+    }).then(() => location.reload());
+}
+</script>
+{% endblock %}

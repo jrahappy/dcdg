@@ -1,0 +1,203 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}{% if form.instance.pk %}Edit{% else %}Add{% endif %} Contact - {{ customer.get_full_name }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs mb-6">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+            <li><a href="{% url 'customer:customer_list' %}">Customers</a></li>
+            <li><a href="{% url 'customer:customer_detail' customer.pk %}">{{ customer.get_full_name }}</a></li>
+            <li>{% if form.instance.pk %}Edit{% else %}Add{% endif %} Contact</li>
+        </ul>
+    </div>
+
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold">{% if form.instance.pk %}Edit{% else %}Add{% endif %} Contact</h1>
+        <p class="text-base-content/60 mt-2">{% if form.instance.pk %}Update contact information{% else %}Add a new contact for {{ customer.get_full_name }}{% endif %}</p>
+    </div>
+
+    <!-- Customer Summary Card -->
+    <div class="card bg-base-200 mb-6">
+        <div class="card-body">
+            <div class="flex items-center gap-4">
+                <div class="avatar placeholder">
+                    <div class="bg-neutral text-neutral-content rounded-full w-12">
+                        <span>{{ customer.first_name.0|upper }}{{ customer.last_name.0|upper }}</span>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-semibold">{{ customer.get_full_name }}</h3>
+                    <p class="text-sm text-base-content/60">{{ customer.email }}</p>
+                    {% if customer.company_name %}
+                    <div class="badge badge-outline badge-sm mt-1">{{ customer.company_name }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="alert alert-error">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                        {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Contact Information Section -->
+                <div>
+                    <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        Contact Information
+                    </h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- First Name -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">First Name <span class="text-error">*</span></span>
+                            </label>
+                            <input type="text" name="first_name" value="{{ form.first_name.value|default:'' }}" 
+                                   class="input input-bordered w-full" placeholder="First Name" required>
+                            {% if form.first_name.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.first_name.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        <!-- Last Name -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Last Name <span class="text-error">*</span></span>
+                            </label>
+                            <input type="text" name="last_name" value="{{ form.last_name.value|default:'' }}" 
+                                   class="input input-bordered w-full" placeholder="Last Name" required>
+                            {% if form.last_name.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.last_name.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        <!-- Email -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Email <span class="text-error">*</span></span>
+                            </label>
+                            <input type="email" name="email" value="{{ form.email.value|default:'' }}" 
+                                   class="input input-bordered w-full" placeholder="Email Address" required>
+                            {% if form.email.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.email.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        <!-- Phone -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Phone</span>
+                            </label>
+                            <input type="text" name="phone" value="{{ form.phone.value|default:'' }}" 
+                                   class="input input-bordered w-full" placeholder="Phone Number">
+                            {% if form.phone.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.phone.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="divider"></div>
+
+                <!-- Professional Information Section -->
+                <div>
+                    <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        Professional Information
+                    </h2>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Job Title -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Job Title</span>
+                            </label>
+                            <input type="text" name="job_title" value="{{ form.job_title.value|default:'' }}" 
+                                   class="input input-bordered w-full" placeholder="Job Title">
+                            {% if form.job_title.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.job_title.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+
+                        <!-- Department -->
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Department</span>
+                            </label>
+                            <input type="text" name="department" value="{{ form.department.value|default:'' }}" 
+                                   class="input input-bordered w-full" placeholder="Department">
+                            {% if form.department.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.department.errors.0 }}</span>
+                            </label>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- Primary Contact -->
+                    <div class="form-control mt-4">
+                        <label class="label cursor-pointer justify-start gap-4">
+                            <input type="checkbox" name="is_primary" value="1" 
+                                   {% if form.is_primary.value %}checked{% endif %} 
+                                   class="checkbox checkbox-primary">
+                            <span class="label-text">Set as Primary Contact</span>
+                        </label>
+                        {% if form.is_primary.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.is_primary.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex justify-end gap-3 pt-4">
+                    <a href="{% url 'customer:customer_detail' customer.pk %}" class="btn btn-ghost">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        {% if form.instance.pk %}Update{% else %}Add{% endif %} Contact
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

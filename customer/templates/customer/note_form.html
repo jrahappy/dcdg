@@ -1,0 +1,106 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}Add Note - {{ customer.get_full_name }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs mb-6">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+            <li><a href="{% url 'customer:customer_list' %}">Customers</a></li>
+            <li><a href="{% url 'customer:customer_detail' customer.pk %}">{{ customer.get_full_name }}</a></li>
+            <li>Add Note</li>
+        </ul>
+    </div>
+
+    <!-- Header -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold">Add Note</h1>
+        <p class="text-base-content/60 mt-2">Add a note for {{ customer.get_full_name }}</p>
+    </div>
+
+    <!-- Customer Summary Card -->
+    <div class="card bg-base-200 mb-6">
+        <div class="card-body">
+            <div class="flex items-center gap-4">
+                <div class="avatar placeholder">
+                    <div class="bg-neutral text-neutral-content rounded-full w-12">
+                        <span>{{ customer.first_name.0|upper }}{{ customer.last_name.0|upper }}</span>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="font-semibold">{{ customer.get_full_name }}</h3>
+                    <p class="text-sm text-base-content/60">{{ customer.email }}</p>
+                    {% if customer.company_name %}
+                    <div class="badge badge-outline badge-sm mt-1">{{ customer.company_name }}</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Card -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <form method="post" class="space-y-6">
+                {% csrf_token %}
+                
+                {% if form.non_field_errors %}
+                <div class="alert alert-error">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <div>
+                        {% for error in form.non_field_errors %}
+                            <p>{{ error }}</p>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Note Content Section -->
+                <div>
+                    <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                        </svg>
+                        Note Details
+                    </h2>
+
+                    <!-- Note Content -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Note Content <span class="text-error">*</span></span>
+                        </label>
+                        <textarea name="note" rows="6" 
+                                  class="textarea textarea-bordered w-full h-32" 
+                                  placeholder="Enter your note here..." required>{{ form.note.value|default:'' }}</textarea>
+                        {% if form.note.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.note.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                        <label class="label">
+                            <span class="label-text-alt">Notes are internal and will not be visible to the customer.</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="flex justify-end gap-3 pt-4">
+                    <a href="{% url 'customer:customer_detail' customer.pk %}" class="btn btn-ghost">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                        </svg>
+                        Add Note
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

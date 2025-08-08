@@ -1,0 +1,213 @@
+{% extends 'accounts/account_base.html' %}
+{% load static %}
+
+{% block title %}{{ title }} - {{ block.super }}{% endblock %}
+
+{% block account_content %}
+    <!-- Header -->
+    <div class="mb-6">
+        <h2 class="text-2xl font-semibold text-gray-900">{{ title }}</h2>
+    </div>
+
+    <!-- Form -->
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Address Type -->
+        <div class="form-control w-full">
+            <label class="label" for="{{ form.address_type.id_for_label }}">
+                <span class="label-text">Address Type</span>
+            </label>
+            <select name="{{ form.address_type.name }}" id="{{ form.address_type.id_for_label }}" class="select select-bordered w-full">
+                {% for value, text in form.address_type.field.choices %}
+                <option value="{{ value }}" {% if value == form.address_type.value %}selected{% endif %}>{{ text }}</option>
+                {% endfor %}
+            </select>
+            {% if form.address_type.errors %}
+            <label class="label">
+                <span class="label-text-alt text-error">{{ form.address_type.errors.0 }}</span>
+            </label>
+            {% endif %}
+        </div>
+
+        <!-- Label -->
+        <div class="form-control w-full">
+            <label class="label" for="{{ form.label.id_for_label }}">
+                <span class="label-text">Label (Optional)</span>
+            </label>
+            <input type="text" name="{{ form.label.name }}" id="{{ form.label.id_for_label }}" 
+                   value="{{ form.label.value|default:'' }}" 
+                   placeholder="e.g., Home, Office, Warehouse" 
+                   class="input input-bordered w-full" />
+            {% if form.label.errors %}
+            <label class="label">
+                <span class="label-text-alt text-error">{{ form.label.errors.0 }}</span>
+            </label>
+            {% endif %}
+        </div>
+
+        <!-- Recipient Name -->
+        <div class="form-control w-full">
+            <label class="label" for="{{ form.recipient_name.id_for_label }}">
+                <span class="label-text">Recipient Name</span>
+            </label>
+            <input type="text" name="{{ form.recipient_name.name }}" id="{{ form.recipient_name.id_for_label }}" 
+                   value="{{ form.recipient_name.value|default:'' }}" 
+                   placeholder="Full name of recipient" 
+                   class="input input-bordered w-full" required />
+            {% if form.recipient_name.errors %}
+            <label class="label">
+                <span class="label-text-alt text-error">{{ form.recipient_name.errors.0 }}</span>
+            </label>
+            {% endif %}
+        </div>
+
+        <!-- Company Name -->
+        <div class="form-control w-full">
+            <label class="label" for="{{ form.company_name.id_for_label }}">
+                <span class="label-text">Company Name (Optional)</span>
+            </label>
+            <input type="text" name="{{ form.company_name.name }}" id="{{ form.company_name.id_for_label }}" 
+                   value="{{ form.company_name.value|default:'' }}" 
+                   placeholder="Company name (optional)" 
+                   class="input input-bordered w-full" />
+            {% if form.company_name.errors %}
+            <label class="label">
+                <span class="label-text-alt text-error">{{ form.company_name.errors.0 }}</span>
+            </label>
+            {% endif %}
+        </div>
+
+        <!-- Address Lines -->
+        <div class="form-control w-full">
+            <label class="label" for="{{ form.address_line1.id_for_label }}">
+                <span class="label-text">Street Address</span>
+            </label>
+            <input type="text" name="{{ form.address_line1.name }}" id="{{ form.address_line1.id_for_label }}" 
+                   value="{{ form.address_line1.value|default:'' }}" 
+                   placeholder="Street address" 
+                   class="input input-bordered w-full" required />
+            {% if form.address_line1.errors %}
+            <label class="label">
+                <span class="label-text-alt text-error">{{ form.address_line1.errors.0 }}</span>
+            </label>
+            {% endif %}
+        </div>
+
+        <div class="form-control w-full">
+            <label class="label" for="{{ form.address_line2.id_for_label }}">
+                <span class="label-text">Address Line 2 (Optional)</span>
+            </label>
+            <input type="text" name="{{ form.address_line2.name }}" id="{{ form.address_line2.id_for_label }}" 
+                   value="{{ form.address_line2.value|default:'' }}" 
+                   placeholder="Apartment, suite, unit, etc. (optional)" 
+                   class="input input-bordered w-full" />
+            {% if form.address_line2.errors %}
+            <label class="label">
+                <span class="label-text-alt text-error">{{ form.address_line2.errors.0 }}</span>
+            </label>
+            {% endif %}
+        </div>
+
+        <!-- City, State, Postal Code -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="form-control w-full">
+                <label class="label" for="{{ form.city.id_for_label }}">
+                    <span class="label-text">City</span>
+                </label>
+                <input type="text" name="{{ form.city.name }}" id="{{ form.city.id_for_label }}" 
+                       value="{{ form.city.value|default:'' }}" 
+                       placeholder="City" 
+                       class="input input-bordered w-full" required />
+                {% if form.city.errors %}
+                <label class="label">
+                    <span class="label-text-alt text-error">{{ form.city.errors.0 }}</span>
+                </label>
+                {% endif %}
+            </div>
+
+            <div class="form-control w-full">
+                <label class="label" for="{{ form.state.id_for_label }}">
+                    <span class="label-text">State/Province</span>
+                </label>
+                <input type="text" name="{{ form.state.name }}" id="{{ form.state.id_for_label }}" 
+                       value="{{ form.state.value|default:'' }}" 
+                       placeholder="State/Province" 
+                       class="input input-bordered w-full" required />
+                {% if form.state.errors %}
+                <label class="label">
+                    <span class="label-text-alt text-error">{{ form.state.errors.0 }}</span>
+                </label>
+                {% endif %}
+            </div>
+
+            <div class="form-control w-full">
+                <label class="label" for="{{ form.postal_code.id_for_label }}">
+                    <span class="label-text">ZIP/Postal Code</span>
+                </label>
+                <input type="text" name="{{ form.postal_code.name }}" id="{{ form.postal_code.id_for_label }}" 
+                       value="{{ form.postal_code.value|default:'' }}" 
+                       placeholder="ZIP/Postal code" 
+                       class="input input-bordered w-full" required />
+                {% if form.postal_code.errors %}
+                <label class="label">
+                    <span class="label-text-alt text-error">{{ form.postal_code.errors.0 }}</span>
+                </label>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Country -->
+        <div class="form-control w-full">
+            <label class="label" for="{{ form.country.id_for_label }}">
+                <span class="label-text">Country</span>
+            </label>
+            <input type="text" name="{{ form.country.name }}" id="{{ form.country.id_for_label }}" 
+                   value="{{ form.country.value|default:'United States' }}" 
+                   placeholder="Country" 
+                   class="input input-bordered w-full" required />
+            {% if form.country.errors %}
+            <label class="label">
+                <span class="label-text-alt text-error">{{ form.country.errors.0 }}</span>
+            </label>
+            {% endif %}
+        </div>
+
+        <!-- Phone -->
+        <div class="form-control w-full">
+            <label class="label" for="{{ form.phone.id_for_label }}">
+                <span class="label-text">Phone Number (Optional)</span>
+            </label>
+            <input type="tel" name="{{ form.phone.name }}" id="{{ form.phone.id_for_label }}" 
+                   value="{{ form.phone.value|default:'' }}" 
+                   placeholder="+1234567890" 
+                   class="input input-bordered w-full" />
+            {% if form.phone.errors %}
+            <label class="label">
+                <span class="label-text-alt text-error">{{ form.phone.errors.0 }}</span>
+            </label>
+            {% endif %}
+        </div>
+
+        <!-- Default Checkbox -->
+        <div class="form-control">
+            <label class="label cursor-pointer">
+                <span class="label-text">Set as default address</span>
+                <input type="checkbox" name="{{ form.is_default.name }}" id="{{ form.is_default.id_for_label }}" 
+                       {% if form.is_default.value %}checked{% endif %}
+                       class="checkbox checkbox-primary" />
+            </label>
+            <span class="label-text-alt text-gray-500">This address will be pre-selected for orders.</span>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex items-center justify-end gap-4">
+            <a href="{% url 'customer:address_list' %}" class="btn btn-ghost">
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                {{ button_text }}
+            </button>
+        </div>
+    </form>
+{% endblock %}

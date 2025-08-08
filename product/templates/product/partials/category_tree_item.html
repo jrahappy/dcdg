@@ -1,0 +1,75 @@
+<div class="category-tree-item">
+    <div class="flex items-center justify-between p-3 rounded-lg hover:bg-base-300/30" style="margin-left: calc({{ level }} * 1.5rem);">
+        <div class="flex items-center gap-3">
+            {% if category.children.exists %}
+            <button class="btn btn-ghost btn-xs" onclick="toggleCategory('category-{{ category.id }}')">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 transition-transform" id="arrow-{{ category.id }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </button>
+            {% else %}
+            <div class="w-8"></div>
+            {% endif %}
+            
+            {% if category.icon %}
+            <i class="{{ category.icon }} text-lg"></i>
+            {% else %}
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+            </svg>
+            {% endif %}
+            
+            <div>
+                <a href="{% url 'product:category_detail' category.pk %}" class="font-medium hover:text-primary">
+                    {{ category.name }}
+                </a>
+                <span class="text-xs text-base-content/40 ml-2">(Order: {{ category.order }})</span>
+                {% if not category.is_active %}
+                <span class="badge badge-ghost badge-sm ml-2">Inactive</span>
+                {% endif %}
+                <div class="text-sm text-base-content/60">
+                    {{ category.product_count }} product{{ category.product_count|pluralize }}
+                    {% if category.description %}
+                    • {{ category.description|truncatewords:10 }}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <div class="flex items-center gap-2">
+            <a href="{% url 'product:category_update' category.pk %}" class="btn btn-ghost btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+            </a>
+            <a href="{% url 'product:category_delete' category.pk %}" class="btn btn-ghost btn-sm text-error">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+            </a>
+        </div>
+    </div>
+    
+    {% if category.children.exists %}
+    <div id="category-{{ category.id }}" class="category-children hidden">
+        {% for child in category.children.all %}
+            {% include 'product/partials/category_tree_item.html' with category=child level=level|add:1 %}
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleCategory(id) {
+    const element = document.getElementById(id);
+    const arrow = document.getElementById('arrow-' + id.split('-')[1]);
+    
+    if (element.classList.contains('hidden')) {
+        element.classList.remove('hidden');
+        arrow.style.transform = 'rotate(90deg)';
+    } else {
+        element.classList.add('hidden');
+        arrow.style.transform = 'rotate(0deg)';
+    }
+}
+</script>

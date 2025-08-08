@@ -1,0 +1,365 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+
+{% block page_title %}Order {{ order.order_number }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="h-full flex flex-col bg-white">
+    <!-- Header -->
+    <div class="border-b border-gray-200 bg-white px-6 py-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <button onclick="window.location.href='{% url 'sales:order_list' %}'" class="mr-4 text-gray-600 hover:text-gray-900">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h1 class="text-2xl font-semibold text-gray-900">Order {{ order.order_number }}</h1>
+                <span class="ml-3 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium 
+                    {% if order.status == 'pending' %}bg-yellow-100 text-yellow-800
+                    {% elif order.status == 'confirmed' %}bg-blue-100 text-blue-800
+                    {% elif order.status == 'processing' %}bg-indigo-100 text-indigo-800
+                    {% elif order.status == 'shipped' %}bg-purple-100 text-purple-800
+                    {% elif order.status == 'delivered' %}bg-green-100 text-green-800
+                    {% elif order.status == 'cancelled' %}bg-red-100 text-red-800
+                    {% elif order.status == 'refunded' %}bg-gray-100 text-gray-800
+                    {% endif %}">
+                    {{ order.get_status_display }}
+                </span>
+                <span class="ml-2 inline-flex items-center px-3 py-1 rounded-full text-xs font-medium 
+                    {% if order.payment_status == 'unpaid' %}bg-red-100 text-red-800
+                    {% elif order.payment_status == 'partial' %}bg-yellow-100 text-yellow-800
+                    {% elif order.payment_status == 'paid' %}bg-green-100 text-green-800
+                    {% elif order.payment_status == 'overdue' %}bg-red-100 text-red-800
+                    {% endif %}">
+                    {{ order.get_payment_status_display }}
+                </span>
+            </div>
+            <div class="flex gap-2">
+                {% if order.status == 'confirmed' %}
+                <button class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors duration-200">
+                    <i class="fas fa-cogs mr-2"></i>
+                    Process Order
+                </button>
+                {% endif %}
+                {% if order.status == 'processing' %}
+                <button class="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors duration-200">
+                    <i class="fas fa-truck mr-2"></i>
+                    Mark as Shipped
+                </button>
+                {% endif %}
+                {% if order.balance_due > 0 %}
+                <button onclick="window.location.href='{% url 'sales:payment_add' order.pk %}'" class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
+                    <i class="fas fa-dollar-sign mr-2"></i>
+                    Record Payment
+                </button>
+                {% endif %}
+                <button onclick="window.location.href='{% url 'sales:invoice_create' %}?order={{ order.pk }}'" class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200">
+                    <i class="fas fa-file-invoice mr-2"></i>
+                    Create Invoice
+                </button>
+                <button onclick="window.location.href='{% url 'sales:order_update' order.pk %}'" class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors duration-200">
+                    <i class="fas fa-edit mr-2"></i>
+                    Edit
+                </button>
+                <button onclick="showDeleteModal({{ order.id }}, '{{ order.order_number|escapejs }}')" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200">
+                    <i class="fas fa-trash mr-2"></i>
+                    Delete
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto p-6">
+        <div class="max-w-6xl mx-auto">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Order Information -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Order Information</h2>
+                        </div>
+                        <div class="p-6">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Customer</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">
+                                        <a href="{% url 'customer:customer_detail' order.customer.pk %}" class="text-blue-600 hover:text-blue-800">
+                                            {{ order.customer.get_full_name }}
+                                            {% if order.customer.company_name %}<br>{{ order.customer.company_name }}{% endif %}
+                                        </a>
+                                    </dd>
+                                </div>
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Order Date</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ order.order_date|date:"F d, Y" }}</dd>
+                                </div>
+                                {% if order.delivery_date %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Expected Delivery</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ order.delivery_date|date:"F d, Y" }}</dd>
+                                </div>
+                                {% endif %}
+                                {% if order.shipped_date %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Shipped Date</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ order.shipped_date|date:"F d, Y" }}</dd>
+                                </div>
+                                {% endif %}
+                                {% if order.purchase_order_number %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">PO Number</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">{{ order.purchase_order_number }}</dd>
+                                </div>
+                                {% endif %}
+                                {% if order.quote %}
+                                <div>
+                                    <dt class="text-sm font-medium text-gray-500">Related Quote</dt>
+                                    <dd class="mt-1 text-sm text-gray-900">
+                                        <a href="{% url 'sales:quote_detail' order.quote.pk %}" class="text-blue-600 hover:text-blue-800">
+                                            {{ order.quote.quote_number }}
+                                        </a>
+                                    </dd>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Shipping Address -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Shipping Address</h2>
+                        </div>
+                        <div class="p-6">
+                            <address class="text-sm text-gray-900 not-italic">
+                                {{ order.shipping_address_line1 }}<br>
+                                {% if order.shipping_address_line2 %}{{ order.shipping_address_line2 }}<br>{% endif %}
+                                {{ order.shipping_city }}, {{ order.shipping_state }} {{ order.shipping_postal_code }}<br>
+                                {{ order.shipping_country }}
+                            </address>
+                        </div>
+                    </div>
+
+                    <!-- Line Items -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <div class="flex items-center justify-between">
+                                <h2 class="text-lg font-semibold text-gray-900">Order Items</h2>
+                                {% if order.status in 'pending,confirmed' %}
+                                <button onclick="window.location.href='{% url 'sales:order_item_add' order.pk %}'" class="px-3 py-1 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 text-sm">
+                                    <i class="fas fa-plus mr-1"></i> Add Item
+                                </button>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="overflow-x-auto">
+                            <table class="min-w-full divide-y divide-gray-200">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Price</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Discount</th>
+                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Line Total</th>
+                                        <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="bg-white divide-y divide-gray-200">
+                                    {% for item in items %}
+                                    <tr>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                            {{ item.description }}
+                                            {% if item.product %}<br><span class="text-xs text-gray-500">{{ item.product.name }}</span>{% endif %}
+                                        </td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{{ item.quantity|floatformat:"-2" }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">${{ item.unit_price|floatformat:2 }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{{ item.discount_percent|floatformat:"-2" }}%</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">${{ item.line_total|floatformat:2 }}</td>
+                                        <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                            {% if item.quantity_delivered == item.quantity %}
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-green-100 text-green-800">Delivered</span>
+                                            {% elif item.quantity_shipped > 0 %}
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">Shipped</span>
+                                            {% else %}
+                                                <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">Pending</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% empty %}
+                                    <tr>
+                                        <td colspan="6" class="px-6 py-4 text-center text-sm text-gray-500">
+                                            No items added yet
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    {% if order.notes %}
+                    <!-- Notes -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Customer Notes</h2>
+                        </div>
+                        <div class="p-6">
+                            <div class="text-sm text-gray-700 whitespace-pre-wrap">{{ order.notes }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if order.internal_notes %}
+                    <!-- Internal Notes -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Internal Notes</h2>
+                        </div>
+                        <div class="p-6">
+                            <div class="text-sm text-gray-700 whitespace-pre-wrap">{{ order.internal_notes }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="space-y-6">
+                    <!-- Order Summary -->
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Order Summary</h2>
+                        </div>
+                        <div class="p-6">
+                            <div class="space-y-3">
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Subtotal</span>
+                                    <span class="text-gray-900">${{ order.subtotal|floatformat:2 }}</span>
+                                </div>
+                                {% if order.discount_amount > 0 %}
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Discount ({{ order.discount_percent|floatformat:"-2" }}%)</span>
+                                    <span class="text-red-600">-${{ order.discount_amount|floatformat:2 }}</span>
+                                </div>
+                                {% endif %}
+                                {% if order.shipping_cost > 0 %}
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Shipping</span>
+                                    <span class="text-gray-900">${{ order.shipping_cost|floatformat:2 }}</span>
+                                </div>
+                                {% endif %}
+                                {% if order.tax_amount > 0 %}
+                                <div class="flex justify-between text-sm">
+                                    <span class="text-gray-600">Tax ({{ order.tax_rate|floatformat:"-2" }}%)</span>
+                                    <span class="text-gray-900">${{ order.tax_amount|floatformat:2 }}</span>
+                                </div>
+                                {% endif %}
+                                <div class="pt-3 border-t border-gray-200">
+                                    <div class="flex justify-between">
+                                        <span class="text-base font-medium text-gray-900">Total</span>
+                                        <span class="text-xl font-bold text-gray-900">${{ order.total_amount|floatformat:2 }}</span>
+                                    </div>
+                                </div>
+                                {% if order.paid_amount > 0 %}
+                                <div class="pt-3 border-t border-gray-200">
+                                    <div class="flex justify-between text-sm">
+                                        <span class="text-gray-600">Paid Amount</span>
+                                        <span class="text-green-600">${{ order.paid_amount|floatformat:2 }}</span>
+                                    </div>
+                                    <div class="flex justify-between mt-2">
+                                        <span class="text-base font-medium text-gray-900">Balance Due</span>
+                                        <span class="text-lg font-bold {% if order.balance_due > 0 %}text-red-600{% else %}text-gray-900{% endif %}">${{ order.balance_due|floatformat:2 }}</span>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payment History -->
+                    {% if payments %}
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Payment History</h2>
+                        </div>
+                        <div class="p-6">
+                            <div class="space-y-3">
+                                {% for payment in payments %}
+                                <div class="flex justify-between items-center text-sm">
+                                    <div>
+                                        <div class="text-gray-900">${{ payment.amount|floatformat:2 }}</div>
+                                        <div class="text-xs text-gray-500">{{ payment.payment_date|date:"M d, Y" }} - {{ payment.get_payment_method_display }}</div>
+                                    </div>
+                                    <span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium 
+                                        {% if payment.status == 'completed' %}bg-green-100 text-green-800
+                                        {% elif payment.status == 'pending' %}bg-yellow-100 text-yellow-800
+                                        {% else %}bg-gray-100 text-gray-800{% endif %}">
+                                        {{ payment.get_status_display }}
+                                    </span>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Related Invoices -->
+                    {% if order.invoices.exists %}
+                    <div class="bg-white border border-gray-200 rounded-lg">
+                        <div class="px-6 py-4 border-b border-gray-200">
+                            <h2 class="text-lg font-semibold text-gray-900">Related Invoices</h2>
+                        </div>
+                        <div class="p-6">
+                            <div class="space-y-2">
+                                {% for invoice in order.invoices.all %}
+                                <a href="{% url 'sales:invoice_detail' invoice.pk %}" class="block text-sm text-blue-600 hover:text-blue-800">
+                                    {{ invoice.invoice_number }} - {{ invoice.get_status_display }}
+                                </a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div id="deleteModal" class="hidden fixed inset-0 z-50 bg-black bg-opacity-50">
+    <div class="flex items-center justify-center min-h-screen p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div class="p-6">
+                <h2 class="text-xl font-semibold text-gray-900 mb-4">Delete Order</h2>
+                <p class="text-gray-600 mb-6">Are you sure you want to delete order <strong id="orderName"></strong>? This will also delete all associated line items and payment records.</p>
+                <div class="flex justify-end gap-3">
+                    <button onclick="closeDeleteModal()" class="px-4 py-2 text-gray-700 bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors duration-200">
+                        Cancel
+                    </button>
+                    <form method="POST" id="deleteForm" class="inline">
+                        {% csrf_token %}
+                        <button type="submit" class="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200">
+                            Delete Order
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showDeleteModal(orderId, orderName) {
+    const modal = document.getElementById('deleteModal');
+    const form = document.getElementById('deleteForm');
+    const nameElement = document.getElementById('orderName');
+    
+    form.action = `/sales/orders/${orderId}/delete/`;
+    nameElement.textContent = orderName;
+    modal.classList.remove('hidden');
+}
+
+function closeDeleteModal() {
+    document.getElementById('deleteModal').classList.add('hidden');
+}
+</script>
+{% endblock %}

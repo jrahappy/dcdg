@@ -1,0 +1,249 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}Create Purchase Order - Step 1{% endblock %}
+
+{% block dashboard_content %}
+<div class="space-y-6">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </a></li>
+            <li><a href="{% url 'purchases:purchase_order_list' %}">Purchase Orders</a></li>
+            <li>Create New</li>
+            <li>Step 1: Select Supplier</li>
+        </ul>
+    </div>
+
+    <!-- Header with Progress Steps -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <h1 class="text-2xl font-bold">Create New Purchase Order</h1>
+                
+                <!-- Progress Steps -->
+                <ul class="steps">
+                    <li class="step step-primary">
+                        <span class="hidden sm:inline">Select Supplier</span>
+                        <span class="sm:hidden">Supplier</span>
+                    </li>
+                    <li class="step">
+                        <span class="hidden sm:inline">Add Products</span>
+                        <span class="sm:hidden">Products</span>
+                    </li>
+                    <li class="step">
+                        <span class="hidden sm:inline">Review & Save</span>
+                        <span class="sm:hidden">Review</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instructions -->
+    <div class="alert alert-info">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>Select an existing supplier or create a new one to start creating the purchase order.</span>
+    </div>
+
+    <form method="post" id="supplierForm">
+        {% csrf_token %}
+        
+        <!-- Supplier Selection -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        Select Supplier
+                    </h2>
+                    <a href="{% url 'purchases:supplier_create' %}?next={% url 'purchases:purchase_order_create_step1' %}" class="btn btn-ghost btn-sm">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        New Supplier
+                    </a>
+                </div>
+
+                <!-- Search Box -->
+                <div class="form-control mb-4">
+                    <div class="input-group">
+                        <input type="text" id="supplierSearch" placeholder="Search suppliers by name, email, or contact person..." 
+                               class="input input-bordered w-full">
+                        <span>
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                            </svg>
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Supplier List -->
+                <div class="max-h-96 overflow-y-auto space-y-2">
+                    {% for supplier in suppliers %}
+                    <label class="card bg-base-200 hover:bg-base-300 cursor-pointer transition-colors supplier-item">
+                        <div class="card-body p-4">
+                            <div class="flex items-start gap-4">
+                                <input type="radio" name="supplier_id" value="{{ supplier.id }}" class="radio radio-primary mt-1">
+                                <div class="flex-1">
+                                    <div class="flex items-start justify-between">
+                                        <div>
+                                            <div class="font-semibold">{{ supplier.name }}</div>
+                                            <div class="text-sm text-base-content/60">
+                                                {% if supplier.contact_person %}
+                                                    <span>{{ supplier.contact_person }}</span>
+                                                    {% if supplier.email or supplier.phone %} • {% endif %}
+                                                {% endif %}
+                                                {% if supplier.email %}
+                                                    <span>{{ supplier.email }}</span>
+                                                    {% if supplier.phone %} • {% endif %}
+                                                {% endif %}
+                                                {% if supplier.phone %}
+                                                    <span>{{ supplier.phone }}</span>
+                                                {% endif %}
+                                            </div>
+                                            {% if supplier.city or supplier.state %}
+                                            <div class="text-xs text-base-content/50 mt-1">
+                                                {% if supplier.city %}{{ supplier.city }}{% endif %}{% if supplier.city and supplier.state %}, {% endif %}
+                                                {% if supplier.state %}{{ supplier.state }}{% endif %}
+                                                {% if supplier.country %} • {{ supplier.get_country_display }}{% endif %}
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div>
+                                            {% if supplier.is_active %}
+                                                <div class="badge badge-success badge-sm">Active</div>
+                                            {% else %}
+                                                <div class="badge badge-ghost badge-sm">Inactive</div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </label>
+                    {% empty %}
+                    <div class="text-center py-8">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <p class="text-base-content/60 mb-4">No suppliers found</p>
+                        <a href="{% url 'purchases:supplier_create' %}?next={% url 'purchases:purchase_order_create_step1' %}" class="btn btn-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Create First Supplier
+                        </a>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Order Dates -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    Order Dates
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Order Date <span class="text-error">*</span></span>
+                        </label>
+                        <input type="date" id="order_date" name="order_date" required
+                               value="{% now 'Y-m-d' %}"
+                               class="input input-bordered">
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Expected Delivery Date</span>
+                        </label>
+                        <input type="date" id="expected_delivery_date" name="expected_delivery_date"
+                               class="input input-bordered">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="flex justify-between">
+            <a href="{% url 'purchases:purchase_order_list' %}" class="btn btn-ghost">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-primary" id="nextButton" disabled>
+                Next: Add Products
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Enable/disable next button based on supplier selection
+const radioButtons = document.querySelectorAll('input[name="supplier_id"]');
+const nextButton = document.getElementById('nextButton');
+
+radioButtons.forEach(radio => {
+    radio.addEventListener('change', function() {
+        if (this.checked) {
+            nextButton.disabled = false;
+        }
+    });
+});
+
+// Search functionality
+const searchInput = document.getElementById('supplierSearch');
+const supplierItems = document.querySelectorAll('.supplier-item');
+
+searchInput.addEventListener('input', function() {
+    const searchTerm = this.value.toLowerCase();
+    
+    supplierItems.forEach(item => {
+        const text = item.textContent.toLowerCase();
+        if (text.includes(searchTerm)) {
+            item.style.display = '';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+});
+
+// Pre-select supplier if only one exists
+if (supplierItems.length === 1) {
+    const radio = supplierItems[0].querySelector('input[type="radio"]');
+    if (radio) {
+        radio.checked = true;
+        nextButton.disabled = false;
+    }
+}
+
+// Pre-select supplier if passed in URL
+const urlParams = new URLSearchParams(window.location.search);
+const supplierId = urlParams.get('supplier');
+if (supplierId) {
+    const radio = document.querySelector(`input[name="supplier_id"][value="${supplierId}"]`);
+    if (radio) {
+        radio.checked = true;
+        nextButton.disabled = false;
+    }
+}
+</script>
+{% endblock %}

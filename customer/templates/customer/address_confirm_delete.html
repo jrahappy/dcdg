@@ -1,0 +1,66 @@
+{% extends 'accounts/account_base.html' %}
+{% load static %}
+
+{% block title %}Delete Address - {{ block.super }}{% endblock %}
+
+{% block account_content %}
+    <!-- Header -->
+    <div class="mb-6">
+        <h2 class="text-2xl font-semibold text-gray-900">Delete Address</h2>
+    </div>
+
+    <!-- Warning Alert -->
+    <div class="alert alert-error mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+        <div>
+            <h3 class="font-bold">Are you sure you want to delete this address?</h3>
+            <div class="text-xs">This action cannot be undone.</div>
+        </div>
+    </div>
+
+    <!-- Address Details -->
+    <div class="card bg-base-200">
+        <div class="card-body">
+            <h3 class="card-title text-sm">Address Details</h3>
+            <div class="text-sm space-y-1">
+                <p class="font-medium">{{ object.recipient_name }}</p>
+                {% if object.company_name %}
+                <p>{{ object.company_name }}</p>
+                {% endif %}
+                <p>{{ object.address_line1 }}</p>
+                {% if object.address_line2 %}
+                <p>{{ object.address_line2 }}</p>
+                {% endif %}
+                <p>{{ object.city }}, {{ object.state }} {{ object.postal_code }}</p>
+                <p>{{ object.country }}</p>
+                {% if object.phone %}
+                <p class="mt-2">Phone: {{ object.phone }}</p>
+                {% endif %}
+            </div>
+            <div class="card-actions justify-start mt-3">
+                <div class="badge badge-primary">{{ object.get_address_type_display }}</div>
+                {% if object.is_default %}
+                <div class="badge badge-success">Default</div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Form Actions -->
+    <form method="post" class="mt-6">
+        {% csrf_token %}
+        <div class="flex items-center justify-end gap-4">
+            <a href="{% url 'customer:address_list' %}" class="btn btn-ghost">
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-error">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/>
+                </svg>
+                Delete Address
+            </button>
+        </div>
+    </form>
+{% endblock %}

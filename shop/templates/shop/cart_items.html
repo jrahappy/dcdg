@@ -1,0 +1,61 @@
+{% if cart.items.exists %}
+<ul role="list" class="-my-6 divide-y divide-gray-200">
+    {% for item in cart.items.all %}
+    <li class="flex py-6">
+        <div class="h-24 w-24 flex-shrink-0 overflow-hidden rounded-md border border-gray-200">
+            {% if item.product.main_image %}
+            <img src="{{ item.product.main_image.url }}" alt="{{ item.product.name }}" class="h-full w-full object-cover object-center">
+            {% else %}
+            <div class="h-full w-full flex items-center justify-center bg-gray-100">
+                <svg class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="ml-4 flex flex-1 flex-col">
+            <div>
+                <div class="flex justify-between text-base font-medium text-gray-900">
+                    <h3>
+                        <a href="{% url 'shop:product_detail' item.product.pk %}">{{ item.product.name }}</a>
+                    </h3>
+                    <p class="ml-4">${{ item.line_total|floatformat:2 }}</p>
+                </div>
+                <p class="mt-1 text-sm text-gray-500">{{ item.product.short_description|truncatewords:10 }}</p>
+            </div>
+            <div class="flex flex-1 items-end justify-between text-sm">
+                <div class="flex items-center">
+                    <label for="quantity-{{ item.id }}" class="sr-only">Quantity</label>
+                    <select id="quantity-{{ item.id }}" name="quantity" onchange="updateCartItem({{ item.id }}, this.value)" class="max-w-full rounded-md border border-gray-300 py-1.5 text-left text-base font-medium leading-5 text-gray-700 shadow-sm focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500 sm:text-sm">
+                        <option value="1" {% if item.quantity == 1 %}selected{% endif %}>1</option>
+                        <option value="2" {% if item.quantity == 2 %}selected{% endif %}>2</option>
+                        <option value="3" {% if item.quantity == 3 %}selected{% endif %}>3</option>
+                        <option value="4" {% if item.quantity == 4 %}selected{% endif %}>4</option>
+                        <option value="5" {% if item.quantity == 5 %}selected{% endif %}>5</option>
+                        <option value="6" {% if item.quantity == 6 %}selected{% endif %}>6</option>
+                        <option value="7" {% if item.quantity == 7 %}selected{% endif %}>7</option>
+                        <option value="8" {% if item.quantity == 8 %}selected{% endif %}>8</option>
+                        <option value="9" {% if item.quantity == 9 %}selected{% endif %}>9</option>
+                        <option value="10" {% if item.quantity == 10 %}selected{% endif %}>10</option>
+                    </select>
+                </div>
+
+                <div class="flex">
+                    <button type="button" onclick="removeFromCart({{ item.id }})" class="font-medium text-indigo-600 hover:text-indigo-500">Remove</button>
+                </div>
+            </div>
+        </div>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<div class="text-center py-12">
+    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+    </svg>
+    <h3 class="mt-2 text-sm font-medium text-gray-900">Your cart is empty</h3>
+    <p class="mt-1 text-sm text-gray-500">Start shopping to add items to your cart.</p>
+</div>
+{% endif %}
+

@@ -19,6 +19,17 @@
     <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.js"></script>
     
+    
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
+    
+    <!-- Alpine.js for reactive components -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    
+    <!-- DaisyUI (if not already included via Tailwind) -->
+    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.2/dist/full.min.css" rel="stylesheet" type="text/css" />
+    {% vite_hmr_client %}
+    
     {% block extra_head %}{% endblock %}
 </head>
 <body class="bg-base-100" x-data="{ mobileMenu: false }" @htmx:after-swap="window.scrollTo(0, 0)">
@@ -62,7 +73,7 @@
     {% block main %}
     <main class="container mx-auto py-6 px-4">
         {% if messages %}
-            <div class="mb-4 space-y-2">
+            <div id="messages_container_root" class="mb-4 space-y-2">
                 {% for message in messages %}
                     <div class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %} shadow-lg"
                          x-data="{ show: true }"

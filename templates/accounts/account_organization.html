@@ -1,0 +1,522 @@
+{% extends "accounts/account_base.html" %}
+
+{% block account_content %}
+
+{% if has_organization %}
+<!-- User has organization - show details -->
+<div class="space-y-6">
+    <div class="flex justify-between items-start">
+        <div>
+            <h2 class="text-2xl font-bold text-gray-900 mb-2">My Organization</h2>
+            <p class="text-gray-600">Manage your organization information and members.</p>
+        </div>
+        
+        <div class="flex gap-2">
+            <button onclick="toggleEditMode()" id="editBtn"
+                    class="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <i class="fas fa-edit w-4 mr-2"></i>
+                Edit Organization
+            </button>
+        </div>
+    </div>
+
+    <!-- Organization Information Card -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">Organization Information</h3>
+        </div>
+        
+        <!-- View Mode -->
+        <div id="viewMode" class="px-6 py-4 space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Organization Name</dt>
+                    <dd class="mt-1 text-sm text-gray-900 font-semibold">{{ organization.name }}</dd>
+                </div>
+                
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Type</dt>
+                    <dd class="mt-1">
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            {{ organization.get_organization_type_display }}
+                        </span>
+                    </dd>
+                </div>
+                
+                {% if organization.tax_id %}
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Tax ID</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ organization.tax_id }}</dd>
+                </div>
+                {% endif %}
+                
+                {% if organization.website %}
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Website</dt>
+                    <dd class="mt-1 text-sm text-gray-900">
+                        <a href="{{ organization.website }}" target="_blank" class="text-blue-600 hover:text-blue-500">
+                            {{ organization.website }}
+                        </a>
+                    </dd>
+                </div>
+                {% endif %}
+                
+                {% if organization.email %}
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Contact Email</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ organization.email }}</dd>
+                </div>
+                {% endif %}
+                
+                {% if organization.phone %}
+                <div>
+                    <dt class="text-sm font-medium text-gray-500">Phone</dt>
+                    <dd class="mt-1 text-sm text-gray-900">{{ organization.phone }}</dd>
+                </div>
+                {% endif %}
+            </div>
+            
+            {% if organization.full_address %}
+            <div class="pt-4 border-t border-gray-200">
+                <dt class="text-sm font-medium text-gray-500">Address</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ organization.full_address }}</dd>
+            </div>
+            {% endif %}
+            
+            {% if organization.notes %}
+            <div class="pt-4 border-t border-gray-200">
+                <dt class="text-sm font-medium text-gray-500">Notes</dt>
+                <dd class="mt-1 text-sm text-gray-900">{{ organization.notes }}</dd>
+            </div>
+            {% endif %}
+        </div>
+        
+        <!-- Edit Mode -->
+        <div id="editMode" class="px-6 py-4" style="display: none;">
+            <form method="post" action="{% url 'account-organization' %}" class="space-y-6">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="update">
+                
+                <!-- Basic Information -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Organization Name <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="name" value="{{ organization.name }}" required maxlength="255"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Organization Type</label>
+                        <select name="organization_type" 
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            {% for value, label in organization_types %}
+                            <option value="{{ value }}" {% if organization.organization_type == value %}selected{% endif %}>
+                                {{ label }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Tax ID</label>
+                        <input type="text" name="tax_id" value="{{ organization.tax_id }}" maxlength="50"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                        <input type="url" name="website" value="{{ organization.website }}"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+
+                <!-- Contact Information -->
+                <div class="border-t border-gray-200 pt-6">
+                    <h4 class="text-md font-medium text-gray-900 mb-4">Contact Information</h4>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                            <input type="email" name="email" value="{{ organization.email }}"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                            <input type="tel" name="phone" value="{{ organization.phone }}" pattern="^\+?1?\d{9,15}$" maxlength="17"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Address Information -->
+                <div class="border-t border-gray-200 pt-6">
+                    <h4 class="text-md font-medium text-gray-900 mb-4">Address</h4>
+                    
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
+                            <input type="text" name="address_line1" value="{{ organization.address_line1 }}" maxlength="255"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Address Line 2</label>
+                            <input type="text" name="address_line2" value="{{ organization.address_line2 }}" maxlength="255"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                                <input type="text" name="city" value="{{ organization.city }}" maxlength="100"
+                                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">State/Province</label>
+                                <input type="text" name="state" value="{{ organization.state }}" maxlength="100"
+                                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
+                                <input type="text" name="postal_code" value="{{ organization.postal_code }}" maxlength="20"
+                                       class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                            <input type="text" name="country" value="{{ organization.country }}" maxlength="100"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notes -->
+                <div class="border-t border-gray-200 pt-6">
+                    <h4 class="text-md font-medium text-gray-900 mb-4">Additional Information</h4>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                        <textarea name="notes" rows="3"
+                                  class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">{{ organization.notes }}</textarea>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="border-t border-gray-200 pt-6 flex justify-end space-x-3">
+                    <button type="button" onclick="toggleEditMode()" 
+                            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Cancel
+                    </button>
+                    <button type="submit" 
+                            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <i class="fas fa-save mr-2"></i>
+                        Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Members Section -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="text-lg font-medium text-gray-900">Organization Members</h3>
+            <span class="text-sm text-gray-500">
+                <i class="fas fa-info-circle mr-1"></i>
+                Contact system admin to manage members
+            </span>
+        </div>
+        
+        <div class="px-6 py-4">
+            <div class="bg-blue-50 border border-blue-200 rounded-md p-4 mb-4">
+                <div class="flex">
+                    <div class="flex-shrink-0">
+                        <i class="fas fa-info-circle text-blue-400"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm text-blue-700">
+                            Organizations are for admin use only. Only superuser accounts should be added as members.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            {% if members %}
+            <div class="space-y-3">
+                {% for member in members %}
+                <div class="flex items-center justify-between p-3 border border-gray-200 rounded-md">
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0">
+                            <div class="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
+                                <span class="text-sm font-medium text-gray-700">
+                                    {% if member.first_name and member.last_name %}
+                                    {{ member.first_name.0|upper }}{{ member.last_name.0|upper }}
+                                    {% else %}
+                                    {{ member.username.0|upper }}{{ member.username.1|upper|default:"" }}
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-gray-900">
+                                {% if member.get_full_name %}
+                                {{ member.get_full_name }}
+                                {% else %}
+                                {{ member.username }}
+                                {% endif %}
+                            </p>
+                            <p class="text-sm text-gray-500">{{ member.email }}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center space-x-2">
+                        {% if member.is_superuser %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">
+                            Superuser
+                        </span>
+                        {% elif member.is_staff %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                            Staff
+                        </span>
+                        {% else %}
+                        <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                            Regular
+                        </span>
+                        {% endif %}
+                        
+                        {% if member == request.user %}
+                        <span class="text-xs text-gray-500">(You)</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <i class="fas fa-users text-4xl mb-4"></i>
+                <p class="text-lg font-medium">No members yet</p>
+                <p class="text-sm">Add other admin users to your organization.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+{% else %}
+<!-- User doesn't have organization - show create form -->
+<div class="space-y-6">
+    <div>
+        <h2 class="text-2xl font-bold text-gray-900 mb-2">My Organization</h2>
+        <p class="text-gray-600">Create and manage your organization.</p>
+    </div>
+
+    <!-- Welcome Message -->
+    <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+        <div class="flex">
+            <div class="flex-shrink-0">
+                <i class="fas fa-info-circle text-blue-400"></i>
+            </div>
+            <div class="ml-3">
+                <h3 class="text-sm font-medium text-blue-800">Welcome, {{ user.get_full_name|default:user.email }}!</h3>
+                <div class="mt-2 text-sm text-blue-700">
+                    <p>You don't have an organization yet. Create one to get started with organization management.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Options -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+        <div class="bg-blue-600 text-white rounded-lg p-4">
+            <h3 class="text-lg font-semibold mb-2">Create New Organization</h3>
+            <p class="text-blue-100">Start fresh with your own organization and customize it according to your needs.</p>
+        </div>
+        <div class="bg-gray-100 rounded-lg p-4">
+            <h3 class="text-lg font-semibold mb-2 text-gray-900">Join Existing Organization</h3>
+            <p class="text-gray-600 mb-3">If you need to join an existing organization, contact another admin to add you.</p>
+            <a href="{% url 'customer:organization_list' %}" 
+               class="inline-flex items-center text-sm text-blue-600 hover:text-blue-500">
+                Browse Organizations
+                <i class="fas fa-arrow-right ml-1"></i>
+            </a>
+        </div>
+    </div>
+
+    <!-- Organization Creation Form -->
+    <div class="bg-white shadow rounded-lg overflow-hidden">
+        <div class="px-6 py-4 border-b border-gray-200">
+            <h3 class="text-lg font-medium text-gray-900">Create Your Organization</h3>
+        </div>
+        
+        <form method="post" class="px-6 py-4 space-y-6">
+            {% csrf_token %}
+            
+            <!-- Basic Information -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">
+                        Organization Name <span class="text-red-500">*</span>
+                    </label>
+                    <input type="text" name="name" required maxlength="255"
+                           placeholder="Enter organization name"
+                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    <p class="mt-1 text-sm text-gray-500">The official name of your organization</p>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Organization Type</label>
+                    <select name="organization_type" 
+                            class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        {% for value, label in organization_types %}
+                        <option value="{{ value }}" {% if value == 'dental_practice' %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Tax ID</label>
+                    <input type="text" name="tax_id" maxlength="50"
+                           placeholder="Tax ID / EIN"
+                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Website</label>
+                    <input type="url" name="website"
+                           placeholder="https://example.com"
+                           class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="border-t border-gray-200 pt-6">
+                <h4 class="text-md font-medium text-gray-900 mb-4">Contact Information</h4>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                        <input type="email" name="email" value="{{ user.email }}"
+                               placeholder="contact@organization.com"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+                        <input type="tel" name="phone" pattern="^\+?1?\d{9,15}$" maxlength="17"
+                               placeholder="+1 (555) 123-4567"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Address Information -->
+            <div class="border-t border-gray-200 pt-6">
+                <h4 class="text-md font-medium text-gray-900 mb-4">Address</h4>
+                
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Address Line 1</label>
+                        <input type="text" name="address_line1" maxlength="255"
+                               placeholder="Street address"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Address Line 2</label>
+                        <input type="text" name="address_line2" maxlength="255"
+                               placeholder="Apartment, suite, etc. (optional)"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">City</label>
+                            <input type="text" name="city" maxlength="100"
+                                   placeholder="City"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">State/Province</label>
+                            <input type="text" name="state" maxlength="100"
+                                   placeholder="State"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Postal Code</label>
+                            <input type="text" name="postal_code" maxlength="20"
+                                   placeholder="ZIP/Postal Code"
+                                   class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Country</label>
+                        <input type="text" name="country" value="United States" maxlength="100"
+                               placeholder="Country"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <div class="border-t border-gray-200 pt-6">
+                <h4 class="text-md font-medium text-gray-900 mb-4">Additional Information</h4>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <textarea name="notes" rows="3"
+                              placeholder="Additional notes or description..."
+                              class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                    <p class="mt-1 text-sm text-gray-500">Optional notes about your organization</p>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="border-t border-gray-200 pt-6 flex justify-end space-x-3">
+                <a href="{% url 'account-profile' %}" 
+                   class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    Cancel
+                </a>
+                <button type="submit" 
+                        class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                    <i class="fas fa-building mr-2"></i>
+                    Create Organization
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% endif %}
+
+<script>
+function toggleEditMode() {
+    const viewMode = document.getElementById('viewMode');
+    const editMode = document.getElementById('editMode');
+    const editBtn = document.getElementById('editBtn');
+    
+    if (viewMode.style.display === 'none') {
+        // Switch to view mode
+        viewMode.style.display = 'block';
+        editMode.style.display = 'none';
+        editBtn.innerHTML = '<i class="fas fa-edit w-4 mr-2"></i>Edit Organization';
+    } else {
+        // Switch to edit mode
+        viewMode.style.display = 'none';
+        editMode.style.display = 'block';
+        editBtn.innerHTML = '<i class="fas fa-times w-4 mr-2"></i>Cancel Edit';
+    }
+}
+</script>
+
+{% endblock %}

@@ -1,0 +1,349 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}Create Purchase Order - Step 2{% endblock %}
+
+{% block dashboard_content %}
+<div class="space-y-6">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </a></li>
+            <li><a href="{% url 'purchases:purchase_order_list' %}">Purchase Orders</a></li>
+            <li>Create New</li>
+            <li>Step 2: Add Products</li>
+        </ul>
+    </div>
+
+    <!-- Header with Progress Steps -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <h1 class="text-2xl font-bold">Create New Purchase Order</h1>
+                
+                <!-- Progress Steps -->
+                <ul class="steps">
+                    <li class="step step-primary">
+                        <span class="hidden sm:inline">Select Supplier</span>
+                        <span class="sm:hidden">Supplier</span>
+                    </li>
+                    <li class="step step-primary">
+                        <span class="hidden sm:inline">Add Products</span>
+                        <span class="sm:hidden">Products</span>
+                    </li>
+                    <li class="step">
+                        <span class="hidden sm:inline">Review & Save</span>
+                        <span class="sm:hidden">Review</span>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Supplier Info -->
+    <div class="alert">
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+        </svg>
+        <div class="flex-1">
+            <h3 class="font-bold">Purchase Order for: {{ supplier.name }}</h3>
+            {% if supplier.contact_person %}
+            <div class="text-xs">Contact: {{ supplier.contact_person }}</div>
+            {% endif %}
+        </div>
+        <a href="{% url 'purchases:purchase_order_create_step1' %}" class="btn btn-ghost btn-sm">Change Supplier</a>
+    </div>
+
+    <!-- Add Product Form -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Product
+            </h2>
+            
+            <form method="post" id="addItemForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_item">
+                <input type="hidden" name="item_count" id="item_count" value="{{ po_items|length|default:0 }}">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Product (Optional)</span>
+                        </label>
+                        <select name="product_id" id="product_id" class="select select-bordered">
+                            <option value="">-- Custom Item --</option>
+                            {% for product in products %}
+                                <option value="{{ product.id }}" 
+                                        data-cost="{{ product.cost|default:0 }}" 
+                                        data-description="{{ product.short_description|default:'' }}" 
+                                        data-sku="{{ product.sku }}">
+                                    {{ product.name }} {% if product.sku %}({{ product.sku }}){% endif %} - ${{ product.cost|default:0|floatformat:2 }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Description <span class="text-error">*</span></span>
+                        </label>
+                        <input type="text" name="description" id="description" required 
+                               placeholder="Enter item description"
+                               class="input input-bordered">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Quantity <span class="text-error">*</span></span>
+                        </label>
+                        <input type="number" name="quantity" id="quantity" value="1" min="0.01" step="0.01" required
+                               class="input input-bordered">
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Unit Cost <span class="text-error">*</span></span>
+                        </label>
+                        <input type="number" name="unit_cost" id="unit_cost" min="0" step="0.01" required 
+                               placeholder="0.00"
+                               class="input input-bordered">
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Discount %</span>
+                        </label>
+                        <input type="number" name="discount_percent" id="discount_percent" value="0" min="0" max="100" step="0.01"
+                               class="input input-bordered">
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Line Total</span>
+                        </label>
+                        <div class="input input-bordered bg-base-200 flex items-center" id="lineTotal">
+                            $0.00
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" class="btn btn-success">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Item
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Order Items -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+                Order Items
+            </h2>
+            
+            <div class="overflow-x-auto">
+                <table class="table table-zebra">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th class="text-right">Quantity</th>
+                            <th class="text-right">Unit Cost</th>
+                            <th class="text-right">Discount</th>
+                            <th class="text-right">Line Total</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in po_items %}
+                        <tr>
+                            <td>
+                                <div class="font-medium">{{ item.description }}</div>
+                                {% if item.product_name %}
+                                <div class="text-xs text-base-content/60">
+                                    {{ item.product_name }} {% if item.product_sku %}({{ item.product_sku }}){% endif %}
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="text-right">{{ item.quantity|floatformat:"-2" }}</td>
+                            <td class="text-right">${{ item.unit_cost|floatformat:2 }}</td>
+                            <td class="text-right">-</td>
+                            <td class="text-right font-semibold">${{ item.line_total|floatformat:2 }}</td>
+                            <td class="text-center">
+                                <form method="post" style="display: inline;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="remove_item">
+                                    <input type="hidden" name="product_id" value="{{ item.product_id }}">
+                                    <button type="submit" class="btn btn-ghost btn-xs text-error">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-8">
+                                <div class="text-base-content/60">No items added yet. Add products to continue.</div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    {% if po_items %}
+                    <tfoot>
+                        <tr>
+                            <th colspan="4" class="text-right">Subtotal:</th>
+                            <th class="text-right">${{ subtotal|default:0|floatformat:2 }}</th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Additional Details Form -->
+    <form method="post">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="next">
+        
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                    </svg>
+                    Additional Details (Optional)
+                </h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Tax Rate (%)</span>
+                        </label>
+                        <input type="number" name="tax_rate" value="0" min="0" max="100" step="0.01"
+                               class="input input-bordered">
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Shipping Cost</span>
+                        </label>
+                        <input type="number" name="shipping_cost" value="0" min="0" step="0.01"
+                               class="input input-bordered">
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Discount (%)</span>
+                        </label>
+                        <input type="number" name="discount_percent" value="0" min="0" max="100" step="0.01"
+                               class="input input-bordered">
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Notes</span>
+                        </label>
+                        <textarea name="notes" rows="3" class="textarea textarea-bordered"
+                                  placeholder="Notes visible on the purchase order..."></textarea>
+                    </div>
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text font-semibold">Internal Notes</span>
+                        </label>
+                        <textarea name="internal_notes" rows="3" class="textarea textarea-bordered"
+                                  placeholder="Internal notes for your team..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-between">
+            <a href="{% url 'purchases:purchase_order_create_step1' %}" class="btn btn-ghost">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Back
+            </a>
+            <button type="submit" class="btn btn-primary" {% if not po_items %}disabled{% endif %}>
+                Next: Review & Save
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const productSelect = document.getElementById('product_id');
+    const descriptionInput = document.getElementById('description');
+    const quantityInput = document.getElementById('quantity');
+    const unitCostInput = document.getElementById('unit_cost');
+    const discountInput = document.getElementById('discount_percent');
+    const lineTotalDiv = document.getElementById('lineTotal');
+    
+    // Update line total calculation
+    function updateLineTotal() {
+        const quantity = parseFloat(quantityInput.value) || 0;
+        const unitCost = parseFloat(unitCostInput.value) || 0;
+        const discount = parseFloat(discountInput.value) || 0;
+        
+        const subtotal = quantity * unitCost;
+        const discountAmount = subtotal * (discount / 100);
+        const lineTotal = subtotal - discountAmount;
+        
+        lineTotalDiv.textContent = '$' + lineTotal.toFixed(2);
+    }
+    
+    // Update fields when product is selected
+    productSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption.value) {
+            const cost = selectedOption.getAttribute('data-cost');
+            const description = selectedOption.getAttribute('data-description');
+            
+            unitCostInput.value = cost;
+            if (description) {
+                descriptionInput.value = description;
+            } else {
+                descriptionInput.value = selectedOption.text.split(' - ')[0];
+            }
+        } else {
+            descriptionInput.value = '';
+            unitCostInput.value = '';
+        }
+        updateLineTotal();
+    });
+    
+    // Update line total on input changes
+    quantityInput.addEventListener('input', updateLineTotal);
+    unitCostInput.addEventListener('input', updateLineTotal);
+    discountInput.addEventListener('input', updateLineTotal);
+    
+    // Initial calculation
+    updateLineTotal();
+});
+</script>
+{% endblock %}

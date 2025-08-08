@@ -1,0 +1,87 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}Delete Category - {{ category.name }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-2xl mx-auto">
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-error mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                Delete Category
+            </h2>
+            
+            <div class="alert alert-warning mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div>
+                    <h3 class="font-bold">Warning!</h3>
+                    <div class="text-sm">You are about to delete the category "{{ category.name }}".</div>
+                </div>
+            </div>
+            
+            <div class="space-y-4">
+                {% if product_count > 0 %}
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-title">Products in this category</div>
+                    <div class="stat-value text-error">{{ product_count }}</div>
+                    <div class="stat-desc">These products will need to be reassigned</div>
+                </div>
+                {% endif %}
+                
+                {% if subcategory_count > 0 %}
+                <div class="stat bg-base-200 rounded-lg">
+                    <div class="stat-title">Subcategories</div>
+                    <div class="stat-value text-warning">{{ subcategory_count }}</div>
+                    <div class="stat-desc">These will be moved to the parent category</div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <form method="post" class="mt-6">
+                {% csrf_token %}
+                
+                {% if product_count > 0 %}
+                <div class="form-control mb-4">
+                    <label class="label">
+                        <span class="label-text">What should happen to the products in this category?</span>
+                    </label>
+                    <div class="space-y-2">
+                        {% if category.parent %}
+                        <label class="label cursor-pointer justify-start gap-3">
+                            <input type="radio" name="action" value="move" class="radio radio-primary" checked />
+                            <span class="label-text">Move to parent category ({{ category.parent.name }})</span>
+                        </label>
+                        {% endif %}
+                        <label class="label cursor-pointer justify-start gap-3">
+                            <input type="radio" name="action" value="unassign" class="radio radio-primary" {% if not category.parent %}checked{% endif %} />
+                            <span class="label-text">Remove category (products will have no category)</span>
+                        </label>
+                    </div>
+                </div>
+                {% endif %}
+                
+                <div class="alert alert-error mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>This action cannot be undone!</span>
+                </div>
+                
+                <div class="card-actions justify-end">
+                    <a href="{% url 'product:category_detail' category.pk %}" class="btn btn-ghost">Cancel</a>
+                    <button type="submit" class="btn btn-error">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Delete Category
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

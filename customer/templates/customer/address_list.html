@@ -1,0 +1,153 @@
+{% extends 'accounts/account_base.html' %}
+{% load static %}
+
+{% block title %}My Addresses - {{ block.super }}{% endblock %}
+
+{% block account_content %}
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex justify-between items-center">
+            <h2 class="text-2xl font-semibold text-gray-900">My Addresses</h2>
+            <a href="{% url 'customer:address_create' %}" class="btn btn-primary">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Add New Address
+            </a>
+        </div>
+    </div>
+
+    <!-- Content -->
+    {% if addresses %}
+    <div class="grid md:grid-cols-2 gap-6">
+        <!-- Billing Addresses -->
+        <div>
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Billing Addresses</h3>
+            {% if billing_addresses %}
+            <div class="space-y-4">
+                {% for address in billing_addresses %}
+                <div class="card bg-base-100 border border-gray-200 {% if address.is_default %}ring-2 ring-primary{% endif %}">
+                    <div class="card-body p-4">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-center mb-2 gap-2">
+                                    <h4 class="text-sm font-medium text-gray-900">{{ address.recipient_name }}</h4>
+                                    {% if address.label %}
+                                    <span class="badge badge-sm">{{ address.label }}</span>
+                                    {% endif %}
+                                    {% if address.is_default %}
+                                    <span class="badge badge-primary badge-sm">Default</span>
+                                    {% endif %}
+                                </div>
+                                {% if address.company_name %}
+                                <p class="text-sm text-gray-600">{{ address.company_name }}</p>
+                                {% endif %}
+                                <p class="text-sm text-gray-600">{{ address.address_line1 }}</p>
+                                {% if address.address_line2 %}
+                                <p class="text-sm text-gray-600">{{ address.address_line2 }}</p>
+                                {% endif %}
+                                <p class="text-sm text-gray-600">{{ address.city }}, {{ address.state }} {{ address.postal_code }}</p>
+                                <p class="text-sm text-gray-600">{{ address.country }}</p>
+                                {% if address.phone %}
+                                <p class="text-sm text-gray-600 mt-1">Phone: {{ address.phone }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="dropdown dropdown-end">
+                                <label tabindex="0" class="btn btn-ghost btn-sm btn-circle">
+                                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
+                                    </svg>
+                                </label>
+                                <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-[1]">
+                                    <li><a href="{% url 'customer:address_update' address.pk %}">Edit</a></li>
+                                    {% if not address.is_default %}
+                                    <li><a href="{% url 'customer:set_default_address' address.pk %}">Set as Default</a></li>
+                                    {% endif %}
+                                    <li><a href="{% url 'customer:address_delete' address.pk %}" class="text-error">Delete</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-sm text-gray-500">No billing addresses added yet.</p>
+            {% endif %}
+        </div>
+
+        <!-- Shipping Addresses -->
+        <div>
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Shipping Addresses</h3>
+            {% if shipping_addresses %}
+            <div class="space-y-4">
+                {% for address in shipping_addresses %}
+                <div class="card bg-base-100 border border-gray-200 {% if address.is_default %}ring-2 ring-primary{% endif %}">
+                    <div class="card-body p-4">
+                        <div class="flex justify-between items-start">
+                            <div class="flex-1">
+                                <div class="flex items-center mb-2 gap-2">
+                                    <h4 class="text-sm font-medium text-gray-900">{{ address.recipient_name }}</h4>
+                                    {% if address.label %}
+                                    <span class="badge badge-sm">{{ address.label }}</span>
+                                    {% endif %}
+                                    {% if address.is_default %}
+                                    <span class="badge badge-primary badge-sm">Default</span>
+                                    {% endif %}
+                                </div>
+                                {% if address.company_name %}
+                                <p class="text-sm text-gray-600">{{ address.company_name }}</p>
+                                {% endif %}
+                                <p class="text-sm text-gray-600">{{ address.address_line1 }}</p>
+                                {% if address.address_line2 %}
+                                <p class="text-sm text-gray-600">{{ address.address_line2 }}</p>
+                                {% endif %}
+                                <p class="text-sm text-gray-600">{{ address.city }}, {{ address.state }} {{ address.postal_code }}</p>
+                                <p class="text-sm text-gray-600">{{ address.country }}</p>
+                                {% if address.phone %}
+                                <p class="text-sm text-gray-600 mt-1">Phone: {{ address.phone }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="dropdown dropdown-end">
+                                <label tabindex="0" class="btn btn-ghost btn-sm btn-circle">
+                                    <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z"/>
+                                    </svg>
+                                </label>
+                                <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-[1]">
+                                    <li><a href="{% url 'customer:address_update' address.pk %}">Edit</a></li>
+                                    {% if not address.is_default %}
+                                    <li><a href="{% url 'customer:set_default_address' address.pk %}">Set as Default</a></li>
+                                    {% endif %}
+                                    <li><a href="{% url 'customer:address_delete' address.pk %}" class="text-error">Delete</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-sm text-gray-500">No shipping addresses added yet.</p>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-12">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+        </svg>
+        <h3 class="mt-2 text-sm font-medium text-gray-900">No addresses</h3>
+        <p class="mt-1 text-sm text-gray-500">Get started by adding a new address.</p>
+        <div class="mt-6">
+            <a href="{% url 'customer:address_create' %}" class="btn btn-primary">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Add New Address
+            </a>
+        </div>
+    </div>
+    {% endif %}
+{% endblock %}

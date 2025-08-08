@@ -1,0 +1,246 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}Create Marketing Campaign - Step 3{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Breadcrumbs -->
+    <div class="text-sm breadcrumbs mb-4">
+        <ul>
+            <li>
+                <a href="{% url 'dashboard:home' %}" class="link link-hover">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                </a>
+            </li>
+            <li><a href="{% url 'email_campaign:campaign_list' %}" class="link link-hover">Email Campaigns</a></li>
+            <li>Create New Campaign</li>
+        </ul>
+    </div>
+
+    <!-- Progress Steps -->
+    <div class="mb-8">
+        <ul class="steps w-full">
+            <li class="step step-primary">Select Target Group</li>
+            <li class="step step-primary">Select Email Template</li>
+            <li class="step step-primary">Preview & Send</li>
+        </ul>
+    </div>
+
+    <!-- Header Card -->
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div class="flex-1">
+                    <h1 class="text-3xl font-bold">Create Marketing Campaign</h1>
+                    <p class="text-base-content/60 mt-2">
+                        Step 3 of 3: Review your campaign details and send or save as draft
+                    </p>
+                </div>
+                <div class="flex gap-2">
+                    <a href="{% url 'email_campaign:campaign_create_step2' %}" class="btn btn-ghost">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        Back
+                    </a>
+                    <a href="{% url 'email_campaign:campaign_list' %}" class="btn btn-ghost">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Cancel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Campaign Summary -->
+        <div class="space-y-6">
+            <!-- Target Group Summary -->
+            <div class="card bg-success/10 border border-success/20 shadow-xl">
+                <div class="card-body">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="badge badge-success badge-lg">✓</div>
+                        <h3 class="card-title">Target Group</h3>
+                    </div>
+                    <div class="space-y-2">
+                        <p class="text-lg font-semibold">{{ target_group.name }}</p>
+                        {% if target_group.description %}
+                        <p class="text-base-content/70">{{ target_group.description }}</p>
+                        {% endif %}
+                        <div class="flex items-center gap-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            <span class="text-lg font-bold text-success">{{ target_group.customer_count }} recipients</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email Template Summary -->
+            <div class="card bg-success/10 border border-success/20 shadow-xl">
+                <div class="card-body">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="badge badge-success badge-lg">✓</div>
+                        <h3 class="card-title">Email Template</h3>
+                    </div>
+                    <div class="space-y-2">
+                        <p class="text-lg font-semibold">{{ email_template.title }}</p>
+                        <div class="text-base-content/70">
+                            <p><strong>Subject:</strong> {{ email_template.subject }}</p>
+                            <p><strong>Type:</strong> {{ email_template.get_content_type_display }}</p>
+                            {% if email_template.sender_name %}
+                            <p><strong>From:</strong> {{ email_template.sender_name }} &lt;{{ email_template.sender_email }}&gt;</p>
+                            {% else %}
+                            <p><strong>From:</strong> {{ email_template.sender_email }}</p>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sample Recipients -->
+            {% if sample_customers %}
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h3 class="card-title mb-4">Sample Recipients</h3>
+                    <div class="space-y-2">
+                        {% for customer in sample_customers %}
+                        <div class="flex items-center gap-3 p-2 bg-base-200 rounded">
+                            <div class="avatar placeholder">
+                                <div class="bg-neutral text-neutral-content rounded-full w-8">
+                                    <span class="text-xs">{{ customer.first_name.0|upper }}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="font-medium">{{ customer.get_full_name }}</p>
+                                <p class="text-sm text-base-content/60">{{ customer.email }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        {% if target_group.customer_count > 3 %}
+                        <p class="text-sm text-base-content/60 text-center pt-2">
+                            ... and {{ target_group.customer_count|add:"-3" }} more recipients
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Email Preview -->
+        <div class="space-y-6">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h3 class="card-title mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        Email Preview
+                    </h3>
+                    
+                    <!-- Email Header -->
+                    <div class="mockup-window border bg-base-300 mb-4">
+                        <div class="flex justify-center px-4 py-2 bg-base-200">
+                            <div class="text-sm">Email Preview</div>
+                        </div>
+                        <div class="bg-white p-4 space-y-3">
+                            <div class="border-b border-gray-200 pb-3">
+                                <div class="text-sm text-gray-600">
+                                    <strong>From:</strong> 
+                                    {% if email_template.sender_name %}
+                                        {{ email_template.sender_name }} &lt;{{ email_template.sender_email }}&gt;
+                                    {% else %}
+                                        {{ email_template.sender_email }}
+                                    {% endif %}
+                                </div>
+                                <div class="text-sm text-gray-600">
+                                    <strong>To:</strong> Recipients ({{ target_group.customer_count }})
+                                </div>
+                                <div class="text-lg font-semibold text-gray-900 mt-2">
+                                    {{ email_template.subject }}
+                                </div>
+                            </div>
+                            
+                            <!-- Email Body Preview -->
+                            <div class="text-gray-800">
+                                {% if email_template.html_content %}
+                                    <div class="prose prose-sm max-w-none">
+                                        {{ email_template.html_content|safe|truncatewords_html:50 }}
+                                        {% if email_template.html_content|length > 200 %}
+                                        <p class="text-sm text-gray-500 italic">... [Content truncated for preview]</p>
+                                        {% endif %}
+                                    </div>
+                                {% elif email_template.plain_content %}
+                                    <div class="whitespace-pre-wrap text-sm">
+                                        {{ email_template.plain_content|truncatewords:50 }}
+                                        {% if email_template.plain_content|length > 200 %}
+                                        <p class="text-sm text-gray-500 italic">... [Content truncated for preview]</p>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        <div class="text-sm">
+                            This is a preview with template variables. Actual emails will have personalized content for each recipient.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Create Campaign Form -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h3 class="card-title mb-4">Campaign Settings</h3>
+                    
+                    <form method="post" class="space-y-4">
+                        {% csrf_token %}
+                        
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text font-semibold">Campaign Name</span>
+                            </label>
+                            <input type="text" name="campaign_name" 
+                                   value="{{ email_template.title }} - {{ target_group.name }}" 
+                                   class="input input-bordered w-full" required>
+                            <label class="label">
+                                <span class="label-text-alt">A descriptive name for your campaign</span>
+                            </label>
+                        </div>
+
+                        <div class="divider"></div>
+
+                        <div class="flex flex-col gap-3">
+                            <button type="submit" name="action" value="create_draft" class="btn btn-outline btn-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h2m0 0h9a2 2 0 002-2v-9a2 2 0 00-2-2h-2m0 0V6a2 2 0 012-2V4a2 2 0 00-2-2h-2a2 2 0 00-2 2v2a2 2 0 00-2 2z" />
+                                </svg>
+                                Save as Draft
+                            </button>
+                            
+                            <button type="submit" name="action" value="create_and_send" class="btn btn-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                                </svg>
+                                Create & Send Now
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

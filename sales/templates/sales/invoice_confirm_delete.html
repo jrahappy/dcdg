@@ -1,0 +1,106 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% load breadcrumbs %}
+
+{% block page_title %}Delete Invoice{% endblock %}
+
+{% block dashboard_content %}
+<div class="h-full flex flex-col bg-white">
+    <!-- Breadcrumb -->
+    <div class="px-4 py-2 border-b border-gray-200 bg-gray-50">
+        <nav class="flex items-center space-x-2 text-sm">
+            {% breadcrumb "Dashboard" "dashboard:home" "Invoices" "sales:invoice_list" invoice.invoice_number "sales:invoice_detail" invoice.pk "Delete" %}
+        </nav>
+    </div>
+    
+    <!-- Header -->
+    <div class="border-b border-gray-200 bg-white px-6 py-4">
+        <div class="flex items-center">
+            <button onclick="window.location.href='{% url 'sales:invoice_detail' invoice.pk %}'" class="mr-4 text-gray-600 hover:text-gray-900">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h1 class="text-2xl font-semibold text-gray-900">Delete Invoice</h1>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto p-6">
+        <div class="max-w-2xl mx-auto">
+            <div class="bg-white border border-gray-200 rounded-lg p-6">
+                <div class="text-center">
+                    <div class="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-red-100 mb-4">
+                        <i class="fas fa-exclamation-triangle text-red-600"></i>
+                    </div>
+                    <h3 class="text-lg font-medium text-gray-900 mb-2">Delete Invoice {{ invoice.invoice_number }}?</h3>
+                    <p class="text-sm text-gray-600 mb-6">
+                        Are you sure you want to delete this invoice? This action cannot be undone and will permanently remove:
+                    </p>
+                    <ul class="text-left text-sm text-gray-600 mb-6 max-w-md mx-auto">
+                        <li class="mb-2">• Invoice information and billing details</li>
+                        <li class="mb-2">• All line items ({{ invoice.items.count }} item{{ invoice.items.count|pluralize }})</li>
+                        <li class="mb-2">• Payment records ({{ invoice.payments.count }} payment{{ invoice.payments.count|pluralize }})</li>
+                        <li class="mb-2">• Associated notes and history</li>
+                    </ul>
+                    
+                    <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                        <dl class="text-sm">
+                            <dt class="font-medium text-gray-700">Customer:</dt>
+                            <dd class="text-gray-900 mb-2">{{ invoice.customer.get_full_name }}</dd>
+                            <dt class="font-medium text-gray-700">Total Amount:</dt>
+                            <dd class="text-gray-900 mb-2">${{ invoice.total_amount|floatformat:2 }}</dd>
+                            <dt class="font-medium text-gray-700">Invoice Status:</dt>
+                            <dd class="text-gray-900 mb-2">{{ invoice.get_status_display }}</dd>
+                            <dt class="font-medium text-gray-700">Payment Status:</dt>
+                            <dd class="text-gray-900">{{ invoice.get_payment_status_display }}</dd>
+                        </dl>
+                    </div>
+                    
+                    {% if invoice.balance_due > 0 %}
+                    <div class="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-exclamation-triangle text-yellow-400"></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-yellow-700">
+                                    This invoice has an outstanding balance of <strong>${{ invoice.balance_due|floatformat:2 }}</strong>. 
+                                    Deleting this invoice will remove all payment records and accounting history.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if invoice.status == 'sent' %}
+                    <div class="bg-blue-50 border-l-4 border-blue-400 p-4 mb-6">
+                        <div class="flex">
+                            <div class="flex-shrink-0">
+                                <i class="fas fa-info-circle text-blue-400"></i>
+                            </div>
+                            <div class="ml-3">
+                                <p class="text-sm text-blue-700">
+                                    This invoice has been sent to the customer. Consider creating a credit note instead of deleting.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <form method="post" class="inline">
+                        {% csrf_token %}
+                        <div class="flex gap-4 justify-center">
+                            <button type="button" onclick="window.location.href='{% url 'sales:invoice_detail' invoice.pk %}'" 
+                                    class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                                Cancel
+                            </button>
+                            <button type="submit" class="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors duration-200">
+                                Yes, Delete Invoice
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

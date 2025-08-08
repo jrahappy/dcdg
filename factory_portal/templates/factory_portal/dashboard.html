@@ -1,0 +1,280 @@
+{% extends 'factory_portal/base.html' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Welcome Section -->
+    <div class="hero bg-base-200 rounded-lg">
+        <div class="hero-content">
+            <div>
+                <h1 class="text-3xl font-bold">Welcome, {{ user.get_full_name }}</h1>
+                <p class="py-2">{{ factory_user.supplier.name }} - {{ factory_user.get_role_display }}</p>
+                <p class="text-sm opacity-75">Employee ID: {{ factory_user.employee_id|default:"Not Set" }}</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-6 gap-4">
+        <div class="stat bg-base-200 rounded-lg">
+            <div class="stat-figure text-primary">
+                <i class="fas fa-shopping-cart text-3xl"></i>
+            </div>
+            <div class="stat-title">Total Orders</div>
+            <div class="stat-value text-primary">{{ stats.total_orders }}</div>
+        </div>
+        
+        <div class="stat bg-base-200 rounded-lg">
+            <div class="stat-figure text-warning">
+                <i class="fas fa-clock text-3xl"></i>
+            </div>
+            <div class="stat-title">Pending</div>
+            <div class="stat-value text-warning">{{ stats.pending_orders }}</div>
+        </div>
+        
+        <div class="stat bg-base-200 rounded-lg">
+            <div class="stat-figure text-info">
+                <i class="fas fa-box-open text-3xl"></i>
+            </div>
+            <div class="stat-title">Preparing</div>
+            <div class="stat-value text-info">{{ stats.preparing_orders }}</div>
+        </div>
+        
+        <div class="stat bg-base-200 rounded-lg">
+            <div class="stat-figure text-success">
+                <i class="fas fa-shipping-fast text-3xl"></i>
+            </div>
+            <div class="stat-title">Shipped</div>
+            <div class="stat-value text-success">{{ stats.shipped_orders }}</div>
+        </div>
+        
+        <div class="stat bg-base-200 rounded-lg">
+            <div class="stat-figure text-info">
+                <i class="fas fa-truck text-3xl"></i>
+            </div>
+            <div class="stat-title">In Transit</div>
+            <div class="stat-value text-info">{{ stats.in_transit_orders }}</div>
+        </div>
+        
+        <div class="stat bg-base-200 rounded-lg">
+            <div class="stat-figure text-accent">
+                <i class="fas fa-check-circle text-3xl"></i>
+            </div>
+            <div class="stat-title">Delivered</div>
+            <div class="stat-value text-accent">{{ stats.delivered_orders }}</div>
+        </div>
+    </div>
+
+    <!-- Customer Orders Section -->
+    <div class="card bg-base-200">
+        <div class="card-body">
+            <h2 class="card-title">
+                <i class="fas fa-shopping-cart mr-2"></i>Customer Orders (Your Products)
+            </h2>
+            {% if customer_invoice_items %}
+                <div class="overflow-x-auto">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Customer</th>
+                                <th>Product</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                                <th>Shipping Status</th>
+                                <th>Order Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in customer_invoice_items %}
+                            <tr>
+                                <td>
+                                    <a href="{% url 'factory_portal:packing_slip' item.invoice.pk %}" class="link link-primary">
+                                        {{ item.invoice.invoice_number }}
+                                    </a>
+                                </td>
+                                <td>
+                                    {% if item.invoice.customer %}
+                                        {{ item.invoice.customer.get_full_name }}
+                                    {% else %}
+                                        {{ item.invoice.first_name }} {{ item.invoice.last_name }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="font-semibold">{{ item.product.name }}</div>
+                                    <div class="text-sm opacity-75">SKU: {{ item.product.sku }}</div>
+                                </td>
+                                <td>{{ item.quantity|floatformat:0 }}</td>
+                                <td>${{ item.line_total|floatformat:2 }}</td>
+                                <td>
+                                    <span class="badge 
+                                        {% if item.invoice.shipping_status == 'pending' %}badge-ghost
+                                        {% elif item.invoice.shipping_status == 'preparing' %}badge-warning
+                                        {% elif item.invoice.shipping_status == 'shipped' %}badge-success
+                                        {% elif item.invoice.shipping_status == 'in_transit' %}badge-info
+                                        {% elif item.invoice.shipping_status == 'delivered' %}badge-success
+                                        {% elif item.invoice.shipping_status == 'returned' %}badge-error
+                                        {% elif item.invoice.shipping_status == 'cancelled' %}badge-error
+                                        {% else %}badge-ghost{% endif %}">
+                                        {{ item.invoice.get_shipping_status_display|default:"Pending" }}
+                                    </span>
+                                </td>
+                                <td>{{ item.invoice.created_at|date:"M d, Y" }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <p class="text-base-content/60">No customer orders found for your products.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Recent Work Orders -->
+    <div class="card bg-base-200 mt-6">
+        <div class="card-body">
+            <h2 class="card-title">
+                <i class="fas fa-clipboard-list mr-2"></i>Recent Work Orders
+            </h2>
+            {% if recent_orders %}
+                <div class="overflow-x-auto">
+                    <table class="table">
+                        <thead>
+                            <tr>
+                                <th>Work Order #</th>
+                                <th>Invoice #</th>
+                                <th>Customer</th>
+                                <th>Status</th>
+                                <th>Priority</th>
+                                <th>Created</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for order in recent_orders %}
+                            <tr>
+                                <td>{{ order.work_order_number }}</td>
+                                <td>{{ order.invoice.invoice_number }}</td>
+                                <td>
+                                    {% if order.invoice.customer %}
+                                        {{ order.invoice.customer.get_full_name }}
+                                    {% else %}
+                                        {{ order.invoice.first_name }} {{ order.invoice.last_name }}
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge 
+                                        {% if order.status == 'pending' %}badge-warning
+                                        {% elif order.status == 'in_progress' %}badge-info
+                                        {% elif order.status == 'ready' %}badge-success
+                                        {% elif order.status == 'completed' %}badge-accent
+                                        {% else %}badge-ghost{% endif %}">
+                                        {{ order.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge 
+                                        {% if order.priority == 'urgent' %}badge-error
+                                        {% elif order.priority == 'high' %}badge-warning
+                                        {% else %}badge-ghost{% endif %}">
+                                        {{ order.get_priority_display }}
+                                    </span>
+                                </td>
+                                <td>{{ order.created_date|date:"M d, Y" }}</td>
+                                <td>
+                                    <a href="{% url 'factory_portal:work_order_detail' order.pk %}" class="btn btn-sm btn-primary">
+                                        View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-actions justify-end mt-4">
+                    <a href="{% url 'factory_portal:work_order_list' %}" class="btn btn-primary">
+                        View All Work Orders
+                    </a>
+                </div>
+            {% else %}
+                <p class="text-base-content/60">No work orders found.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <!-- Pending Supply Requests -->
+        <div class="card bg-base-200">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <i class="fas fa-box mr-2"></i>Pending Supply Requests
+                </h2>
+                {% if pending_supplies %}
+                    <div class="space-y-2">
+                        {% for supply in pending_supplies %}
+                        <div class="alert alert-warning">
+                            <div>
+                                <span class="font-semibold">{{ supply.product.name }}</span>
+                                <div class="text-sm">
+                                    Qty: {{ supply.quantity_requested }} | 
+                                    Needed by: {{ supply.needed_by|date:"M d" }} |
+                                    Urgency: <span class="badge badge-sm 
+                                        {% if supply.urgency == 'critical' %}badge-error
+                                        {% elif supply.urgency == 'high' %}badge-warning
+                                        {% else %}badge-ghost{% endif %}">
+                                        {{ supply.get_urgency_display }}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="card-actions justify-end mt-4">
+                        <a href="{% url 'factory_portal:supply_request_list' %}" class="btn btn-sm btn-primary">
+                            View All Requests
+                        </a>
+                    </div>
+                {% else %}
+                    <p class="text-base-content/60">No pending supply requests.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Recent Shipments -->
+        <div class="card bg-base-200">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <i class="fas fa-shipping-fast mr-2"></i>Recent Shipments
+                </h2>
+                {% if recent_shipments %}
+                    <div class="space-y-2">
+                        {% for shipment in recent_shipments %}
+                        <div class="border-l-4 
+                            {% if shipment.status == 'delivered' %}border-success
+                            {% elif shipment.status == 'in_transit' %}border-info
+                            {% else %}border-warning{% endif %} pl-4 py-2">
+                            <div class="font-semibold">{{ shipment.shipment_number }}</div>
+                            <div class="text-sm">
+                                {{ shipment.get_carrier_display }} - {{ shipment.get_status_display }}
+                                {% if shipment.tracking_number %}
+                                    <br>Tracking: {{ shipment.tracking_number }}
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    <div class="card-actions justify-end mt-4">
+                        <a href="{% url 'factory_portal:shipment_list' %}" class="btn btn-sm btn-primary">
+                            View All Shipments
+                        </a>
+                    </div>
+                {% else %}
+                    <p class="text-base-content/60">No recent shipments.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

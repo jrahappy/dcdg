@@ -1,0 +1,312 @@
+{% extends 'dashboard/base.html' %}
+{% load static %}
+{% load breadcrumbs %}
+
+{% block page_title %}Create Purchase Order - Step 2: Add Products{% endblock %}
+
+{% block dashboard_content %}
+<div class="h-full flex flex-col bg-white">
+    <!-- Breadcrumb -->
+    <div class="px-4 py-2 border-b border-gray-200 bg-gray-50">
+        <nav class="flex items-center space-x-2 text-sm">
+            {% breadcrumb "Dashboard" "dashboard:home" "Purchase Orders" "purchases:purchase_order_list" "Create New" "purchases:purchase_order_create_step1" "Step 2: Add Products" %}
+        </nav>
+    </div>
+    
+    <!-- Header with Progress Steps -->
+    <div class="border-b border-gray-200 bg-white px-6 py-4">
+        <div class="flex items-center justify-between">
+            <div class="flex items-center">
+                <button onclick="window.location.href='{% url 'purchases:purchase_order_create_step1' %}'" class="mr-4 text-gray-600 hover:text-gray-900">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h1 class="text-2xl font-semibold text-gray-900">Create New Purchase Order</h1>
+            </div>
+            
+            <!-- Progress indicator -->
+            <div class="flex items-center space-x-4">
+                <div class="flex items-center">
+                    <div class="flex items-center justify-center w-8 h-8 bg-green-600 rounded-full text-white text-sm font-medium">
+                        <i class="fas fa-check"></i>
+                    </div>
+                    <span class="ml-2 text-sm text-gray-600">Select Supplier</span>
+                </div>
+                <div class="w-12 h-0.5 bg-gray-300"></div>
+                <div class="flex items-center">
+                    <div class="flex items-center justify-center w-8 h-8 bg-blue-600 rounded-full text-white text-sm font-medium">2</div>
+                    <span class="ml-2 text-sm font-medium text-gray-900">Add Products</span>
+                </div>
+                <div class="w-12 h-0.5 bg-gray-300"></div>
+                <div class="flex items-center">
+                    <div class="flex items-center justify-center w-8 h-8 bg-gray-300 rounded-full text-gray-600 text-sm font-medium">3</div>
+                    <span class="ml-2 text-sm text-gray-500">Review & Save</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <div class="flex-1 overflow-y-auto p-6">
+        <div class="max-w-6xl mx-auto">
+            <!-- Supplier Info -->
+            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-sm text-gray-600">Purchase Order for:</p>
+                        <p class="font-medium text-gray-900">
+                            {{ supplier.name }}
+                            {% if supplier.contact_person %} - {{ supplier.contact_person }}{% endif %}
+                        </p>
+                    </div>
+                    <a href="{% url 'purchases:purchase_order_create_step1' %}" class="text-sm text-blue-600 hover:text-blue-800">
+                        Change Supplier
+                    </a>
+                </div>
+            </div>
+
+            <!-- Add Product Form -->
+            <div class="bg-white border border-gray-200 rounded-lg mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Add Product</h2>
+                </div>
+                <form method="post" class="p-6" id="addItemForm">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_item">
+                    <input type="hidden" name="item_count" id="item_count" value="{{ po_items|length|default:0 }}">
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Product (Optional)
+                            </label>
+                            <select name="product_id" id="product_id" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                                <option value="">-- Custom Item --</option>
+                                {% for product in products %}
+                                    <option value="{{ product.id }}" data-cost="{{ product.cost|default:0 }}" data-description="{{ product.short_description|default:'' }}" data-sku="{{ product.sku }}">
+                                        {{ product.name }} {% if product.sku %}({{ product.sku }}){% endif %} - ${{ product.cost|default:0|floatformat:2 }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Description <span class="text-red-500">*</span>
+                            </label>
+                            <input type="text" name="description" id="description" required placeholder="Enter item description"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Quantity <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" name="quantity" id="quantity" value="1" min="0.01" step="0.01" required
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Unit Cost <span class="text-red-500">*</span>
+                            </label>
+                            <input type="number" name="unit_cost" id="unit_cost" min="0" step="0.01" required placeholder="0.00"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Discount %
+                            </label>
+                            <input type="number" name="discount_percent" id="discount_percent" value="0" min="0" max="100" step="0.01"
+                                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500">
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">
+                                Line Total
+                            </label>
+                            <div class="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-700" id="lineTotal">
+                                $0.00
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mt-4 flex justify-end">
+                        <button type="submit" 
+                                class="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors duration-200">
+                            <i class="fas fa-plus mr-2"></i>
+                            Add Item
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Order Items -->
+            <div id="items-container" class="bg-white border border-gray-200 rounded-lg mb-6">
+                <div class="px-6 py-4 border-b border-gray-200">
+                    <h2 class="text-lg font-semibold text-gray-900">Order Items</h2>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Quantity</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Unit Cost</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Discount</th>
+                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Line Total</th>
+                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody class="bg-white divide-y divide-gray-200">
+                            {% for item in po_items %}
+                            <tr>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                                    {{ item.description }}
+                                    {% if item.product_name %}<br><span class="text-xs text-gray-500">{{ item.product_name }} {% if item.product_sku %}({{ item.product_sku }}){% endif %}</span>{% endif %}
+                                </td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">{{ item.quantity|floatformat:"-2" }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">${{ item.unit_cost|floatformat:2 }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">-</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 text-right">${{ item.line_total|floatformat:2 }}</td>
+                                <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                    <form method="post" style="display: inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="remove_item">
+                                        <input type="hidden" name="product_id" value="{{ item.product_id }}">
+                                        <button type="submit" class="text-red-600 hover:text-red-900">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="px-6 py-8 text-center text-sm text-gray-500">
+                                    No items added yet. Add products to continue.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        {% if po_items %}
+                        <tfoot class="bg-gray-50">
+                            <tr>
+                                <td colspan="4" class="px-6 py-3 text-right text-sm font-medium text-gray-900">Subtotal:</td>
+                                <td class="px-6 py-3 text-right text-sm font-medium text-gray-900">${{ subtotal|default:0|floatformat:2 }}</td>
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                        {% endif %}
+                    </table>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-between">
+                <button type="button" onclick="window.location.href='{% url 'purchases:purchase_order_create_step1' %}'" 
+                        class="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors duration-200">
+                    <i class="fas fa-arrow-left mr-2"></i>
+                    Back
+                </button>
+                <form method="post" style="display: inline;">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="next">
+                    <div class="mb-4">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-3">Additional Details (Optional)</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Tax Rate (%)</label>
+                                <input type="number" name="tax_rate" value="0" min="0" max="100" step="0.01"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Shipping Cost</label>
+                                <input type="number" name="shipping_cost" value="0" min="0" step="0.01"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Discount (%)</label>
+                                <input type="number" name="discount_percent" value="0" min="0" max="100" step="0.01"
+                                       class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                                <textarea name="notes" rows="3"
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-1">Internal Notes</label>
+                                <textarea name="internal_notes" rows="3"
+                                          class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <button type="submit" 
+                            class="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200" 
+                            {% if not po_items %}disabled{% endif %}>
+                        Next: Review & Save
+                        <i class="fas fa-arrow-right ml-2"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const productSelect = document.getElementById('product_id');
+    const descriptionInput = document.getElementById('description');
+    const quantityInput = document.getElementById('quantity');
+    const unitCostInput = document.getElementById('unit_cost');
+    const discountInput = document.getElementById('discount_percent');
+    const lineTotalDiv = document.getElementById('lineTotal');
+    
+    // Update line total calculation
+    function updateLineTotal() {
+        const quantity = parseFloat(quantityInput.value) || 0;
+        const unitCost = parseFloat(unitCostInput.value) || 0;
+        const discount = parseFloat(discountInput.value) || 0;
+        
+        const subtotal = quantity * unitCost;
+        const discountAmount = subtotal * (discount / 100);
+        const lineTotal = subtotal - discountAmount;
+        
+        lineTotalDiv.textContent = '$' + lineTotal.toFixed(2);
+    }
+    
+    // Update fields when product is selected
+    productSelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption.value) {
+            const cost = selectedOption.getAttribute('data-cost');
+            const description = selectedOption.getAttribute('data-description');
+            
+            unitCostInput.value = cost;
+            if (description) {
+                descriptionInput.value = description;
+            } else {
+                descriptionInput.value = selectedOption.text.split(' - ')[0];
+            }
+        } else {
+            descriptionInput.value = '';
+            unitCostInput.value = '';
+        }
+        updateLineTotal();
+    });
+    
+    // Update line total on input changes
+    quantityInput.addEventListener('input', updateLineTotal);
+    unitCostInput.addEventListener('input', updateLineTotal);
+    discountInput.addEventListener('input', updateLineTotal);
+    
+    // Initial calculation
+    updateLineTotal();
+});
+
+</script>
+{% endblock %}

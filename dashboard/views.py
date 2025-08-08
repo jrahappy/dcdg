@@ -1,17 +1,23 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
+from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.db.models import Count, Q
 from django.core.paginator import Paginator
+from django.http import JsonResponse
+from django.contrib.auth import get_user_model
 from customer.models import Customer
 from customer.forms import CustomerForm
 from blog.models import Post
 from blog.forms import PostForm
 from email_campaign.models import EmailCampaign, TargetGroup
+from customer_portal.models import Notification
 from datetime import datetime, timedelta
 
+User = get_user_model()
 
-@login_required
+
+@staff_member_required
 def dashboard_home(request):
     # Get statistics for dashboard
     total_customers = Customer.objects.count()
@@ -59,10 +65,14 @@ def dashboard_home(request):
         'draft_posts': draft_posts,
     }
     
-    return render(request, 'dashboard/home.html', context)
+    # Use DaisyUI template if specified in GET parameter or settings
+    use_daisyui = request.GET.get('ui') == 'daisyui' or request.session.get('use_daisyui', True)
+    template = 'dashboard/home_daisyui.html' if use_daisyui else 'dashboard/home.html'
+    
+    return render(request, template, context)
 
 
-@login_required
+@staff_member_required
 def customer_list(request):
     customers = Customer.objects.all().order_by('-date_joined')
     
@@ -97,10 +107,10 @@ def customer_list(request):
         'rows_per_page': rows_per_page,
     }
     
-    return render(request, 'dashboard/customer_list.html', context)
+    return render(request, 'dashboard/customer_list_daisyui.html', context)
 
 
-@login_required
+@staff_member_required
 def blog_list(request):
     # Get posts for the current user
     posts = Post.objects.filter(author=request.user).order_by('-created_at')
@@ -127,14 +137,17 @@ def blog_list(request):
     context = {
         'posts': posts,
         'page_obj': page_obj,
+        'object_list': page_obj,  # For the generic template
         'search_query': search_query,
         'status_filter': status_filter,
     }
     
-    return render(request, 'dashboard/blog_list.html', context)
+    # Use DaisyUI template
+    template = 'dashboard/blog_list_daisyui.html'
+    return render(request, template, context)
 
 
-@login_required
+@staff_member_required
 def blog_create(request):
     if request.method == 'POST':
         form = PostForm(request.POST, request.FILES)
@@ -151,7 +164,7 @@ def blog_create(request):
     return render(request, 'dashboard/blog_form.html', {'form': form, 'action': 'Create'})
 
 
-@login_required
+@staff_member_required
 def blog_detail(request, pk):
     """Display blog post details"""
     post = get_object_or_404(Post, pk=pk)
@@ -164,7 +177,7 @@ def blog_detail(request, pk):
     return render(request, 'dashboard/blog_detail.html', {'post': post})
 
 
-@login_required
+@staff_member_required
 def blog_edit(request, pk):
     post = get_object_or_404(Post, pk=pk)
     
@@ -185,7 +198,7 @@ def blog_edit(request, pk):
     return render(request, 'dashboard/blog_form.html', {'form': form, 'action': 'Edit', 'post': post})
 
 
-@login_required
+@staff_member_required
 def blog_delete(request, pk):
     post = get_object_or_404(Post, pk=pk)
     
@@ -203,7 +216,7 @@ def blog_delete(request, pk):
 
 
 # Customer CRUD Views
-@login_required
+@staff_member_required
 def customer_create(request):
     """Create a new customer"""
     if request.method == 'POST':
@@ -217,17 +230,17 @@ def customer_create(request):
     else:
         form = CustomerForm()
     
-    return render(request, 'dashboard/customer_form.html', {'form': form, 'action': 'Create'})
+    return render(request, 'dashboard/customer_form_daisyui.html', {'form': form, 'action': 'Create'})
 
 
-@login_required
+@staff_member_required
 def customer_detail(request, pk):
     """Display customer details"""
     customer = get_object_or_404(Customer, pk=pk)
-    return render(request, 'dashboard/customer_detail.html', {'customer': customer})
+    return render(request, 'dashboard/customer_detail_daisyui.html', {'customer': customer})
 
 
-@login_required
+@staff_member_required
 def customer_edit(request, pk):
     """Edit an existing customer"""
     customer = get_object_or_404(Customer, pk=pk)
@@ -241,14 +254,14 @@ def customer_edit(request, pk):
     else:
         form = CustomerForm(instance=customer)
     
-    return render(request, 'dashboard/customer_form.html', {
+    return render(request, 'dashboard/customer_form_daisyui.html', {
         'form': form, 
         'action': 'Edit',
         'customer': customer
     })
 
 
-@login_required
+@staff_member_required
 def customer_delete(request, pk):
     """Delete a customer"""
     customer = get_object_or_404(Customer, pk=pk)
@@ -258,10 +271,10 @@ def customer_delete(request, pk):
         messages.success(request, 'Customer deleted successfully!')
         return redirect('dashboard:customer_list')
     
-    return render(request, 'dashboard/customer_confirm_delete.html', {'customer': customer})
+    return render(request, 'dashboard/customer_confirm_delete_daisyui.html', {'customer': customer})
 
 
-@login_required
+@staff_member_required
 def global_search(request):
     """Global search across customers, campaigns, and target groups"""
     query = request.GET.get('q', '').strip()
@@ -301,3 +314,193 @@ def global_search(request):
         results['target_groups'] = target_groups
     
     return render(request, 'dashboard/global_search.html', results)
+
+
+@staff_member_required
+def notification_manage(request):
+    """Manage notifications for customers"""
+    
+    # Get all notifications
+    notifications = Notification.objects.all().select_related('user').order_by('-created_at')
+    
+    # Filter by user
+    user_filter = request.GET.get('user')
+    if user_filter:
+        notifications = notifications.filter(user_id=user_filter)
+    
+    # Filter by type
+    type_filter = request.GET.get('type')
+    if type_filter:
+        notifications = notifications.filter(notification_type=type_filter)
+    
+    # Filter by priority
+    priority_filter = request.GET.get('priority')
+    if priority_filter:
+        notifications = notifications.filter(priority=priority_filter)
+    
+    # Search
+    search_query = request.GET.get('search')
+    if search_query:
+        notifications = notifications.filter(
+            Q(title__icontains=search_query) |
+            Q(message__icontains=search_query) |
+            Q(user__username__icontains=search_query) |
+            Q(user__email__icontains=search_query)
+        )
+    
+    # Pagination
+    paginator = Paginator(notifications, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Get users for filter dropdown
+    users_with_notifications = User.objects.filter(
+        notifications__isnull=False
+    ).distinct().order_by('username')
+    
+    # Get statistics
+    from datetime import date
+    stats = {
+        'total': Notification.objects.count(),
+        'unread': Notification.objects.filter(is_read=False).count(),
+        'high_priority': Notification.objects.filter(priority='high').count() + Notification.objects.filter(priority='urgent').count(),
+        'today': Notification.objects.filter(created_at__date=date.today()).count(),
+    }
+    
+    context = {
+        'notifications': page_obj,
+        'page_obj': page_obj,
+        'users': users_with_notifications,
+        'notification_types': Notification.NOTIFICATION_TYPES,
+        'priority_levels': Notification.PRIORITY_LEVELS,
+        'user_filter': user_filter,
+        'type_filter': type_filter,
+        'priority_filter': priority_filter,
+        'search_query': search_query,
+        'stats': stats,
+        'is_paginated': page_obj.has_other_pages(),
+    }
+    
+    return render(request, 'dashboard/notification_manage_daisyui.html', context)
+
+
+@staff_member_required
+def notification_create(request):
+    """Create a new notification"""
+    
+    if request.method == 'POST':
+        # Get form data
+        user_ids = request.POST.getlist('users')
+        title = request.POST.get('title')
+        message = request.POST.get('message')
+        notification_type = request.POST.get('notification_type')
+        priority = request.POST.get('priority')
+        link = request.POST.get('link')
+        
+        # Create notifications for selected users
+        if user_ids and title and message:
+            created_count = 0
+            for user_id in user_ids:
+                try:
+                    user = User.objects.get(pk=user_id)
+                    Notification.objects.create(
+                        user=user,
+                        title=title,
+                        message=message,
+                        notification_type=notification_type,
+                        priority=priority,
+                        link=link if link else ''
+                    )
+                    created_count += 1
+                except User.DoesNotExist:
+                    continue
+            
+            messages.success(request, f'Created {created_count} notifications successfully!')
+            return redirect('dashboard:notification_manage')
+        else:
+            messages.error(request, 'Please fill in all required fields.')
+    
+    # Get all users for selection
+    users = User.objects.filter(is_active=True).order_by('username')
+    
+    context = {
+        'users': users,
+        'notification_types': Notification.NOTIFICATION_TYPES,
+        'priority_levels': Notification.PRIORITY_LEVELS,
+    }
+    
+    return render(request, 'dashboard/notification_create_daisyui.html', context)
+
+
+@staff_member_required
+def notification_delete(request, pk):
+    """Delete a notification"""
+    
+    notification = get_object_or_404(Notification, pk=pk)
+    
+    if request.method == 'POST':
+        notification.delete()
+        messages.success(request, 'Notification deleted successfully!')
+        return redirect('dashboard:notification_manage')
+    
+    return render(request, 'dashboard/notification_confirm_delete.html', {
+        'notification': notification
+    })
+
+
+@staff_member_required
+def notification_list(request):
+    """Return notification list for HTMX requests"""
+    notifications = Notification.objects.filter(user=request.user).order_by('-created_at')[:10]
+    
+    # Mark this as an HTMX partial response
+    if request.headers.get('HX-Request'):
+        return render(request, 'dashboard/partials/notification_list.html', {
+            'notifications': notifications
+        })
+    
+    # Regular request fallback
+    return JsonResponse({
+        'notifications': [
+            {
+                'id': n.id,
+                'title': n.title,
+                'message': n.message,
+                'type': n.notification_type,
+                'is_read': n.is_read,
+                'created_at': n.created_at.isoformat() if n.created_at else None
+            }
+            for n in notifications
+        ]
+    })
+
+
+@staff_member_required
+def notification_bulk_action(request):
+    """Handle bulk actions on notifications"""
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        notification_ids = request.POST.getlist('notification_ids')
+        
+        if not notification_ids:
+            return JsonResponse({'error': 'No notifications selected'}, status=400)
+        
+        notifications = Notification.objects.filter(pk__in=notification_ids)
+        
+        if action == 'delete':
+            count = notifications.count()
+            notifications.delete()
+            messages.success(request, f'Deleted {count} notifications.')
+        elif action == 'mark_read':
+            count = notifications.filter(is_read=False).update(is_read=True)
+            messages.success(request, f'Marked {count} notifications as read.')
+        elif action == 'mark_unread':
+            count = notifications.filter(is_read=True).update(is_read=False, read_at=None)
+            messages.success(request, f'Marked {count} notifications as unread.')
+        else:
+            return JsonResponse({'error': 'Invalid action'}, status=400)
+        
+        return JsonResponse({'success': True})
+    
+    return JsonResponse({'error': 'Invalid request method'}, status=405)

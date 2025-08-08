@@ -1,0 +1,371 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}Create Invoice - Step 2{% endblock %}
+
+{% block dashboard_content %}
+<div class="space-y-6">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </a></li>
+            <li><a href="{% url 'sales:invoice_list' %}">Invoices</a></li>
+            <li>Create New - Step 2</li>
+        </ul>
+    </div>
+
+    <!-- Header with Progress Steps -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <h1 class="text-2xl font-bold">Create New Invoice</h1>
+                
+                <!-- Progress Steps -->
+                <ul class="steps">
+                    <li class="step step-primary">Select Customer</li>
+                    <li class="step step-primary">Add Products</li>
+                    <li class="step">Review & Save</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Customer Info -->
+    <div class="alert">
+        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+        </svg>
+        <div class="flex-1">
+            <div class="text-sm text-base-content/60">Invoice for:</div>
+            <div class="font-semibold">
+                {{ customer.get_full_name }}
+                {% if customer.company_name %} - {{ customer.company_name }}{% endif %}
+            </div>
+        </div>
+        <a href="{% url 'sales:invoice_create_step1' %}" class="btn btn-ghost btn-sm">
+            Change Customer
+        </a>
+    </div>
+
+    <!-- Add Product Form -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                </svg>
+                Add Product
+            </h2>
+            
+            <form method="post" id="addItemForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_item">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Product (Optional)</span>
+                        </label>
+                        <select name="product_id" id="product_id" class="select select-bordered">
+                            <option value="">-- Custom Item --</option>
+                            {% for product in products %}
+                                <option value="{{ product.id }}" 
+                                        data-price="{{ product.price }}" 
+                                        data-description="{{ product.description|default:'' }}"
+                                        data-serial-managed="{{ product.is_serial_number_managed|yesno:'true,false' }}">
+                                    {{ product.name }} - ${{ product.price|floatformat:2 }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div id="descriptionField" class="form-control">
+                        <label class="label">
+                            <span class="label-text">Description <span class="text-error">*</span></span>
+                        </label>
+                        <input type="text" name="description" id="description" required
+                               class="input input-bordered">
+                    </div>
+                    
+                    <div id="inventoryField" class="form-control hidden">
+                        <label class="label">
+                            <span class="label-text">Select Inventory Item <span class="text-error">*</span></span>
+                        </label>
+                        <select name="inventory_id" id="inventory_id" class="select select-bordered">
+                            <option value="">-- Select Serial Number --</option>
+                        </select>
+                        <label class="label">
+                            <span class="label-text-alt">Available inventory items for this product</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Quantity <span class="text-error">*</span></span>
+                        </label>
+                        <input type="number" name="quantity" id="quantity" 
+                               value="1" min="0.01" step="0.01" required
+                               class="input input-bordered">
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Unit Price <span class="text-error">*</span></span>
+                        </label>
+                        <input type="number" name="unit_price" id="unit_price" 
+                               min="0" step="0.01" required
+                               class="input input-bordered">
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Discount %</span>
+                        </label>
+                        <input type="number" name="discount_percent" id="discount_percent" 
+                               value="0" min="0" max="100" step="0.01"
+                               class="input input-bordered">
+                    </div>
+                    
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Line Total</span>
+                        </label>
+                        <div class="input input-bordered flex items-center bg-base-200" id="lineTotal">
+                            $0.00
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-6 flex justify-end">
+                    <button type="submit" class="btn btn-success">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Item
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Invoice Items -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title mb-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                </svg>
+                Invoice Items
+            </h2>
+            
+            <div class="overflow-x-auto">
+                <table class="table table-zebra">
+                    <thead>
+                        <tr>
+                            <th>Description</th>
+                            <th class="text-right">Quantity</th>
+                            <th class="text-right">Unit Price</th>
+                            <th class="text-right">Discount</th>
+                            <th class="text-right">Line Total</th>
+                            <th class="text-center">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in invoice_items %}
+                        <tr>
+                            <td>
+                                <div class="font-medium">{{ item.description }}</div>
+                                {% if item.product_name %}
+                                <div class="text-xs text-base-content/60">{{ item.product_name }}</div>
+                                {% endif %}
+                                {% if item.inventory_id %}
+                                <div class="text-xs text-info">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 inline" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01M5 8h2a1 1 0 001-1V5a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1zm12 0h2a1 1 0 001-1V5a1 1 0 00-1-1h-2a1 1 0 00-1 1v2a1 1 0 001 1zM5 20h2a1 1 0 001-1v-2a1 1 0 00-1-1H5a1 1 0 00-1 1v2a1 1 0 001 1z" />
+                                    </svg>
+                                    Serial Managed Item
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td class="text-right">{{ item.quantity|floatformat:"-2" }}</td>
+                            <td class="text-right">${{ item.unit_price|floatformat:2 }}</td>
+                            <td class="text-right">{{ item.discount_percent|floatformat:"-2" }}%</td>
+                            <td class="text-right font-semibold">${{ item.line_total|floatformat:2 }}</td>
+                            <td class="text-center">
+                                <form method="post" class="inline">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="remove_item">
+                                    <input type="hidden" name="item_index" value="{{ forloop.counter0 }}">
+                                    <button type="submit" class="btn btn-ghost btn-xs text-error">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-8">
+                                <div class="text-base-content/60">No items added yet. Add products to continue.</div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                    {% if invoice_items %}
+                    <tfoot>
+                        <tr>
+                            <th colspan="4" class="text-right">Subtotal:</th>
+                            <th class="text-right">${{ subtotal|floatformat:2 }}</th>
+                            <th></th>
+                        </tr>
+                    </tfoot>
+                    {% endif %}
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Action Buttons -->
+    <form method="post" class="flex justify-between">
+        {% csrf_token %}
+        <button type="button" 
+                onclick="window.location.href='{% url 'sales:invoice_create_step1' %}'" 
+                class="btn btn-ghost">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+            Back
+        </button>
+        <button type="submit" name="action" value="next" 
+                class="btn btn-primary" 
+                {% if not invoice_items %}disabled{% endif %}>
+            Next: Review & Save
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+            </svg>
+        </button>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const productSelect = document.getElementById('product_id');
+    const descriptionInput = document.getElementById('description');
+    const descriptionField = document.getElementById('descriptionField');
+    const inventoryField = document.getElementById('inventoryField');
+    const inventorySelect = document.getElementById('inventory_id');
+    const quantityInput = document.getElementById('quantity');
+    const unitPriceInput = document.getElementById('unit_price');
+    const discountInput = document.getElementById('discount_percent');
+    const lineTotalDiv = document.getElementById('lineTotal');
+    
+    // Update line total calculation
+    function updateLineTotal() {
+        const quantity = parseFloat(quantityInput.value) || 0;
+        const unitPrice = parseFloat(unitPriceInput.value) || 0;
+        const discount = parseFloat(discountInput.value) || 0;
+        
+        const subtotal = quantity * unitPrice;
+        const discountAmount = subtotal * (discount / 100);
+        const lineTotal = subtotal - discountAmount;
+        
+        lineTotalDiv.textContent = '$' + lineTotal.toFixed(2);
+    }
+    
+    // Load inventory items for a product
+    async function loadInventoryItems(productId) {
+        try {
+            const response = await fetch(`/sales/api/inventory/available/${productId}/`);
+            const data = await response.json();
+            
+            inventorySelect.innerHTML = '<option value="">-- Select Serial Number --</option>';
+            data.items.forEach(item => {
+                const option = document.createElement('option');
+                option.value = item.id;
+                option.textContent = `SN: ${item.serial_number} - ${item.condition}`;
+                option.setAttribute('data-description', `${item.product_name} (SN: ${item.serial_number})`);
+                inventorySelect.appendChild(option);
+            });
+        } catch (error) {
+            console.error('Error loading inventory:', error);
+        }
+    }
+    
+    // Update fields when product is selected
+    productSelect.addEventListener('change', async function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption.value) {
+            const price = selectedOption.getAttribute('data-price');
+            const description = selectedOption.getAttribute('data-description');
+            const isSerialManaged = selectedOption.getAttribute('data-serial-managed') === 'true';
+            
+            unitPriceInput.value = price;
+            
+            if (isSerialManaged) {
+                // Show inventory field, hide description field
+                descriptionField.classList.add('hidden');
+                inventoryField.classList.remove('hidden');
+                descriptionInput.removeAttribute('required');
+                inventorySelect.setAttribute('required', 'required');
+                
+                // Set quantity to 1 and make it readonly for serial managed items
+                quantityInput.value = 1;
+                quantityInput.setAttribute('readonly', 'readonly');
+                
+                // Load available inventory items
+                await loadInventoryItems(selectedOption.value);
+            } else {
+                // Show description field, hide inventory field
+                descriptionField.classList.remove('hidden');
+                inventoryField.classList.add('hidden');
+                descriptionInput.setAttribute('required', 'required');
+                inventorySelect.removeAttribute('required');
+                
+                // Make quantity editable
+                quantityInput.removeAttribute('readonly');
+                
+                // Set description if available
+                if (description) {
+                    descriptionInput.value = description;
+                } else {
+                    descriptionInput.value = selectedOption.text.split(' - ')[0];
+                }
+            }
+        } else {
+            // Reset for custom item
+            descriptionField.classList.remove('hidden');
+            inventoryField.classList.add('hidden');
+            descriptionInput.setAttribute('required', 'required');
+            inventorySelect.removeAttribute('required');
+            quantityInput.removeAttribute('readonly');
+            descriptionInput.value = '';
+            unitPriceInput.value = '';
+        }
+        updateLineTotal();
+    });
+    
+    // Update description when inventory item is selected
+    inventorySelect.addEventListener('change', function() {
+        const selectedOption = this.options[this.selectedIndex];
+        if (selectedOption.value) {
+            const description = selectedOption.getAttribute('data-description');
+            descriptionInput.value = description || '';
+        }
+    });
+    
+    // Update line total on input changes
+    quantityInput.addEventListener('input', updateLineTotal);
+    unitPriceInput.addEventListener('input', updateLineTotal);
+    discountInput.addEventListener('input', updateLineTotal);
+    
+    // Initial calculation
+    updateLineTotal();
+});
+</script>
+{% endblock %}

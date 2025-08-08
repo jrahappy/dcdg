@@ -1,0 +1,134 @@
+{% extends 'customer_portal/base.html' %}
+
+{% block title %}Invite Members - {{ organization.name }}{% endblock %}
+
+{% block customer_content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-2xl font-bold">Invite Members</h1>
+        <div class="text-sm breadcrumbs">
+            <ul>
+                <li><a href="{% url 'customer_portal:dashboard' %}">Dashboard</a></li>
+                <li><a href="{% url 'customer_portal:organization' %}">Organization</a></li>
+                <li>Invite</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- Invite Form -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title mb-4">Invite to {{ organization.name }}</h2>
+            <p class="text-base-content/60 mb-6">
+                Invite team members to join your organization. They'll be able to access shared data based on their assigned role.
+            </p>
+            
+            <form method="post" action="{% url 'customer_portal:organization_invite' %}">
+                {% csrf_token %}
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Email Address <span class="text-error">*</span></span>
+                    </label>
+                    <input type="email" name="email" required
+                           class="input input-bordered" 
+                           placeholder="colleague@example.com" />
+                    <label class="label">
+                        <span class="label-text-alt">Enter the email address of the person you want to invite</span>
+                    </label>
+                </div>
+                
+                <div class="form-control mt-4">
+                    <label class="label">
+                        <span class="label-text">Role <span class="text-error">*</span></span>
+                    </label>
+                    <select name="role" class="select select-bordered" required>
+                        {% for value, label in role_choices %}
+                        {% if value != 'owner' %}
+                        <option value="{{ value }}" {% if value == 'staff' %}selected{% endif %}>
+                            {{ label }}
+                        </option>
+                        {% endif %}
+                        {% endfor %}
+                    </select>
+                    <label class="label">
+                        <span class="label-text-alt">Choose the role for this member</span>
+                    </label>
+                </div>
+                
+                <!-- Role Descriptions -->
+                <div class="mt-6 space-y-3">
+                    <div class="alert">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-info shrink-0 w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div>
+                            <h3 class="font-bold">Role Permissions</h3>
+                            <div class="text-sm mt-2 space-y-1">
+                                <div><span class="font-semibold">Administrator:</span> Can manage organization settings and invite/remove members</div>
+                                <div><span class="font-semibold">Manager:</span> Can view and manage most organization data</div>
+                                <div><span class="font-semibold">Staff:</span> Can view organization data and collaborate</div>
+                                <div><span class="font-semibold">Customer:</span> Basic access to view shared information</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card-actions justify-end mt-6">
+                    <a href="{% url 'customer_portal:organization' %}" class="btn btn-ghost">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        Send Invitation
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Current Members -->
+    <div class="card bg-base-100 shadow-xl mt-6">
+        <div class="card-body">
+            <h3 class="card-title mb-4">Current Members</h3>
+            
+            <div class="overflow-x-auto">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for member in organization.customers.all %}
+                        <tr>
+                            <td>
+                                <div class="flex items-center space-x-3">
+                                    <div class="avatar placeholder">
+                                        <div class="bg-neutral text-neutral-content rounded-full w-8">
+                                            <span class="text-xs">{{ member.first_name.0|upper }}{{ member.last_name.0|upper }}</span>
+                                        </div>
+                                    </div>
+                                    <span>{{ member.get_full_name }}</span>
+                                </div>
+                            </td>
+                            <td>{{ member.email }}</td>
+                            <td>
+                                <span class="badge {% if member.role == 'owner' %}badge-error{% elif member.role == 'admin' %}badge-warning{% else %}badge-ghost{% endif %} badge-sm">
+                                    {{ member.get_role_display }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

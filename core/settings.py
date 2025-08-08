@@ -48,11 +48,13 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # Third party apps
     "django_extensions",
+    "debug_toolbar",
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
     "django_vite",
     "django_summernote",
+    "channels",
     # Local apps
     "dogfoot",
     "core",
@@ -62,6 +64,16 @@ INSTALLED_APPS = [
     "customer",
     "dashboard",
     "email_campaign",
+    "email_templates",
+    "product",
+    "sales",
+    "inventory",
+    "purchases",
+    "shop",
+    "customer_portal",
+    "chat",
+    "factory",
+    "factory_portal",
 ]
 
 MIDDLEWARE = [
@@ -76,6 +88,8 @@ MIDDLEWARE = [
     "allauth.account.middleware.AccountMiddleware",
     # Custom middleware to handle email verification redirects
     "accounts.middleware.EmailVerificationRedirectMiddleware",
+    # Debug toolbar middleware
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -97,6 +111,9 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = "core.wsgi.application"
+
+# ASGI Application
+ASGI_APPLICATION = "core.asgi.application"
 
 
 # Database
@@ -148,7 +165,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/4.1/howto/static-files/
 
 STATIC_URL = "static/"
-STATICFILES_DIRS = [BASE_DIR / "assets"]
+STATICFILES_DIRS = [
+    BASE_DIR / "assets",
+    BASE_DIR / "static",
+]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 # Media files
@@ -192,19 +212,79 @@ EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() in ("true", "1", "yes")
 
 # django-allauth configuration
-ACCOUNT_AUTHENTICATION_METHOD = "email"
+# New format for authentication method
+ACCOUNT_LOGIN_METHODS = {"email"}  # Use email for login (replaces ACCOUNT_AUTHENTICATION_METHOD)
+
+# Email verification settings
 ACCOUNT_EMAIL_VERIFICATION = "none"  # Disabled email verification
-ACCOUNT_EMAIL_REQUIRED = True  # Keep email required but no verification
+
+# New format for signup fields
+ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]  # Replaces ACCOUNT_EMAIL_REQUIRED and ACCOUNT_SIGNUP_EMAIL_ENTER_TWICE
+
+# Other settings
 ACCOUNT_USERNAME_MIN_LENGTH = 4
 ACCOUNT_UNIQUE_EMAIL = True  # Ensure email uniqueness
-ACCOUNT_SIGNUP_EMAIL_ENTER_TWICE = False  # Don't require email twice
-LOGIN_REDIRECT_URL = "/dashboard/"
+LOGIN_REDIRECT_URL = "/shop/"
 ACCOUNT_LOGOUT_REDIRECT_URL = "/"
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = False  # Don't auto-login on email confirm
 ACCOUNT_LOGIN_ON_PASSWORD_RESET = False  # Don't auto-login on password reset
 ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = LOGIN_REDIRECT_URL
 ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = LOGIN_REDIRECT_URL
 ACCOUNT_ADAPTER = "accounts.adapter.NoEmailVerificationAdapter"  # Custom adapter
+
+# Logging Configuration
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console': {
+            'class': 'logging.StreamHandler',
+            'formatter': 'verbose'
+        },
+        'file': {
+            'class': 'logging.FileHandler',
+            'filename': 'debug.log',
+            'formatter': 'verbose'
+        },
+    },
+    'root': {
+        'handlers': ['console'],
+        'level': 'INFO',
+    },
+    'loggers': {
+        'django': {
+            'handlers': ['console', 'file'],
+            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
+            'propagate': False,
+        },
+        # Add your app-specific loggers here
+        'sales': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'purchases': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+        'product': {
+            'handlers': ['console', 'file'],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
 
 # Django Summernote Configuration
 SUMMERNOTE_CONFIG = {
@@ -237,3 +317,45 @@ SUMMERNOTE_CONFIG = {
         "lang": "en-US",
     },
 }
+
+# Django Debug Toolbar configuration
+INTERNAL_IPS = [
+    "127.0.0.1",
+    "localhost",
+]
+
+# Custom callback to show/hide debug toolbar
+def show_toolbar(request):
+    # Don't show toolbar on customer-facing pages
+    if request.path.startswith('/account/') or request.path.startswith('/shop/'):
+        return False
+    return DEBUG
+
+# Show SQL queries in debug toolbar
+DEBUG_TOOLBAR_CONFIG = {
+    'SHOW_TOOLBAR_CALLBACK': show_toolbar,
+    'SHOW_COLLAPSED': True,
+    'SHOW_TEMPLATE_CONTEXT': True,
+    'ENABLE_STACKTRACES': True,
+}
+
+# Django Extensions configuration
+SHELL_PLUS_PRINT_SQL = True  # Print SQL queries in shell_plus
+
+# Django Channels configuration
+# Use Redis in production, in-memory for development
+if DEBUG:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels.layers.InMemoryChannelLayer'
+        }
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {
+                "hosts": [('127.0.0.1', 6379)],
+            },
+        },
+    }

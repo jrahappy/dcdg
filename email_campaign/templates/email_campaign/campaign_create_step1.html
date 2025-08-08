@@ -1,0 +1,133 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}Create Marketing Campaign - Step 1{% endblock %}
+
+{% block dashboard_content %}
+<div class="max-w-7xl mx-auto">
+    <!-- Breadcrumbs -->
+    <div class="text-sm breadcrumbs mb-4">
+        <ul>
+            <li>
+                <a href="{% url 'dashboard:home' %}" class="link link-hover">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                    </svg>
+                </a>
+            </li>
+            <li><a href="{% url 'email_campaign:campaign_list' %}" class="link link-hover">Email Campaigns</a></li>
+            <li>Create New Campaign</li>
+        </ul>
+    </div>
+
+    <!-- Progress Steps -->
+    <div class="mb-8">
+        <ul class="steps w-full">
+            <li class="step step-primary">Select Target Group</li>
+            <li class="step">Select Email Template</li>
+            <li class="step">Preview & Send</li>
+        </ul>
+    </div>
+
+    <!-- Header Card -->
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div class="flex-1">
+                    <h1 class="text-3xl font-bold">Create Marketing Campaign</h1>
+                    <p class="text-base-content/60 mt-2">
+                        Step 1 of 3: Choose the target group for your marketing campaign
+                    </p>
+                </div>
+                <div class="flex gap-2">
+                    <a href="{% url 'email_campaign:campaign_list' %}" class="btn btn-ghost">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Cancel
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Target Group Selection -->
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    Select Target Group
+                </h2>
+                
+                {% if target_groups %}
+                    <div class="space-y-3">
+                        {% for target_group in target_groups %}
+                        <div class="form-control">
+                            <label class="label cursor-pointer justify-start gap-4 p-4 border-2 border-base-300 rounded-lg hover:border-primary hover:bg-base-200 transition-all">
+                                <input type="radio" name="target_group_id" value="{{ target_group.id }}" class="radio radio-primary" required>
+                                <div class="flex-1">
+                                    <div class="flex justify-between items-start">
+                                        <div>
+                                            <span class="text-lg font-semibold">{{ target_group.name }}</span>
+                                            {% if target_group.description %}
+                                                <p class="text-sm text-base-content/60 mt-1">{{ target_group.description }}</p>
+                                            {% endif %}
+                                        </div>
+                                        <div class="text-right">
+                                            <div class="badge badge-primary">{{ target_group.customer_count }} customers</div>
+                                            <div class="text-xs text-base-content/60 mt-1">
+                                                Created {{ target_group.created_at|date:"M d, Y" }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <div>
+                            <h3 class="font-bold">No Target Groups Found</h3>
+                            <div class="text-sm">
+                                You need to create a target group first. 
+                                <a href="{% url 'email_campaign:customer_selection' %}" class="link link-primary">Create one now</a>
+                            </div>
+                        </div>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        {% if target_groups %}
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <a href="{% url 'email_campaign:campaign_list' %}" class="btn btn-ghost">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                        Cancel
+                    </a>
+                    
+                    <button type="submit" class="btn btn-primary">
+                        Next: Select Email Template
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </form>
+</div>
+{% endblock %}

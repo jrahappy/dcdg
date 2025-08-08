@@ -1,771 +1,380 @@
-{% extends 'dashboard/base.html' %}
+{% extends 'dashboard/base_daisyui.html' %}
 
-{% block page_title %}Campaign Details{% endblock %}
+{% block title %}{{ campaign.name }} - Campaign Details{% endblock %}
 
 {% block dashboard_content %}
-<div class="gmail-list-container">
-    <!-- Header -->
-    <div class="gmail-toolbar">
-        <div class="toolbar-left">
-            <button class="toolbar-btn" onclick="window.location.href='{% url 'email_campaign:campaign_list' %}'">
-                <i class="fas fa-arrow-left"></i>
+<div class="max-w-7xl mx-auto">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs mb-6">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+            <li><a href="{% url 'email_campaign:campaign_list' %}">Email Campaigns</a></li>
+            <li>{{ campaign.name }}</li>
+        </ul>
+    </div>
+
+    <!-- Header with Actions -->
+    <div class="flex justify-between items-center mb-6">
+        <div>
+            <h1 class="text-3xl font-bold">{{ campaign.name }}</h1>
+            <p class="text-base-content/60 mt-1">{{ campaign.subject }}</p>
+            <div class="flex items-center gap-2 mt-2">
+                {% if campaign.status == 'draft' %}
+                    <div class="badge badge-warning">Draft</div>
+                {% elif campaign.status == 'sent' %}
+                    <div class="badge badge-success">Sent</div>
+                {% elif campaign.status == 'sending' %}
+                    <div class="badge badge-info">Sending</div>
+                {% elif campaign.status == 'failed' %}
+                    <div class="badge badge-error">Failed</div>
+                {% endif %}
+                <div class="badge badge-outline gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    {{ campaign.total_recipients }} recipients
+                </div>
+            </div>
+        </div>
+        <div class="flex gap-2">
+            {% if campaign.status == 'draft' %}
+            <button onclick="sendModal.showModal()" class="btn btn-success">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+                Send Campaign
             </button>
-            <h2 class="toolbar-title">Campaign Details</h2>
+            {% endif %}
+            <button onclick="deleteModal.showModal()" class="btn btn-error btn-outline">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                </svg>
+                Delete
+            </button>
         </div>
     </div>
 
-    <!-- Campaign Details -->
-    <div class="detail-container">
-        <div class="detail-header">
-            <div class="detail-avatar">
-                <div class="avatar-circle-large">
-                    <i class="fas fa-envelope"></i>
-                </div>
-            </div>
-            <div class="detail-header-info">
-                <h1 class="detail-name">{{ campaign.name }}</h1>
-                <p class="detail-company">{{ campaign.subject }}</p>
-                <div class="detail-status">
-                    {% if campaign.status == 'draft' %}
-                        <span class="status-badge draft">Draft</span>
-                    {% elif campaign.status == 'sent' %}
-                        <span class="status-badge sent">Sent</span>
-                    {% elif campaign.status == 'sending' %}
-                        <span class="status-badge sending">Sending</span>
-                    {% elif campaign.status == 'failed' %}
-                        <span class="status-badge failed">Failed</span>
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Main Content -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Email Content -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        Email Content
+                    </h2>
+                    
+                    {% if campaign.email_template %}
+                        <!-- Template-based campaign -->
+                        <div class="alert alert-info mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                            </svg>
+                            <div>
+                                <div class="font-bold">Using Email Template: {{ campaign.email_template.title }}</div>
+                                <div class="text-sm">Template variables will be personalized for each recipient</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Template Details -->
+                        <div class="space-y-4 mb-4">
+                            <div>
+                                <label class="label">
+                                    <span class="label-text font-semibold">Template Subject</span>
+                                </label>
+                                <p class="text-lg">{{ campaign.email_template.subject }}</p>
+                            </div>
+                            
+                            <div>
+                                <label class="label">
+                                    <span class="label-text font-semibold">Content Type</span>
+                                </label>
+                                <div class="badge badge-outline">{{ campaign.email_template.get_content_type_display }}</div>
+                            </div>
+                            
+                            {% if campaign.email_template.sender_name %}
+                            <div>
+                                <label class="label">
+                                    <span class="label-text font-semibold">Sender</span>
+                                </label>
+                                <p>{{ campaign.email_template.sender_name }} &lt;{{ campaign.email_template.sender_email }}&gt;</p>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Template Content Preview -->
+                        <div class="mockup-window border bg-base-300">
+                            <div class="flex justify-center px-4 py-2 bg-base-200">
+                                <div class="text-sm">Email Template Preview</div>
+                            </div>
+                            <div class="bg-white p-6">
+                                {% if campaign.email_template.html_content %}
+                                    <div class="prose max-w-none">
+                                        {{ campaign.email_template.html_content|safe }}
+                                    </div>
+                                {% elif campaign.email_template.plain_content %}
+                                    <div class="whitespace-pre-wrap text-sm bg-gray-50 p-4 rounded">
+                                        {{ campaign.email_template.plain_content }}
+                                    </div>
+                                {% else %}
+                                    <p class="text-gray-500 italic">No content available</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mt-4 p-3 bg-warning/10 border border-warning/20 rounded-lg">
+                            <div class="text-sm">
+                                <strong>Note:</strong> Template variables like {% templatetag openvariable %}first_name{% templatetag closevariable %}, {% templatetag openvariable %}last_name{% templatetag closevariable %}, {% templatetag openvariable %}email{% templatetag closevariable %}, and {% templatetag openvariable %}company_name{% templatetag closevariable %} will be automatically replaced with actual recipient data when emails are sent.
+                            </div>
+                        </div>
+                        
+                    {% elif campaign.content %}
+                        <!-- Legacy campaign content -->
+                        <div class="alert alert-warning mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                            <div>
+                                <div class="font-bold">Legacy Campaign</div>
+                                <div class="text-sm">This campaign uses the legacy content format</div>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-base-200 rounded-lg p-6">
+                            <div class="prose max-w-none">
+                                {{ campaign.content|safe }}
+                            </div>
+                        </div>
+                    {% else %}
+                        <!-- No content -->
+                        <div class="text-center py-8 text-base-content/40">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            <p>No email content available</p>
+                        </div>
                     {% endif %}
-                    <span class="status-badge recipients">
-                        <i class="fas fa-users"></i> {{ campaign.total_recipients }} recipients
-                    </span>
                 </div>
             </div>
-            <div class="detail-actions">
-                {% if campaign.status == 'draft' %}
-                <button class="action-btn action-btn-success" onclick="sendCampaign()" title="Send Campaign">
-                    <i class="fas fa-paper-plane"></i>
-                    <span>Send Campaign</span>
-                </button>
-                {% endif %}
-                <button type="button" class="action-btn action-btn-danger" id="deleteButton" title="Delete Campaign">
-                    <i class="fas fa-trash"></i>
-                    <span>Delete</span>
-                </button>
+
+            <!-- Recipients Preview -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Recipients Preview (First 10)</h2>
+                    <div class="space-y-3">
+                        {% for customer in customers %}
+                        <div class="flex items-center gap-4 p-3 bg-base-200 rounded-lg">
+                            <div class="avatar placeholder">
+                                <div class="bg-neutral text-neutral-content rounded-full w-10">
+                                    <span class="text-sm">{{ customer.first_name.0|upper }}{{ customer.last_name.0|upper }}</span>
+                                </div>
+                            </div>
+                            <div class="flex-1">
+                                <p class="font-medium">{{ customer.get_full_name }}</p>
+                                <p class="text-sm text-base-content/60">{{ customer.email }}</p>
+                            </div>
+                            <div class="text-sm text-base-content/60">
+                                {{ customer.company_name|default:"—" }}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if campaign.target_group.customer_count > 10 %}
+                    <div class="text-center mt-4 text-base-content/60">
+                        <em>... and {{ campaign.target_group.customer_count|add:"-10" }} more recipient{{ campaign.target_group.customer_count|add:"-10"|pluralize }}</em>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
         </div>
 
-        <div class="detail-sections">
+        <!-- Sidebar -->
+        <div class="lg:col-span-1 space-y-6">
             <!-- Campaign Information -->
-            <div class="detail-section">
-                <h3 class="section-title">Campaign Information</h3>
-                <div class="detail-grid">
-                    <div class="detail-item">
-                        <label>Target Group</label>
-                        <div class="detail-value">
-                            <a href="{% url 'email_campaign:target_group_detail' campaign.target_group.id %}">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Campaign Information</h2>
+                    <div class="space-y-4">
+                        <div>
+                            <label class="label">
+                                <span class="label-text font-semibold">Target Group</span>
+                            </label>
+                            <a href="{% url 'email_campaign:target_group_detail' campaign.target_group.id %}" class="link link-primary">
                                 {{ campaign.target_group.name }}
                             </a>
                         </div>
+                        {% if campaign.email_template %}
+                        <div>
+                            <label class="label">
+                                <span class="label-text font-semibold">Email Template</span>
+                            </label>
+                            <p>{{ campaign.email_template.title }}</p>
+                            <div class="text-sm text-base-content/60">
+                                From: {{ campaign.email_template.sender_email }}
+                            </div>
+                        </div>
+                        {% else %}
+                        <div>
+                            <label class="label">
+                                <span class="label-text font-semibold">From Email</span>
+                            </label>
+                            <p>{{ campaign.from_email|default:"System Default" }}</p>
+                        </div>
+                        {% endif %}
+                        <div>
+                            <label class="label">
+                                <span class="label-text font-semibold">Created By</span>
+                            </label>
+                            <p>{{ campaign.created_by.get_full_name|default:campaign.created_by.username }}</p>
+                        </div>
+                        <div>
+                            <label class="label">
+                                <span class="label-text font-semibold">Created At</span>
+                            </label>
+                            <p>{{ campaign.created_at|date:"F d, Y g:i A" }}</p>
+                        </div>
+                        {% if campaign.sent_time %}
+                        <div>
+                            <label class="label">
+                                <span class="label-text font-semibold">Sent At</span>
+                            </label>
+                            <p>{{ campaign.sent_time|date:"F d, Y g:i A" }}</p>
+                        </div>
+                        {% endif %}
                     </div>
-                    <div class="detail-item">
-                        <label>From Email</label>
-                        <div class="detail-value">{{ campaign.from_email|default:"System Default" }}</div>
-                    </div>
-                    <div class="detail-item">
-                        <label>Created By</label>
-                        <div class="detail-value">{{ campaign.created_by.get_full_name|default:campaign.created_by.username }}</div>
-                    </div>
-                    <div class="detail-item">
-                        <label>Created At</label>
-                        <div class="detail-value">{{ campaign.created_at|date:"F d, Y g:i A" }}</div>
-                    </div>
-                    {% if campaign.sent_time %}
-                    <div class="detail-item">
-                        <label>Sent At</label>
-                        <div class="detail-value">{{ campaign.sent_time|date:"F d, Y g:i A" }}</div>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
 
             <!-- Send Statistics -->
             {% if campaign.status == 'sent' or campaign.status == 'sending' %}
-            <div class="detail-section">
-                <h3 class="section-title">Send Statistics</h3>
-                <div class="detail-grid">
-                    <div class="detail-item">
-                        <label>Successfully Sent</label>
-                        <div class="detail-value success-text">
-                            <i class="fas fa-check-circle"></i> {{ campaign.sent_count }}
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Send Statistics</h2>
+                    <div class="stats stats-vertical shadow">
+                        <div class="stat">
+                            <div class="stat-title">Successfully Sent</div>
+                            <div class="stat-value text-success">{{ campaign.sent_count }}</div>
+                            <div class="stat-desc">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Delivered successfully
+                            </div>
                         </div>
-                    </div>
-                    <div class="detail-item">
-                        <label>Failed</label>
-                        <div class="detail-value error-text">
-                            <i class="fas fa-times-circle"></i> {{ campaign.failed_count }}
+                        <div class="stat">
+                            <div class="stat-title">Failed</div>
+                            <div class="stat-value text-error">{{ campaign.failed_count }}</div>
+                            <div class="stat-desc">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="inline h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Delivery failed
+                            </div>
                         </div>
-                    </div>
-                    <div class="detail-item">
-                        <label>Success Rate</label>
-                        <div class="detail-value">
-                            {% if campaign.total_recipients > 0 %}
-                                {{ campaign.sent_count|floatformat:0|default:0|divisibleby:campaign.total_recipients|floatformat:0 }}%
-                            {% else %}
-                                0%
-                            {% endif %}
+                        <div class="stat">
+                            <div class="stat-title">Success Rate</div>
+                            <div class="stat-value">
+                                {% if campaign.total_recipients > 0 %}
+                                    {% widthratio campaign.sent_count campaign.total_recipients 100 %}%
+                                {% else %}
+                                    0%
+                                {% endif %}
+                            </div>
+                            <div class="stat-desc">Overall performance</div>
                         </div>
                     </div>
                 </div>
             </div>
             {% endif %}
-
-            <!-- Email Content -->
-            <div class="detail-section">
-                <h3 class="section-title">Email Content</h3>
-                <div class="detail-item full-width">
-                    <div class="detail-value email-content">
-                        {{ campaign.content|safe }}
-                    </div>
-                </div>
-            </div>
-
-            <!-- Recipients Preview -->
-            <div class="detail-section">
-                <h3 class="section-title">Recipients Preview (First 10)</h3>
-                <div class="recipients-list">
-                    {% for customer in customers %}
-                    <div class="recipient-item">
-                        <div class="recipient-avatar">
-                            {{ customer.first_name.0|upper }}{{ customer.last_name.0|upper }}
-                        </div>
-                        <div class="recipient-info">
-                            <div class="recipient-name">{{ customer.get_full_name }}</div>
-                            <div class="recipient-email">{{ customer.email }}</div>
-                        </div>
-                        <div class="recipient-company">{{ customer.company_name|default:"—" }}</div>
-                    </div>
-                    {% endfor %}
-                </div>
-                {% if campaign.target_group.customer_count > 10 %}
-                <div class="more-recipients">
-                    ... and {{ campaign.target_group.customer_count|add:"-10" }} more recipient{{ campaign.target_group.customer_count|add:"-10"|pluralize }}
-                </div>
-                {% endif %}
-            </div>
         </div>
     </div>
 </div>
 
 <!-- Send Confirmation Modal -->
 {% if campaign.status == 'draft' %}
-<div id="sendModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 class="modal-title">Send Campaign</h2>
-            <button class="modal-close" onclick="closeSendModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="send-warning">
-                <i class="fas fa-paper-plane"></i>
-                <p>Are you ready to send "<strong>{{ campaign.name }}</strong>"?</p>
-                <p class="warning-text">This campaign will be sent to <strong>{{ campaign.total_recipients }}</strong> recipient{{ campaign.total_recipients|pluralize }}.</p>
-                <p class="warning-text">Once sent, this action cannot be undone.</p>
+<dialog id="sendModal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Send Campaign</h3>
+        <div class="py-4">
+            <div class="text-center mb-4">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-info/10 text-info mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
+                </div>
+            </div>
+            <p class="text-center mb-2">Are you ready to send "<strong>{{ campaign.name }}</strong>"?</p>
+            <div class="alert alert-warning">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+                <div>
+                    <p>This campaign will be sent to <strong>{{ campaign.total_recipients }}</strong> recipient{{ campaign.total_recipients|pluralize }}.</p>
+                    <p class="text-sm">Once sent, this action cannot be undone.</p>
+                </div>
             </div>
         </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeSendModal()">Cancel</button>
-            <form method="POST" action="{% url 'email_campaign:send_campaign' campaign.id %}" style="display: inline;">
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Cancel</button>
+            </form>
+            <form method="POST" action="{% url 'email_campaign:send_campaign' campaign.id %}">
                 {% csrf_token %}
                 <button type="submit" class="btn btn-success">
-                    <i class="fas fa-paper-plane"></i>
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                    </svg>
                     Send Campaign
                 </button>
             </form>
         </div>
     </div>
-</div>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
 {% endif %}
 
 <!-- Delete Confirmation Modal -->
-<div id="deleteModal" class="modal">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h2 class="modal-title">Delete Campaign</h2>
-            <button class="modal-close" onclick="closeDeleteModal()">&times;</button>
-        </div>
-        <div class="modal-body">
-            <div class="delete-warning">
-                <i class="fas fa-exclamation-triangle"></i>
-                <p>Are you sure you want to delete "<strong>{{ campaign.name }}</strong>"?</p>
-                <p class="warning-text">This action cannot be undone.</p>
+<dialog id="deleteModal" class="modal">
+    <div class="modal-box">
+        <h3 class="font-bold text-lg">Delete Campaign</h3>
+        <div class="py-4">
+            <div class="text-center mb-4">
+                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-error/10 text-error mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                </div>
+            </div>
+            <p class="text-center mb-4">Are you sure you want to delete "<strong>{{ campaign.name }}</strong>"?</p>
+            <div class="alert alert-error">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>This action cannot be undone.</span>
             </div>
         </div>
-        <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="closeDeleteModal()">Cancel</button>
-            <form method="POST" action="{% url 'email_campaign:campaign_delete' campaign.id %}" style="display: inline;">
+        <div class="modal-action">
+            <form method="dialog">
+                <button class="btn">Cancel</button>
+            </form>
+            <form method="POST" action="{% url 'email_campaign:campaign_delete' campaign.id %}">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-danger">
-                    <i class="fas fa-trash"></i>
+                <button type="submit" class="btn btn-error">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
                     Delete Campaign
                 </button>
             </form>
         </div>
     </div>
-</div>
-
-<style>
-.toolbar-left {
-    display: flex;
-    align-items: center;
-    flex-direction: row;
-    gap: 4px;
-}
-
-.toolbar-btn {
-    width: 40px;
-    height: 40px;
-    border: none;
-    background: none;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: background-color 0.2s;
-    color: #5f6368;
-}
-
-.toolbar-btn:hover {
-    background-color: rgba(60, 64, 67, 0.08);
-}
-
-.toolbar-title {
-    font-size: 20px;
-    font-weight: 500;
-    color: #202124;
-    margin: 0 0 0 16px;
-}
-
-.detail-container {
-    max-width: 800px;
-    margin: 0 auto;
-    padding: 24px;
-}
-
-.detail-header {
-    display: flex;
-    align-items: center;
-    gap: 24px;
-    padding: 24px;
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    margin-bottom: 24px;
-    position: relative;
-}
-
-.detail-avatar {
-    flex-shrink: 0;
-}
-
-.avatar-circle-large {
-    width: 80px;
-    height: 80px;
-    border-radius: 50%;
-    background-color: #1a73e8;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 32px;
-    font-weight: 500;
-}
-
-.detail-header-info {
-    flex: 1;
-}
-
-.detail-actions {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-left: auto;
-}
-
-.action-btn {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    background: none;
-    color: #5f6368;
-}
-
-.action-btn:hover {
-    background-color: rgba(60, 64, 67, 0.08);
-}
-
-.action-btn-success {
-    background-color: #1e8e3e;
-    color: white;
-}
-
-.action-btn-success:hover {
-    background-color: #137333;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-}
-
-.action-btn-danger {
-    background-color: #fff;
-    color: #d33b27;
-    border: 1px solid #d33b27;
-}
-
-.action-btn-danger:hover {
-    background-color: #fce8e6;
-    border-color: #d33b27;
-}
-
-.detail-name {
-    font-size: 28px;
-    font-weight: 400;
-    color: #202124;
-    margin: 0 0 4px;
-}
-
-.detail-company {
-    font-size: 16px;
-    color: #5f6368;
-    margin: 0 0 12px;
-}
-
-.detail-status {
-    display: flex;
-    gap: 8px;
-    align-items: center;
-}
-
-.status-badge {
-    display: inline-block;
-    padding: 4px 12px;
-    border-radius: 12px;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.status-badge.draft {
-    background-color: #fef7e0;
-    color: #f9ab00;
-}
-
-.status-badge.sent {
-    background-color: #e6f4ea;
-    color: #1e8e3e;
-}
-
-.status-badge.sending {
-    background-color: #e8f0fe;
-    color: #1a73e8;
-}
-
-.status-badge.failed {
-    background-color: #fce8e6;
-    color: #d33b27;
-}
-
-.status-badge.recipients {
-    background-color: #f1f3f4;
-    color: #5f6368;
-}
-
-.detail-sections {
-    display: flex;
-    flex-direction: column;
-    gap: 24px;
-}
-
-.detail-section {
-    background: #fff;
-    border-radius: 8px;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.1);
-    padding: 24px;
-}
-
-.section-title {
-    font-size: 18px;
-    font-weight: 500;
-    color: #202124;
-    margin: 0 0 20px;
-}
-
-.detail-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 20px;
-}
-
-.detail-item {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.detail-item.full-width {
-    grid-column: 1 / -1;
-}
-
-.detail-item label {
-    font-size: 14px;
-    font-weight: 500;
-    color: #5f6368;
-}
-
-.detail-value {
-    font-size: 14px;
-    color: #202124;
-}
-
-.detail-value a {
-    color: #1a73e8;
-    text-decoration: none;
-}
-
-.detail-value a:hover {
-    text-decoration: underline;
-}
-
-.detail-value.email-content {
-    background-color: #f8f9fa;
-    padding: 20px;
-    border-radius: 4px;
-    min-height: 200px;
-    line-height: 1.6;
-}
-
-.success-text {
-    color: #1e8e3e;
-}
-
-.error-text {
-    color: #d33b27;
-}
-
-.recipients-list {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.recipient-item {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px;
-    background-color: #f8f9fa;
-    border-radius: 8px;
-}
-
-.recipient-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    background-color: #1a73e8;
-    color: white;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.recipient-info {
-    flex: 1;
-}
-
-.recipient-name {
-    font-weight: 500;
-    color: #202124;
-}
-
-.recipient-email {
-    font-size: 13px;
-    color: #5f6368;
-}
-
-.recipient-company {
-    color: #5f6368;
-    font-size: 14px;
-}
-
-.more-recipients {
-    text-align: center;
-    color: #5f6368;
-    padding: 16px;
-    font-style: italic;
-}
-
-/* Modal Styles */
-.modal {
-    display: none;
-    position: fixed;
-    z-index: 1000;
-    left: 0;
-    top: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0,0,0,0.5);
-    animation: fadeIn 0.2s;
-}
-
-.modal.show {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; }
-    to { opacity: 1; }
-}
-
-.modal-content {
-    background: white;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    max-width: 500px;
-    width: 90%;
-    max-height: 90vh;
-    overflow: hidden;
-    animation: slideIn 0.2s;
-}
-
-@keyframes slideIn {
-    from {
-        transform: translateY(-20px);
-        opacity: 0;
-    }
-    to {
-        transform: translateY(0);
-        opacity: 1;
-    }
-}
-
-.modal-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 20px 24px;
-    border-bottom: 1px solid #e0e0e0;
-}
-
-.modal-title {
-    font-size: 20px;
-    font-weight: 500;
-    color: #202124;
-    margin: 0;
-}
-
-.modal-close {
-    background: none;
-    border: none;
-    font-size: 24px;
-    color: #5f6368;
-    cursor: pointer;
-    padding: 0;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: background-color 0.2s;
-}
-
-.modal-close:hover {
-    background-color: rgba(60, 64, 67, 0.08);
-}
-
-.modal-body {
-    padding: 24px;
-}
-
-.send-warning,
-.delete-warning {
-    text-align: center;
-    padding: 20px 0;
-}
-
-.send-warning i {
-    font-size: 48px;
-    color: #1a73e8;
-    margin-bottom: 16px;
-}
-
-.delete-warning i {
-    font-size: 48px;
-    color: #f59e0b;
-    margin-bottom: 16px;
-}
-
-.send-warning p,
-.delete-warning p {
-    font-size: 16px;
-    color: #202124;
-    margin: 8px 0;
-}
-
-.warning-text {
-    font-size: 14px;
-    color: #5f6368;
-}
-
-.modal-footer {
-    display: flex;
-    gap: 12px;
-    justify-content: flex-end;
-    padding: 16px 24px;
-    background-color: #f8f9fa;
-}
-
-.btn {
-    padding: 8px 16px;
-    border-radius: 4px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-}
-
-.btn-secondary {
-    background-color: #fff;
-    color: #5f6368;
-    border: 1px solid #dadce0;
-}
-
-.btn-secondary:hover {
-    background-color: #f8f9fa;
-    border-color: #5f6368;
-}
-
-.btn-success {
-    background-color: #1e8e3e;
-    color: white;
-}
-
-.btn-success:hover {
-    background-color: #137333;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-}
-
-.btn-danger {
-    background-color: #d33b27;
-    color: white;
-}
-
-.btn-danger:hover {
-    background-color: #b92d21;
-    box-shadow: 0 1px 2px rgba(0,0,0,0.2);
-}
-
-/* Responsive */
-@media (max-width: 640px) {
-    .detail-header {
-        flex-direction: column;
-        text-align: center;
-    }
-    
-    .detail-header-info {
-        text-align: center;
-    }
-    
-    .detail-actions {
-        margin-left: 0;
-        margin-top: 16px;
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-    
-    .detail-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .recipient-item {
-        flex-wrap: wrap;
-    }
-    
-    .recipient-company {
-        width: 100%;
-        margin-top: 8px;
-    }
-}
-</style>
-
-<script>
-function sendCampaign() {
-    const modal = document.getElementById('sendModal');
-    modal.classList.add('show');
-}
-
-function closeSendModal() {
-    const modal = document.getElementById('sendModal');
-    modal.classList.remove('show');
-}
-
-function showDeleteModal(event) {
-    if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-    }
-    const modal = document.getElementById('deleteModal');
-    modal.classList.add('show');
-}
-
-function closeDeleteModal() {
-    const modal = document.getElementById('deleteModal');
-    modal.classList.remove('show');
-}
-
-// Close modal when clicking outside
-document.addEventListener('click', function(event) {
-    const sendModal = document.getElementById('sendModal');
-    const deleteModal = document.getElementById('deleteModal');
-    
-    if (event.target === sendModal) {
-        closeSendModal();
-    }
-    if (event.target === deleteModal) {
-        closeDeleteModal();
-    }
-});
-
-// Close modal with Escape key
-document.addEventListener('keydown', function(event) {
-    if (event.key === 'Escape') {
-        closeSendModal();
-        closeDeleteModal();
-    }
-});
-
-// Add event listener to delete button
-document.addEventListener('DOMContentLoaded', function() {
-    const deleteButton = document.getElementById('deleteButton');
-    if (deleteButton) {
-        deleteButton.addEventListener('click', function(event) {
-            event.preventDefault();
-            showDeleteModal(event);
-        });
-    }
-});
-</script>
+    <form method="dialog" class="modal-backdrop">
+        <button>close</button>
+    </form>
+</dialog>
 {% endblock %}
