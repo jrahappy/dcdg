@@ -379,15 +379,12 @@ function addToCartFromDetail() {
     .then(data => {
         console.log('Add to cart response:', data);
         if (data.success) {
-            // Call the global function to update cart count
-            const rootElement = document.querySelector('[x-data]');
-            if (rootElement && Alpine && Alpine.$data) {
-                Alpine.$data(rootElement).loadCartSummary();
-                Alpine.$data(rootElement).showNotification(data.message || 'Added to cart', 'success');
-            } else {
-                // Fallback - reload page
-                window.location.reload();
+            // Update cart count in navbar
+            if (window.updateCartCount && data.cart_total_items !== undefined) {
+                window.updateCartCount(data.cart_total_items);
             }
+            // Show success notification
+            showNotification(data.message || 'Added to cart', 'success');
         } else {
             showNotification(data.error || 'Failed to add to cart', 'error');
         }

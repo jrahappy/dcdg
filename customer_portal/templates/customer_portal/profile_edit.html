@@ -1,0 +1,172 @@
+{% extends 'customer_portal/base.html' %}
+{% load widget_tweaks %}
+
+{% block account_page_title %}Edit Profile{% endblock %}
+
+{% block account_content %}
+<!-- Breadcrumb -->
+<div class="breadcrumbs text-sm mb-6">
+    <ul>
+        <li><a href="{% url 'customer_portal:dashboard' %}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+        </a></li>
+        <li><a href="{% url 'customer_portal:profile' %}">Profile</a></li>
+        <li>Edit</li>
+    </ul>
+</div>
+
+<!-- Page Header -->
+<div class="mb-8">
+    <h1 class="text-3xl font-bold text-gray-900">Edit Profile</h1>
+    <p class="mt-2 text-sm text-gray-600">Update your personal information and account details</p>
+</div>
+
+<!-- Edit Form -->
+<form method="post" class="space-y-6">
+    {% csrf_token %}
+    
+    <!-- Personal Information Card -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title mb-6">Personal Information</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- First Name -->
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text font-semibold">First Name</span>
+                        <span class="label-text-alt text-error">*</span>
+                    </label>
+                    {% render_field form.first_name class="input input-bordered w-full" placeholder="Enter your first name" %}
+                    {% if form.first_name.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.first_name.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+                
+                <!-- Last Name -->
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text font-semibold">Last Name</span>
+                        <span class="label-text-alt text-error">*</span>
+                    </label>
+                    {% render_field form.last_name class="input input-bordered w-full" placeholder="Enter your last name" %}
+                    {% if form.last_name.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.last_name.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Contact Information Card -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title mb-6">Contact Information</h2>
+            
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Email -->
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text font-semibold">Email Address</span>
+                        <span class="label-text-alt text-error">*</span>
+                    </label>
+                    {% render_field form.email class="input input-bordered w-full" placeholder="email@example.com" %}
+                    {% if form.email.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.email.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                </div>
+                
+                <!-- Phone -->
+                <div class="form-control w-full">
+                    <label class="label">
+                        <span class="label-text font-semibold">Phone Number</span>
+                    </label>
+                    {% render_field form.phone class="input input-bordered w-full" placeholder="+1234567890" %}
+                    {% if form.phone.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.phone.errors.0 }}</span>
+                        </label>
+                    {% endif %}
+                    <label class="label">
+                        <span class="label-text-alt">Format: +999999999 (Up to 15 digits)</span>
+                    </label>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Company Information Card (if available in form) -->
+    {% if form.company_name %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title mb-6">Company Information</h2>
+            
+            <div class="form-control w-full">
+                <label class="label">
+                    <span class="label-text font-semibold">Company Name</span>
+                </label>
+                {% render_field form.company_name class="input input-bordered w-full" placeholder="Enter your company name" %}
+                {% if form.company_name.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ form.company_name.errors.0 }}</span>
+                    </label>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Form Actions -->
+    <div class="flex justify-end gap-4">
+        <a href="{% url 'customer_portal:profile' %}" class="btn btn-ghost">
+            Cancel
+        </a>
+        <button type="submit" class="btn btn-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+            </svg>
+            Save Changes
+        </button>
+    </div>
+</form>
+
+<!-- Success/Error Messages -->
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% else %}alert-info{% endif %} mt-6">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                {% if message.tags == 'success' %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                {% elif message.tags == 'error' %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                {% else %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                {% endif %}
+            </svg>
+            <span>{{ message }}</span>
+        </div>
+    {% endfor %}
+{% endif %}
+
+<!-- Form Validation Errors -->
+{% if form.non_field_errors %}
+<div class="alert alert-error mt-6">
+    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <div>
+        {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+{% endblock %}

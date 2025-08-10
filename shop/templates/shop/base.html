@@ -64,6 +64,10 @@
                     if (data.success) {
                         console.log('Item added successfully, reloading cart summary...');
                         this.loadCartSummary();
+                        // Update navbar cart count
+                        if (window.updateCartCount && data.cart_total_items !== undefined) {
+                            window.updateCartCount(data.cart_total_items);
+                        }
                         this.showNotification(data.message || 'Added to cart', 'success');
                     } else {
                         this.showNotification(data.error || 'Failed to add to cart', 'error');
@@ -290,8 +294,17 @@ function addToCart(productId, quantity = 1) {
         .then(data => {
             console.log('Add to cart response (fallback):', data);
             if (data.success) {
-                // Try to reload cart summary if possible
-                window.location.reload();
+                // Update cart count in navbar
+                if (window.updateCartCount && data.cart_total_items !== undefined) {
+                    window.updateCartCount(data.cart_total_items);
+                }
+                // Show success notification if available
+                if (typeof showNotification === 'function') {
+                    showNotification(data.message || 'Added to cart', 'success');
+                } else {
+                    // Simple alert as fallback
+                    alert(data.message || 'Added to cart');
+                }
             }
         });
     }

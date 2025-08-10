@@ -1,0 +1,164 @@
+{% extends 'customer_portal/base.html' %}
+{% load static %}
+{% load widget_tweaks %}
+
+{% block account_page_title %}Edit Company Information{% endblock %}
+
+{% block account_content %}
+<!-- Breadcrumb -->
+<div class="breadcrumbs text-sm mb-6">
+    <ul>
+        <li><a href="{% url 'customer_portal:dashboard' %}">Dashboard</a></li>
+        <li><a href="{% url 'customer_portal:company_info' %}">Company Information</a></li>
+        <li>Edit</li>
+    </ul>
+</div>
+
+<!-- Page Header -->
+<div class="mb-8">
+    <h1 class="text-3xl font-bold">Edit Company Information</h1>
+    <p class="text-base-content/70 mt-2">Update your company and business details</p>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Left Column - Editable Fields -->
+        <div class="lg:col-span-2 space-y-6">
+            <!-- Editable Company Details -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <div class="flex items-center gap-2 mb-6">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        <h2 class="card-title">Company Details</h2>
+                    </div>
+                    
+                    <!-- Company Name Field -->
+                    <div class="form-control w-full">
+                        <fieldset class="fieldset">
+                            <legend class="fieldset-legend">{{ form.company_name.label }}</legend>
+                            {% render_field form.company_name class="input input-bordered input w-full" placeholder="Enter your company name" %}
+                            {% if form.company_name.help_text %}
+                                <p class="label">{{ form.company_name.help_text }}</p>
+                            {% endif %}
+                        </fieldset>
+                        <fieldset class="fieldset">
+                            <legend class="fieldset-legend">{{ form.internal_notes.label }}</legend>
+                            {% render_field form.internal_notes class="input input-bordered input w-full" placeholder="Enter your internal notes" %}
+                            {% if form.internal_notes.help_text %}
+                                <p class="label">{{ form.internal_notes.help_text }}</p>
+                            {% endif %}
+                        </fieldset>
+                        
+                    </div>
+                </div>
+                
+            </div>
+            <div class="flex justify-between items-center">
+                    <a href="{% url 'customer_portal:company_info' %}" class="btn btn-ghost">
+                        <i class="fas fa-arrow-left mr-2"></i>
+                        Back to Company Info
+                    </a>
+                    <div class="flex gap-3">
+                        <button type="reset" class="btn btn-outline">
+                            Reset Form
+                        </button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save mr-2"></i>
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+        </div>
+        
+        <!-- Right Column - Read-only Information -->
+        <div class="space-y-6">
+            <!-- Account Status -->
+            <div class="card bg-base-200 shadow-xl">
+                <div class="card-body">
+                    <h3 class="font-bold text-lg mb-4">Account Status</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <p class="text-sm text-base-content/70">Account Type</p>
+                            <div class="badge badge-primary badge-lg mt-1">{{ customer.get_company_category_display }}</div>
+                        </div>
+                        <div>
+                            <p class="text-sm text-base-content/70">Customer ID</p>
+                            <p class="font-mono text-lg">{{ customer.id }}</p>
+                        </div>
+                        {% if customer.date_joined %}
+                        <div>
+                            <p class="text-sm text-base-content/70">Member Since</p>
+                            <p class="font-semibold">{{ customer.date_joined|date:"F Y" }}</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Contact Person -->
+            <div class="card bg-base-200 shadow-xl">
+                <div class="card-body">
+                    <h3 class="font-bold text-lg mb-4">Primary Contact</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <p class="text-sm text-base-content/70">Name</p>
+                            <p class="font-semibold">{{ customer.first_name }} {{ customer.last_name }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-base-content/70">Email</p>
+                            <p class="font-semibold text-sm">{{ customer.email }}</p>
+                        </div>
+                        <div>
+                            <p class="text-sm text-base-content/70">Phone</p>
+                            <p class="font-semibold">{{ customer.phone|default:"Not provided" }}</p>
+                        </div>
+                    </div>
+                    <div class="divider"></div>
+                    <a href="{% url 'customer_portal:profile_edit' %}" class="btn btn-sm btn-outline btn-primary">
+                        <i class="fas fa-user-edit mr-2"></i>
+                        Edit Contact Info
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Form Actions -->
+    <div class="divider mt-8"></div>
+    
+</form>
+
+<!-- Form Validation Alert -->
+{% if form.non_field_errors %}
+<div class="alert alert-error mt-4">
+    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <div>
+        {% for error in form.non_field_errors %}
+            <p>{{ error }}</p>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<!-- Success Messages -->
+{% if messages %}
+    {% for message in messages %}
+        <div class="alert {% if message.tags == 'success' %}alert-success{% elif message.tags == 'error' %}alert-error{% else %}alert-info{% endif %} mt-4">
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                {% if message.tags == 'success' %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                {% else %}
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                {% endif %}
+            </svg>
+            <span>{{ message }}</span>
+        </div>
+    {% endfor %}
+{% endif %}
+{% endblock %}

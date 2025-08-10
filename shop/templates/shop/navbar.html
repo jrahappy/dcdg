@@ -1,0 +1,65 @@
+<!-- Shop Navigation Bar -->
+<div class="navbar sticky top-0 z-50 max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-4 bg-base-100 shadow-sm">
+    <div class="flex-1">
+        <a href="{% url 'shop:product_list' %}" class="btn btn-ghost text-xl">IntegDental</a>
+    </div>
+    <div class="flex-none">
+        <!-- Cart Button -->
+        <a href="{% url 'shop:cart' %}" class="btn btn-ghost btn-circle mr-2">
+            <div class="indicator">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                <span id="cart-count-badge" class="badge badge-sm badge-primary indicator-item" {% if cart_item_count == 0 %}style="display: none;"{% endif %}>
+                    <span id="cart-count-number">{{ cart_item_count|default:0 }}</span>
+                </span>
+            </div>
+        </a>
+        
+        <!-- User Menu -->
+        {% if user.is_authenticated %}
+        <div class="dropdown dropdown-end">
+            <div tabindex="0" role="button" class="btn btn-ghost btn-circle avatar">
+                <div class="w-10 rounded-full bg-neutral text-neutral-content">
+                    <span class="text-xl">{{ user.username|first|upper }}</span>
+                </div>
+            </div>
+            <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow">
+                <li class="menu-title">
+                    <span>Hello {{ user.username }}</span>
+                </li>
+                <li class="border-b"><a href="{% url 'customer_portal:dashboard' %}">My Account</a></li>
+
+                <li><a href="{% url 'account_logout' %}">Logout</a></li>
+            </ul>
+        </div>
+        {% else %}
+        <a href="{% url 'account_signup' %}" class="btn btn-ghost btn-sm">
+            Sign Up
+        </a>
+        <a href="{% url 'account_login' %}" class="btn btn-primary btn-sm">
+            Login
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+// Function to update cart count in navbar
+function updateCartCount(count) {
+    const badge = document.getElementById('cart-count-badge');
+    const numberElement = document.getElementById('cart-count-number');
+    
+    if (badge && numberElement) {
+        if (count > 0) {
+            numberElement.textContent = count;
+            badge.style.display = '';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+// Make it globally available
+window.updateCartCount = updateCartCount;
+</script>

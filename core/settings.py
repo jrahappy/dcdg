@@ -227,9 +227,9 @@ ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]  # R
 # Other settings
 ACCOUNT_USERNAME_MIN_LENGTH = 4
 ACCOUNT_UNIQUE_EMAIL = True  # Ensure email uniqueness
-LOGIN_REDIRECT_URL = "/shop/"  # Redirect to shop after login
-LOGOUT_REDIRECT_URL = "/shop/"  # Django's built-in logout redirect to shop
-ACCOUNT_LOGOUT_REDIRECT_URL = "/shop/"  # django-allauth logout redirect to shop
+LOGIN_REDIRECT_URL = "/"  # Redirect to shop (homepage) after login
+LOGOUT_REDIRECT_URL = "/"  # Django's built-in logout redirect to shop (homepage)
+ACCOUNT_LOGOUT_REDIRECT_URL = "/"  # django-allauth logout redirect to shop (homepage)
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = False  # Don't auto-login on email confirm
 ACCOUNT_LOGIN_ON_PASSWORD_RESET = False  # Don't auto-login on password reset
 ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = LOGIN_REDIRECT_URL

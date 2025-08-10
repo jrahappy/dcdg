@@ -1,0 +1,106 @@
+<aside class="lg:col-span-1">
+    <div class="sticky top-24">
+        <!-- Account Navigation -->
+        <div class="card bg-base-100 shadow-sm mb-6">
+            <div class="card-body">
+                <h3 class="card-title text-base mb-4">My Account</h3>
+                <ul class="menu menu-sm">
+                    <li>
+                        <a href="{% url 'customer_portal:dashboard' %}" 
+                           class="{% if request.resolver_match.url_name == 'dashboard' %}active{% endif %}">
+                            <i class="fas fa-home w-4"></i>
+                            Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'customer_portal:order_list' %}" 
+                           class="{% if 'order' in request.resolver_match.url_name %}active{% endif %}">
+                            <i class="fas fa-shopping-bag w-4"></i>
+                            My Orders
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'customer_portal:profile' %}" 
+                           class="{% if 'profile' in request.resolver_match.url_name %}active{% endif %}">
+                            <i class="fas fa-user w-4"></i>
+                            Profile
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'customer_portal:company_info' %}" 
+                           class="{% if 'company' in request.resolver_match.url_name %}active{% endif %}">
+                            <i class="fas fa-building w-4"></i>
+                            Company Info
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'customer_portal:address_list' %}" 
+                           class="{% if 'address' in request.resolver_match.url_name %}active{% endif %}">
+                            <i class="fas fa-map-marker-alt w-4"></i>
+                            Addresses
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'customer_portal:notification_list' %}" 
+                           class="{% if 'notification' in request.resolver_match.url_name %}active{% endif %}">
+                            <i class="fas fa-bell w-4"></i>
+                            Notifications
+                            {% if notification_count > 0 %}
+                                <span class="badge badge-primary badge-sm">{{ notification_count }}</span>
+                            {% endif %}
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Security -->
+        <div class="card bg-base-100 shadow-sm mb-6">
+            <div class="card-body">
+                <h3 class="card-title text-base mb-4">Security</h3>
+                <ul class="menu menu-sm">
+                    <li>
+                        <a href="{% url 'customer_portal:change_password' %}" 
+                           class="{% if 'password' in request.resolver_match.url_name %}active{% endif %}">
+                            <i class="fas fa-lock w-4"></i>
+                            Change Password
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'account_logout' %}">
+                            <i class="fas fa-sign-out-alt w-4"></i>
+                            Logout
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Quick Links -->
+        <div class="card bg-base-100 shadow-sm">
+            <div class="card-body">
+                <h3 class="card-title text-base mb-4">Quick Links</h3>
+                <ul class="menu menu-sm">
+                    <li>
+                        <a href="{% url 'shop:product_list' %}">
+                            <i class="fas fa-store w-4"></i>
+                            Continue Shopping
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'shop:cart' %}">
+                            <i class="fas fa-shopping-cart w-4"></i>
+                            View Cart
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{% url 'shop:order_tracking' %}">
+                            <i class="fas fa-truck w-4"></i>
+                            Track Order
+                        </a>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</aside>

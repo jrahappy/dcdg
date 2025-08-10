@@ -137,12 +137,18 @@ def product_detail(request, pk):
         "images"
     ).exclude(pk=product.pk)[:4]
 
+    # Get categories for sidebar - same as product_list view
+    categories = Category.objects.filter(
+        parent__isnull=True, is_active=True
+    ).prefetch_related("children")
+    
     context = {
         "product": product,
         "related_products": related_products,
         "cart": get_cart(request),
         "product_options": options_data,
         "documents": product.documents.filter(is_public=True),
+        "categories": categories,  # Add categories for sidebar
     }
 
     return render(request, "shop/product_detail.html", context)
@@ -201,7 +207,15 @@ def cart_view(request):
             }
         )
 
-    return render(request, "shop/cart.html", {"cart": cart})
+    # Get categories for sidebar
+    categories = Category.objects.filter(
+        parent__isnull=True, is_active=True
+    ).prefetch_related("children")
+    
+    return render(request, "shop/cart.html", {
+        "cart": cart,
+        "categories": categories,
+    })
 
 
 def add_to_cart(request, pk):
@@ -359,10 +373,16 @@ def checkout(request):
                 user=request.user, is_active=True
             ).order_by("-is_default", "-created_at")
 
+        # Get categories for sidebar
+        categories = Category.objects.filter(
+            parent__isnull=True, is_active=True
+        ).prefetch_related("children")
+        
         context = {
             "cart": cart,
             "shipping_rates": shipping_rates,
             "saved_addresses": saved_addresses,
+            "categories": categories,
         }
 
         return render(request, "shop/checkout.html", context)

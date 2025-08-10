@@ -132,7 +132,8 @@
       "Bash(\"D:/Dev/dcdg/dcdg/venv/Scripts/python.exe\" manage.py shell -c \"from sales.models import InvoiceShipment, ShipmentItem; shipment = InvoiceShipment.objects.get(pk=3); print(f''Shipment: {shipment.shipment_number}''); print(f''Number of items: {shipment.items.count()}''); [print(f''  - {item.invoice_item.description}: {item.quantity_shipped}'') for item in shipment.items.all()]\")",
       "Bash(\"D:/Dev/dcdg/dcdg/venv/Scripts/python.exe\" manage.py shell -c \"from sales.models import InvoiceShipment, ShipmentItem; shipment = InvoiceShipment.objects.get(pk=3); print(f''Invoice: {shipment.invoice.invoice_number}''); print(f''Invoice items: {shipment.invoice.items.count()}''); [print(f''  - {item.description}: {item.quantity}'') for item in shipment.invoice.items.all()]\")",
       "Bash(\"D:/Dev/dcdg/dcdg/venv/Scripts/python.exe\" manage.py shell -c \"from sales.models import InvoiceShipment, ShipmentItem; shipment = InvoiceShipment.objects.get(pk=3); invoice_item = shipment.invoice.items.first(); shipment_item = ShipmentItem.objects.create(shipment=shipment, invoice_item=invoice_item, quantity_shipped=invoice_item.quantity, notes=''Test item added via shell''); print(f''Created shipment item: {shipment_item}''); print(f''Shipment now has {shipment.items.count()} items'')\")",
-      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe -c \"from django.template.loader import get_template; t = get_template(''customer_portal/dashboard.html''); print(''Template loaded successfully'')\")"
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe -c \"from django.template.loader import get_template; t = get_template(''customer_portal/dashboard.html''); print(''Template loaded successfully'')\")",
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py runserver 8001)"
     ],
     "deny": []
   }

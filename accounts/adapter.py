@@ -42,7 +42,7 @@ class NoEmailVerificationAdapter(DefaultAccountAdapter):
                 from customer.models import Customer
                 customer = user.customer
                 if customer:
-                    return '/shop/'  # Redirect customers to shop instead of dashboard
+                    return '/'  # Redirect customers to shop homepage
             except (Customer.DoesNotExist, AttributeError):
                 pass
             
@@ -50,12 +50,12 @@ class NoEmailVerificationAdapter(DefaultAccountAdapter):
             if user.is_staff or user.is_superuser:
                 return reverse('dashboard:home')
         
-        # Default redirect (fallback to shop)
-        return '/shop/'
+        # Default redirect (fallback to shop homepage)
+        return '/'
     
     def get_logout_redirect_url(self, request):
         """
         Returns the URL to redirect to after logout.
-        Always redirect to shop after logout.
+        Always redirect to shop homepage after logout.
         """
-        return '/shop/'
+        return '/'

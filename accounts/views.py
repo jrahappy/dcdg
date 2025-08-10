@@ -148,7 +148,7 @@ def logout_confirm(request):
         if request.user.is_authenticated:
             logout(request)
             messages.success(request, 'You have been successfully logged out.')
-        return redirect('/shop/')  # Redirect to shop after logout
+        return redirect('/')  # Redirect to shop homepage after logout
     
     # Clear any existing messages to prevent confusion
     storage = messages.get_messages(request)
