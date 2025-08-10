@@ -2,13 +2,40 @@ from django import forms
 from customer.models import Customer, CustomerAddress
 
 
+class CompanyInfoForm(forms.ModelForm):
+    """Form for editing company information only"""
+    class Meta:
+        model = Customer
+        fields = [
+            'company_name', 'internal_notes'
+        ]
+        widgets = {
+            'company_name': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full',
+                'placeholder': 'Enter your company name'
+            }),
+            'internal_notes': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered h-24',
+                'rows': 4,
+                'placeholder': 'Add any additional notes or special instructions'
+            }),
+        }
+        labels = {
+            'company_name': 'Company Name',
+            'internal_notes': 'Internal Notes',
+        }
+        help_texts = {
+            'company_name': 'The official name of your company or business',
+            'internal_notes': 'These notes are for internal reference only',
+        }
+
+
 class ProfileForm(forms.ModelForm):
     """Form for editing customer profile"""
     class Meta:
         model = Customer
         fields = [
-            'first_name', 'last_name', 'email', 'phone',
-            'company_name', 'company_category', 'internal_notes'
+            'first_name', 'last_name', 'email', 'phone'
         ]
         widgets = {
             'first_name': forms.TextInput(attrs={
@@ -22,16 +49,6 @@ class ProfileForm(forms.ModelForm):
             }),
             'phone': forms.TextInput(attrs={
                 'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
-            }),
-            'company_name': forms.TextInput(attrs={
-                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
-            }),
-            'company_category': forms.Select(attrs={
-                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm'
-            }),
-            'internal_notes': forms.Textarea(attrs={
-                'class': 'mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm',
-                'rows': 3
             }),
         }
 

@@ -220,29 +220,22 @@ class Invoice(models.Model):
 
     STATUS_CHOICES = [
         ("draft", "Draft"),
-        ("shipped", "Shipped"),
+        ("unsent", "Unsent"),
         ("sent", "Sent"),
         ("viewed", "Viewed"),
-        ("partial", "Partially Paid"),
+        ("partial", "Partial"),
         ("paid", "Paid"),
+        ("overpaid", "Overpaid"),
         ("overdue", "Overdue"),
         ("cancelled", "Cancelled"),
         ("refunded", "Refunded"),
     ]
 
-    DELIVERY_SERVICE_CHOICES = [
-        ("usps", "USPS"),
-        ("ups", "UPS"),
-        ("fedex", "FedEx"),
-        ("dhl", "DHL"),
-        ("other", "Other"),
-    ]
-
     SHIPPING_STATUS_CHOICES = [
         ("pending", "Pending"),
         ("preparing", "Preparing"),
+        ("partially_shipped", "Partially Shipped"),
         ("shipped", "Shipped"),
-        ("in_transit", "In Transit"),
         ("delivered", "Delivered"),
         ("returned", "Returned"),
         ("cancelled", "Cancelled"),
@@ -283,18 +276,7 @@ class Invoice(models.Model):
     first_name = models.CharField(max_length=100, blank=True)
     last_name = models.CharField(max_length=100, blank=True)
 
-    # shipping info for shop orders
-    delivery_service = models.CharField(
-        max_length=20,
-        choices=DELIVERY_SERVICE_CHOICES,
-        null=True,
-        blank=True,
-        help_text="Shipping service for shop orders",
-    )
-    post_tracking_number = models.CharField(
-        max_length=50, blank=True, help_text="For shop orders with shipping"
-    )
-
+    # shipping status for shop orders
     shipping_status = models.CharField(
         max_length=20,
         choices=SHIPPING_STATUS_CHOICES,
@@ -676,3 +658,252 @@ class CreditNoteItem(models.Model):
 
     class Meta:
         ordering = ["id"]
+
+
+class InvoiceShipment(models.Model):
+    """
+    Tracks individual shipments for an invoice.
+    Supports multiple shipments per invoice for multi-supplier scenarios.
+    """
+
+    CARRIER_CHOICES = [
+        ("ups", "UPS"),
+        ("fedex", "FedEx"),
+        ("usps", "USPS"),
+        ("dhl", "DHL"),
+        ("amazon", "Amazon Logistics"),
+        ("internal", "Internal Delivery"),
+        ("pickup", "Customer Pickup"),
+        ("other", "Other"),
+    ]
+
+    STATUS_CHOICES = [
+        ("pending", "Pending"),
+        ("processing", "Processing"),
+        ("ready", "Ready to Ship"),
+        ("shipped", "Shipped"),
+        ("in_transit", "In Transit"),
+        ("out_for_delivery", "Out for Delivery"),
+        ("delivered", "Delivered"),
+        ("failed_delivery", "Failed Delivery Attempt"),
+        ("returned", "Returned to Sender"),
+        ("cancelled", "Cancelled"),
+    ]
+
+    # Relationships
+    invoice = models.ForeignKey(
+        Invoice, on_delete=models.CASCADE, related_name="shipments"
+    )
+    supplier = models.ForeignKey(
+        "purchases.Supplier",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="sales_shipments",
+        help_text="Supplier shipping these items",
+    )
+
+    # Shipment identification
+    shipment_number = models.CharField(
+        max_length=50, unique=True, help_text="Human-readable shipment number"
+    )
+
+    # Carrier information
+    carrier = models.CharField(
+        max_length=20, choices=CARRIER_CHOICES, default="pending"
+    )
+    tracking_number = models.CharField(
+        max_length=255, blank=True, db_index=True, help_text="Carrier tracking number"
+    )
+    tracking_url = models.URLField(
+        blank=True, help_text="Direct link to track this shipment"
+    )
+    service_type = models.CharField(
+        max_length=100, blank=True, help_text="e.g., Ground, 2-Day Air, Overnight"
+    )
+
+    # Status
+    status = models.CharField(
+        max_length=20, choices=STATUS_CHOICES, default="pending", db_index=True
+    )
+
+    # Package details
+    package_count = models.PositiveIntegerField(
+        default=1, help_text="Number of packages in this shipment"
+    )
+    total_weight = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        validators=[MinValueValidator(0)],
+        help_text="Total weight in pounds",
+    )
+
+    # Costs
+    shipping_cost = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(0)],
+    )
+    insurance_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal("0.00"),
+        validators=[MinValueValidator(0)],
+    )
+
+    # Dates
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    ship_date = models.DateTimeField(
+        null=True, blank=True, help_text="When the package was shipped"
+    )
+    estimated_delivery = models.DateTimeField(
+        null=True, blank=True, help_text="Estimated delivery date/time"
+    )
+    actual_delivery = models.DateTimeField(
+        null=True, blank=True, help_text="Actual delivery date/time"
+    )
+
+    # Delivery confirmation
+    delivered_to = models.CharField(
+        max_length=255, blank=True, help_text="Name of person who received the package"
+    )
+    delivery_signature = models.TextField(
+        blank=True, help_text="Signature data or confirmation code"
+    )
+    delivery_notes = models.TextField(
+        blank=True, help_text="Delivery instructions or notes"
+    )
+
+    # Shipping address (copied from invoice at time of shipping)
+    ship_to_name = models.CharField(max_length=255)
+    ship_to_company = models.CharField(max_length=255, blank=True)
+    ship_to_address_line1 = models.CharField(max_length=255)
+    ship_to_address_line2 = models.CharField(max_length=255, blank=True)
+    ship_to_city = models.CharField(max_length=100)
+    ship_to_state = models.CharField(max_length=50)
+    ship_to_postal_code = models.CharField(max_length=20)
+    ship_to_country = models.CharField(max_length=2, default="US")
+    ship_to_phone = models.CharField(max_length=50, blank=True)
+    ship_to_email = models.EmailField(blank=True)
+
+    # Internal notes
+    internal_notes = models.TextField(
+        blank=True, help_text="Internal notes about this shipment"
+    )
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["invoice", "status"]),
+            models.Index(fields=["tracking_number"]),
+            models.Index(fields=["supplier", "status"]),
+        ]
+
+    def __str__(self):
+        return f"Shipment {self.shipment_number} - {self.invoice.invoice_number}"
+
+    def save(self, *args, **kwargs):
+        if not self.shipment_number:
+            # Generate shipment number
+            last_shipment = InvoiceShipment.objects.order_by("-id").first()
+            if last_shipment and last_shipment.shipment_number.startswith("SH"):
+                try:
+                    last_number = int(last_shipment.shipment_number[2:])
+                    self.shipment_number = f"SH{last_number + 1:08d}"
+                except (ValueError, IndexError):
+                    self.shipment_number = "SH00000001"
+            else:
+                self.shipment_number = "SH00000001"
+
+        # Copy shipping address from invoice if not set
+        if not self.ship_to_name and self.invoice:
+            self.copy_address_from_invoice()
+
+        super().save(*args, **kwargs)
+
+    def copy_address_from_invoice(self):
+        """Copy shipping address from the invoice."""
+        invoice = self.invoice
+        if invoice.shipping_same_as_billing or not invoice.shipping_address_line1:
+            # Use billing address
+            self.ship_to_name = f"{invoice.first_name} {invoice.last_name}".strip()
+            self.ship_to_company = invoice.customer.company if invoice.customer else ""
+            self.ship_to_address_line1 = invoice.billing_address_line1
+            self.ship_to_address_line2 = invoice.billing_address_line2 or ""
+            self.ship_to_city = invoice.billing_city
+            self.ship_to_state = invoice.billing_state
+            self.ship_to_postal_code = invoice.billing_postal_code
+            self.ship_to_country = invoice.billing_country or "US"
+        else:
+            # Use shipping address
+            self.ship_to_name = f"{invoice.first_name} {invoice.last_name}".strip()
+            self.ship_to_company = invoice.customer.company if invoice.customer else ""
+            self.ship_to_address_line1 = invoice.shipping_address_line1
+            self.ship_to_address_line2 = invoice.shipping_address_line2 or ""
+            self.ship_to_city = invoice.shipping_city
+            self.ship_to_state = invoice.shipping_state
+            self.ship_to_postal_code = invoice.shipping_postal_code
+            self.ship_to_country = invoice.shipping_country or "US"
+
+        self.ship_to_phone = invoice.phone or ""
+        self.ship_to_email = invoice.email or ""
+
+    def get_tracking_url(self):
+        """Generate tracking URL based on carrier and tracking number."""
+        if self.tracking_url:
+            return self.tracking_url
+
+        # If we have a tracking number, generate URL with it
+        if self.tracking_number:
+            carrier_urls = {
+                "ups": f"https://www.ups.com/track?tracknum={self.tracking_number}",
+                "fedex": f"https://www.fedex.com/fedextrack/?trknbr={self.tracking_number}",
+                "usps": f"https://tools.usps.com/go/TrackConfirmAction?tLabels={self.tracking_number}",
+                "dhl": f"https://www.dhl.com/en/express/tracking.html?AWB={self.tracking_number}",
+            }
+            return carrier_urls.get(self.carrier)
+
+
+class ShipmentItem(models.Model):
+    """
+    Tracks which invoice items are included in a shipment.
+    Supports partial shipments where items may be shipped separately.
+    """
+
+    shipment = models.ForeignKey(
+        InvoiceShipment, on_delete=models.CASCADE, related_name="items"
+    )
+    invoice_item = models.ForeignKey(
+        InvoiceItem, on_delete=models.CASCADE, related_name="shipment_items"
+    )
+
+    # Quantity in this shipment (supports partial shipments)
+    quantity_shipped = models.DecimalField(
+        max_digits=10, decimal_places=2, validators=[MinValueValidator(0.01)]
+    )
+
+    # Serial numbers or lot numbers if applicable
+    serial_numbers = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="List of serial numbers for items in this shipment",
+    )
+
+    # Notes
+    notes = models.TextField(
+        blank=True, help_text="Notes about this item in the shipment"
+    )
+
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["invoice_item__id"]
+        unique_together = [["shipment", "invoice_item"]]
+
+    def __str__(self):
+        return f"{self.invoice_item.description} - Qty: {self.quantity_shipped}"

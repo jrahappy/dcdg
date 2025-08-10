@@ -1,44 +1,29 @@
 {% extends 'shop/base.html' %}
 {% load static %}
+{% load humanize %}
 
-{% block title %}{{ product.name }} - Shop{% endblock %}
+{% block page_title %}{{ product.name }} - Shop{% endblock %}
 
 {% block content %}
-<div class="bg-white">
-    <div class="mx-auto max-w-2xl px-4 py-8 sm:px-6 sm:py-12 lg:max-w-7xl lg:px-8">
-        <!-- Breadcrumb -->
-        <nav aria-label="Breadcrumb">
-            <ol role="list" class="mx-auto flex max-w-2xl items-center space-x-2 px-4 sm:px-6 lg:max-w-7xl lg:px-0">
-                <li>
-                    <div class="flex items-center">
-                        <a href="{% url 'shop:product_list' %}" class="mr-2 text-sm font-medium text-gray-900">Products</a>
-                        <svg width="16" height="20" viewBox="0 0 16 20" fill="currentColor" aria-hidden="true" class="h-5 w-4 text-gray-300">
-                            <path d="M5.697 4.34L8.98 16.532h1.327L7.025 4.341H5.697z" />
-                        </svg>
-                    </div>
-                </li>
-                {% if product.category %}
-                <li>
-                    <div class="flex items-center">
-                        <a href="{% url 'shop:product_list' %}?category={{ product.category.id }}" class="mr-2 text-sm font-medium text-gray-900">{{ product.category.name }}</a>
-                        <svg width="16" height="20" viewBox="0 0 16 20" fill="currentColor" aria-hidden="true" class="h-5 w-4 text-gray-300">
-                            <path d="M5.697 4.34L8.98 16.532h1.327L7.025 4.341H5.697z" />
-                        </svg>
-                    </div>
-                </li>
-                {% endif %}
-                <li class="text-sm">
-                    <span class="font-medium text-gray-500">{{ product.name }}</span>
-                </li>
-            </ol>
-        </nav>
+<!-- Breadcrumb -->
+<div class="breadcrumbs text-sm mb-6">
+    <ul>
+        <li><a href="{% url 'shop:product_list' %}">Products</a></li>
+        {% if product.category %}
+        <li><a href="{% url 'shop:product_list' %}?category={{ product.category.id }}">{{ product.category.name }}</a></li>
+        {% endif %}
+        <li>{{ product.name }}</li>
+    </ul>
+</div>
 
-        <!-- Product - 2 Column Layout -->
-        <div class="mx-auto mt-6 lg:grid lg:grid-cols-2 lg:gap-x-8">
-            <!-- Left Column - Images -->
-            <div class="flex flex-col gap-4" x-data="{ selectedImage: 0 }">
-                <!-- Main Image Display -->
-                <div class="aspect-h-1 aspect-w-1 overflow-hidden rounded-lg bg-gray-200 relative">
+<!-- Product Content - Single Column -->
+<div class="space-y-8">
+    <!-- Product Overview Section -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <!-- Left Column - Images -->
+        <div class="flex flex-col gap-4" x-data="{ selectedImage: 0 }">
+            <!-- Main Image Display -->
+            <div class="aspect-h-1 aspect-w-1 overflow-hidden rounded-box bg-base-200 relative">
                     {% if product.main_image or product.images.exists %}
                         <!-- Main product image -->
                         <img x-show="selectedImage === 0" 
@@ -111,40 +96,43 @@
 
             <!-- Right Column - Product Info -->
             <div class="mt-4 px-4 sm:mt-8 sm:px-0 lg:mt-0">
-                <h1 class="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">{{ product.name }}</h1>
+                <h1 class="text-3xl font-bold">{{ product.name }}</h1>
                 
-                <div class="mt-3">
-                    <h2 class="sr-only">Product information</h2>
-                    <p class="text-3xl tracking-tight text-gray-900">${{ product.price|floatformat:2 }}</p>
-                </div>
-
-                <!-- Reviews -->
-                <div class="mt-3">
-                    <h3 class="sr-only">Reviews</h3>
-                    <div class="flex items-center">
-                        <div class="flex items-center">
-                            {% for i in "12345" %}
-                            <svg class="h-5 w-5 flex-shrink-0 text-gray-300" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                <path fill-rule="evenodd" d="M10.868 2.884c-.321-.772-1.415-.772-1.736 0l-1.83 4.401-4.753.381c-.833.067-1.171 1.107-.536 1.651l3.62 3.102-1.106 4.637c-.194.813.691 1.456 1.405 1.02L10 15.591l4.069 2.485c.713.436 1.598-.207 1.404-1.02l-1.106-4.637 3.62-3.102c.635-.544.297-1.584-.536-1.65l-4.752-.382-1.831-4.401z" clip-rule="evenodd" />
-                            </svg>
-                            {% endfor %}
-                        </div>
-                        <p class="sr-only">0 out of 5 stars</p>
-                    </div>
-                </div>
-
-                <!-- SKU and Stock -->
-                <div class="mt-4 space-y-2">
-                    {% if product.sku %}
-                    <p class="text-sm text-gray-500">SKU: {{ product.sku }}</p>
-                    {% endif %}
-                    <p class="text-sm {% if product.quantity_in_stock > 0 %}text-green-600{% else %}text-red-600{% endif %}">
+                <!-- Price and Stock -->
+                <div class="flex items-center gap-4 mt-4">
+                    <div class="text-4xl font-bold text-primary">${{ product.price|floatformat:0|intcomma }}</div>
+                    <div class="badge {% if product.quantity_in_stock > 0 %}badge-success{% else %}badge-error{% endif %} badge-lg">
                         {% if product.quantity_in_stock > 0 %}
-                            In Stock ({{ product.quantity_in_stock }} available)
+                            In Stock ({{ product.quantity_in_stock }})
                         {% else %}
                             Out of Stock
                         {% endif %}
-                    </p>
+                    </div>
+                </div>
+
+                <!-- Reviews -->
+                <!-- <div class="rating rating-md mt-4">
+                    <input type="radio" name="rating-display" class="rating-hidden" />
+                    {% for i in "12345" %}
+                    <input type="radio" name="rating-display" class="mask mask-star-2 bg-orange-400" disabled />
+                    {% endfor %}
+                    <span class="ml-2 text-sm text-base-content/60">(No reviews yet)</span>
+                </div> -->
+
+                <!-- SKU and Category -->
+                <div class="mt-4 flex flex-col gap-4 text-sm">
+                    {% if product.sku %}
+                    <div class="flex items-center gap-2">
+                        <span class="font-semibold">SKU:</span>
+                        <span class="text-base-content/70">{{ product.sku }}</span>
+                    </div>
+                    {% endif %}
+                    {% if product.category %}
+                    <div class="flex items-center gap-2">
+                        <span class="font-semibold">Category:</span>
+                        <a href="{% url 'shop:product_list' %}?category={{ product.category.id }}" class="link link-primary">{{ product.category.name }}</a>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <form class="mt-6" onsubmit="event.preventDefault(); addToCartFromDetail();">
@@ -153,48 +141,48 @@
                     <div class="space-y-4">
                         {% for option_data in product_options %}
                         <div>
-                            <h3 class="text-sm font-medium text-gray-900 mb-3">{{ option_data.name }}</h3>
-                            <div class="flex flex-wrap gap-2" id="option-{{ option_data.name|slugify }}">
+                            <h3 class="text-sm font-semibold mb-6">{{ option_data.name }}</h3>
+                            <div class="flex flex-wrap gap-2 mt-2" id="option-{{ option_data.name|slugify }}">
                                 {% for item in option_data.items %}
-                                <button type="button" 
-                                        onclick="selectOption('{{ option_data.name }}', '{{ item.value }}')"
-                                        data-option-name="{{ option_data.name }}"
-                                        data-option-value="{{ item.value }}"
-                                        class="option-button px-4 py-2 border-2 border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:border-indigo-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors">
-                                    {{ item.value }}
-                                </button>
+                                <label class="cursor-pointer">
+                                    <input type="radio" 
+                                           name="option_{{ option_data.name|slugify }}"
+                                           value="{{ item.value }}"
+                                           class="hidden peer"
+                                           onchange="selectOption('{{ option_data.name }}', '{{ item.value }}')">
+                                    <div class="px-2 py-1 border-2 border-gray-700 rounded-lg bg-base-100 shadow hover:border-primary hover:bg-primary hover:text-primary-content transition-colors peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-content">
+                                        {{ item.value }}
+                                    </div>
+                                </label>
                                 {% endfor %}
                             </div>
-                            <input type="hidden" id="selected-{{ option_data.name|slugify }}" name="option_{{ option_data.name|slugify }}" value="">
                         </div>
                         {% endfor %}
                     </div>
                     {% endif %}
 
                     <!-- Quantity -->
-                    <div class="mt-6">
-                        <div class="flex items-center justify-between">
-                            <h3 class="text-sm font-medium text-gray-900">Quantity</h3>
-                        </div>
-
-                        <div class="mt-4">
-                            <select id="quantity" name="quantity" class="block w-full rounded-md border-0 py-1.5 pl-3 pr-10 text-gray-900 ring-1 ring-inset ring-gray-300 focus:ring-2 focus:ring-indigo-600 sm:text-sm sm:leading-6">
-                                <option value="1">1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5">5</option>
-                                <option value="6">6</option>
-                                <option value="7">7</option>
-                                <option value="8">8</option>
-                                <option value="9">9</option>
-                                <option value="10">10</option>
+                    <div class="mt-6 pb-4 border-b border-base-300">
+                        <h3 class="text-base font-semibold pb-2">Quantity</h3>
+                        <div class="flex items-center gap-4 ">
+                            <select id="quantity" name="quantity" class="select select-bordered select-sm w-32">
+                                {% for i in "1234567890" %}
+                                <option value="{{ forloop.counter }}">{{ forloop.counter }}</option>
+                                {% endfor %}
                             </select>
+                            <span class="text-sm text-base-content/60">
+                                {% if product.quantity_in_stock > 0 %}
+                                    Maximum: {{ product.quantity_in_stock }}
+                                {% endif %}
+                            </span>
                         </div>
                     </div>
 
-                    <button type="submit" class="mt-6 flex w-full items-center justify-center rounded-md border border-transparent bg-indigo-600 px-8 py-3 text-base font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
-                        Add to cart
+                    <button type="submit" class="btn btn-primary btn-sm w-64 mt-6" {% if product.quantity_in_stock <= 0 %}disabled{% endif %}>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        Add to Cart
                     </button>
                 </form>
 
@@ -203,9 +191,9 @@
                 <div class="mt-6">
                     <h3 class="text-sm font-medium text-gray-900">Highlights</h3>
                     <div class="mt-4">
-                        <ul role="list" class="list-disc space-y-2 pl-4 text-sm">
+                        <ul role="list" class="flex flex-col gap-2">
                             {% for feature in product.feature_list %}
-                            <li class="text-gray-400"><span class="text-gray-600">{{ feature }}</span></li>
+                            <li class="badge badge-info"><span class="text-base-100">{{ feature }}</span></li>
                             {% endfor %}
                         </ul>
                     </div>
@@ -213,83 +201,146 @@
                 {% endif %}
             </div>
         </div>
-
-        <!-- Product Description Section - Full Width Below -->
-        <div class="mt-10 border-t border-gray-200 pt-10">
-            <!-- Description -->
-            <div>
-                <h3 class="text-lg font-medium text-gray-900">Description</h3>
-                <div class="mt-4 space-y-6">
-                    <p class="text-base text-gray-600">{{ product.short_description }}</p>
-                </div>
-            </div>
-
-            <!-- Details -->
-            {% if product.long_description %}
-            <div class="mt-8">
-                <h3 class="text-lg font-medium text-gray-900">Details</h3>
-                <div class="mt-4 space-y-4">
-                    <div class="text-sm text-gray-600">{{ product.long_description|linebreaks }}</div>
-                </div>
-            </div>
-            {% endif %}
-
-            <!-- Specifications -->
-            {% if product.specifications %}
-            <div class="mt-8">
-                <h3 class="text-lg font-medium text-gray-900">Specifications</h3>
-                <div class="mt-4">
-                    <dl class="grid grid-cols-1 gap-x-4 gap-y-6 sm:grid-cols-2">
-                        {% for key, value in product.specifications.items %}
-                        <div class="border-b border-gray-200 pb-4">
-                            <dt class="text-sm font-medium text-gray-500">{{ key }}</dt>
-                            <dd class="mt-1 text-sm text-gray-900">{{ value }}</dd>
-                        </div>
-                        {% endfor %}
-                    </dl>
-                </div>
-            </div>
-            {% endif %}
-        </div>
-
-        <!-- Related products -->
-        {% if related_products %}
-        <section aria-labelledby="related-products-heading" class="mt-16 border-t border-gray-200 pt-16">
-            <h2 id="related-products-heading" class="text-2xl font-bold tracking-tight text-gray-900">Customers also purchased</h2>
-
-            <div class="mt-6 grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-4 xl:gap-x-8">
-                {% for related in related_products %}
-                <div class="group relative">
-                    <div class="relative h-64 w-full overflow-hidden rounded-lg bg-gray-200 group-hover:opacity-75">
-                        {% if related.main_image %}
-                        <img src="{{ related.main_image.url }}" alt="{{ related.name }}" class="h-full w-full object-cover object-center">
-                        {% else %}
-                        <div class="h-full w-full flex items-center justify-center">
-                            <svg class="h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                            </svg>
-                        </div>
-                        {% endif %}
-                    </div>
-                    <div class="mt-4 flex justify-between">
-                        <div>
-                            <h3 class="text-sm text-gray-700">
-                                <a href="{% url 'shop:product_detail' related.pk %}">
-                                    <span aria-hidden="true" class="absolute inset-0"></span>
-                                    {{ related.name }}
-                                </a>
-                            </h3>
-                            <p class="mt-1 text-sm text-gray-500">{{ related.category.name|default:"" }}</p>
-                        </div>
-                        <p class="text-sm font-medium text-gray-900">${{ related.price|floatformat:2 }}</p>
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </section>
-        {% endif %}
     </div>
+    <!-- End of Product Overview Section -->
+
+    <!-- Product Description Section -->
+    {% if product.short_description %}
+    <div class="divider"></div>
+    <section>
+        <h3 class="text-2xl font-bold mb-4 pb-2">Description</h3>
+        <p class="text-base-content/80">{{ product.short_description }}</p>
+    </section>
+    {% endif %}
+
+    <!-- Product Details Section -->
+    {% if product.long_description %}
+    <div class="divider"></div>
+    <section>
+        <h3 class="text-2xl font-bold mb-4 pb-2">Product Details</h3>
+        <div class="prose max-w-none">{{ product.long_description|safe }}</div>
+    </section>
+    {% endif %}
+
+    <!-- Specifications Section -->
+    {% if product.specifications %}
+    <div class="divider"></div>
+    <section>
+        <h3 class="text-xl font-bold mb-4">Specifications</h3>
+        <div class="overflow-x-auto">
+            <table class="table table-zebra">
+                <tbody>
+                    {% for key, value in product.specifications.items %}
+                    <tr>
+                        <td class="font-semibold w-1/3">{{ key }}</td>
+                        <td>{{ value }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Documents Section -->
+    {% if documents %}
+    <div class="divider"></div>
+    <section>
+        <h3 class="text-xl font-bold mb-4">Downloads & Documents</h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {% for doc in documents %}
+            <div class="card bg-base-100 border border-base-300">
+                <div class="card-body p-4">
+                    <div class="flex items-start gap-3">
+                        <!-- Document Icon -->
+                        <div class="flex-shrink-0">
+                            {% if 'pdf' in doc.file.name.lower %}
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-error">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                            </svg>
+                            {% else %}
+                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-8 h-8 text-base-content/50">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 00-3.375-3.375h-1.5A1.125 1.125 0 0113.5 7.125v-1.5a3.375 3.375 0 00-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 00-9-9z" />
+                            </svg>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Document Info -->
+                        <div class="flex-1 min-w-0">
+                            <h4 class="font-semibold text-base">{{ doc.title }}</h4>
+                            {% if doc.description %}
+                            <p class="text-sm text-base-content/70 mt-1">{{ doc.description }}</p>
+                            {% endif %}
+                            <div class="flex items-center gap-3 mt-2 text-xs text-base-content/60">
+                                <span class="badge badge-ghost badge-sm">{{ doc.get_doc_type_display }}</span>
+                                {% if doc.file_size %}
+                                <span>{{ doc.file_size|filesizeformat }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <!-- Download Button -->
+                        <div class="flex-shrink-0">
+                            <a href="{{ doc.file.url }}" download class="btn btn-primary btn-sm">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                                </svg>
+                                Download
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    <!-- Related products -->
+    {% if related_products %}
+    <div class="divider"></div>
+    <section>
+        <h2 class="text-2xl font-bold mb-6 pb-6">Customers also purchased</h2>
+        
+        <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {% for related in related_products %}
+            <div class="card card-compact bg-base-100 shadow-sm hover:shadow-lg transition-shadow">
+                <a href="{% url 'shop:product_detail' related.pk %}" class="">
+                <figure class="h-32 bg-base-200">
+                    {% if related.main_image %}
+                    <img src="{{ related.main_image.url }}" alt="{{ related.name }}" class="h-full w-full object-cover">
+                    {% elif related.images.all %}
+                    {% with related.images.all.0 as first_image %}
+                    <img src="{{ first_image.image.url }}" alt="{{ related.name }}" class="h-full w-full object-cover">
+                    {% endwith %}
+                    {% else %}
+                    <svg class="h-8 w-8 text-base-content/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                    {% endif %}
+                </figure>
+                </a>
+                <div class="card-body">
+                    <h3 class="card-title text-sm">
+                        {{ related.name|truncatechars:30 }}
+                    </h3>
+                    {% if related.category %}
+                    <div class="badge badge-ghost badge-sm">{{ related.category.name }}</div>
+                    {% endif %}
+                    <div class="card-actions justify-between items-center mt-2">
+                        <span class="text-lg font-bold text-primary">${{ related.price|floatformat:0|intcomma }}</span>
+                        <button onclick="event.preventDefault(); addToCart({{ related.pk }})" class="btn btn-primary btn-xs">
+                            Add to Cart
+                        </button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
 </div>
+<!-- End of main content wrapper -->
 
 <script>
 // Store selected options
@@ -298,30 +349,10 @@ let selectedOptions = {};
 function selectOption(optionName, optionValue) {
     // Update selected options
     selectedOptions[optionName] = optionValue;
-    
-    // Update hidden input
-    const hiddenInput = document.getElementById(`selected-${optionName.toLowerCase().replace(/\s+/g, '-')}`);
-    if (hiddenInput) {
-        hiddenInput.value = optionValue;
-    }
-    
-    // Update button styles
-    const container = document.getElementById(`option-${optionName.toLowerCase().replace(/\s+/g, '-')}`);
-    if (container) {
-        // Remove selected class from all buttons in this option group
-        container.querySelectorAll('.option-button').forEach(btn => {
-            btn.classList.remove('border-indigo-600', 'bg-indigo-50', 'text-indigo-600');
-            btn.classList.add('border-gray-300', 'text-gray-700');
-        });
-        
-        // Add selected class to clicked button
-        const selectedButton = container.querySelector(`[data-option-value="${optionValue}"]`);
-        if (selectedButton) {
-            selectedButton.classList.remove('border-gray-300', 'text-gray-700');
-            selectedButton.classList.add('border-indigo-600', 'bg-indigo-50', 'text-indigo-600');
-        }
-    }
+    console.log('Option selected:', optionName, '=', optionValue);
 }
+
+// This function is now defined in the base template - just removing the duplicate
 
 function addToCartFromDetail() {
     const quantity = document.getElementById('quantity').value;
@@ -335,7 +366,8 @@ function addToCartFromDetail() {
         bodyParams += `&selected_options=${encodeURIComponent(JSON.stringify(selectedOptions))}`;
     }
     
-    fetch(`/shop/cart/add/${productId}/`, {
+    // Make direct API call with options
+    fetch(`/cart/add/${productId}/`, {
         method: 'POST',
         headers: {
             'X-CSRFToken': getCookie('csrftoken'),
@@ -345,27 +377,56 @@ function addToCartFromDetail() {
     })
     .then(response => response.json())
     .then(data => {
+        console.log('Add to cart response:', data);
         if (data.success) {
-            // Update cart counter
-            document.getElementById('cart-count').textContent = data.cart_total_items;
-            // Show success message
-            showNotification(data.message, 'success');
+            // Call the global function to update cart count
+            const rootElement = document.querySelector('[x-data]');
+            if (rootElement && Alpine && Alpine.$data) {
+                Alpine.$data(rootElement).loadCartSummary();
+                Alpine.$data(rootElement).showNotification(data.message || 'Added to cart', 'success');
+            } else {
+                // Fallback - reload page
+                window.location.reload();
+            }
         } else {
             showNotification(data.error || 'Failed to add to cart', 'error');
         }
     })
     .catch(error => {
+        console.error('Fetch error:', error);
         showNotification('An error occurred', 'error');
     });
 }
-</script>
 
-<style>
-.option-button {
-    transition: all 0.2s ease;
+function showNotification(message, type = 'info') {
+    // Check if the shopApp notification method is available
+    const shopAppElement = document.querySelector('[x-data*="shopApp"]');
+    if (shopAppElement && shopAppElement.__x && shopAppElement.__x.$data && shopAppElement.__x.$data.showNotification) {
+        shopAppElement.__x.$data.showNotification(message, type);
+    } else {
+        // Fallback notification
+        const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-error' : 'alert-info';
+        const notification = document.createElement('div');
+        notification.className = `alert ${alertClass} fixed top-20 right-4 z-50 max-w-sm shadow-lg`;
+        notification.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                ${type === 'success' ? 
+                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />' : 
+                type === 'error' ?
+                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />' :
+                    '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />'
+                }
+            </svg>
+            <span>${message}</span>
+        `;
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            notification.style.transition = 'opacity 0.3s';
+            setTimeout(() => notification.remove(), 300);
+        }, 3000);
+    }
 }
-.option-button:hover {
-    transform: translateY(-1px);
-}
-</style>
+</script>
 {% endblock %}

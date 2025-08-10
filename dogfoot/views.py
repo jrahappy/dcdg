@@ -46,7 +46,7 @@ def diagrams(request):
             got_models = app_config.get_models()
             for model in got_models:
                 model_name = model.__name__
-                context["apps"][app_name]["models"][model_name] = {"fields": {}}
+                context["apps"][app_name]["models"][model_name] = {"fields": {}, "fields_list": []}
 
                 fields = model._meta.get_fields()
                 for field in fields:
@@ -86,6 +86,10 @@ def diagrams(request):
                     context["apps"][app_name]["models"][model_name]["fields"][
                         field_name
                     ] = field_attributes
+                    # Also add to fields_list for easier template iteration
+                    context["apps"][app_name]["models"][model_name]["fields_list"].append(
+                        (field_name, field_attributes)
+                    )
 
         # print(context)
     return render(request, "dogfoot/diagrams.html", context)
@@ -225,7 +229,7 @@ def schema(request):
             got_models = app_config.get_models()
             for model in got_models:
                 model_name = model.__name__
-                context["apps"][app_name]["models"][model_name] = {"fields": {}}
+                context["apps"][app_name]["models"][model_name] = {"fields": {}, "fields_list": []}
 
                 fields = model._meta.get_fields()
                 for field in fields:
@@ -265,19 +269,11 @@ def schema(request):
                     context["apps"][app_name]["models"][model_name]["fields"][
                         field_name
                     ] = field_attributes
-
-        # Debug: print the structure to see what's happening
-        print("DEBUG: Context structure:")
-        for app_name, app_data in context["apps"].items():
-            for model_name, model_data in app_data["models"].items():
-                print(f"App: {app_name}, Model: {model_name}")
-                for field_name, field_data in model_data["fields"].items():
-                    print(
-                        f"  Field: {field_name}, Data type: {type(field_data)}, Data: {field_data}"
+                    # Also add to fields_list for easier template iteration
+                    context["apps"][app_name]["models"][model_name]["fields_list"].append(
+                        (field_name, field_attributes)
                     )
-                    break  # Only print first field to avoid spam
-                break  # Only print first model
-            break  # Only print first app
+
 
     return render(request, "dogfoot/schema.html", context)
 

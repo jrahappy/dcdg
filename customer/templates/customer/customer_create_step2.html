@@ -95,15 +95,54 @@
                         {% endif %}
                     </div>
 
+                    <!-- Label (Optional) -->
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">{{ form.label.label }}</span>
+                        </label>
+                        {{ form.label }}
+                        {% if form.label.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.label.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Recipient Name -->
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">{{ form.recipient_name.label }} <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.recipient_name }}
+                        {% if form.recipient_name.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.recipient_name.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Company Name (Optional) -->
+                    <div class="form-control mb-4">
+                        <label class="label">
+                            <span class="label-text">{{ form.company_name.label }}</span>
+                        </label>
+                        {{ form.company_name }}
+                        {% if form.company_name.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.company_name.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
                     <!-- Street Address -->
                     <div class="form-control mb-4">
                         <label class="label">
-                            <span class="label-text">{{ form.street_address.label }} <span class="text-error">*</span></span>
+                            <span class="label-text">{{ form.address_line1.label }} <span class="text-error">*</span></span>
                         </label>
-                        {{ form.street_address }}
-                        {% if form.street_address.errors %}
+                        {{ form.address_line1 }}
+                        {% if form.address_line1.errors %}
                         <label class="label">
-                            <span class="label-text-alt text-error">{{ form.street_address.errors.0 }}</span>
+                            <span class="label-text-alt text-error">{{ form.address_line1.errors.0 }}</span>
                         </label>
                         {% endif %}
                     </div>
@@ -111,12 +150,12 @@
                     <!-- Apartment/Suite -->
                     <div class="form-control mb-4">
                         <label class="label">
-                            <span class="label-text">{{ form.apartment_suite.label }}</span>
+                            <span class="label-text">{{ form.address_line2.label }}</span>
                         </label>
-                        {{ form.apartment_suite }}
-                        {% if form.apartment_suite.errors %}
+                        {{ form.address_line2 }}
+                        {% if form.address_line2.errors %}
                         <label class="label">
-                            <span class="label-text-alt text-error">{{ form.apartment_suite.errors.0 }}</span>
+                            <span class="label-text-alt text-error">{{ form.address_line2.errors.0 }}</span>
                         </label>
                         {% endif %}
                     </div>
@@ -171,6 +210,19 @@
                         {% if form.country.errors %}
                         <label class="label">
                             <span class="label-text-alt text-error">{{ form.country.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Phone -->
+                    <div class="form-control mt-4">
+                        <label class="label">
+                            <span class="label-text">{{ form.phone.label }}</span>
+                        </label>
+                        {{ form.phone }}
+                        {% if form.phone.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.phone.errors.0 }}</span>
                         </label>
                         {% endif %}
                     </div>

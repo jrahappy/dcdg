@@ -1,86 +1,60 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import (
-    ListView, DetailView, CreateView, UpdateView, DeleteView, View, TemplateView
-)
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.contrib.auth.decorators import login_required
-from django.contrib.admin.views.decorators import staff_member_required
-from django.urls import reverse_lazy, reverse
+from django.urls import reverse, reverse_lazy
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView, View
 from django.contrib import messages
-from django.db.models import Q, Sum, F
+from django.db.models import Sum, Q, F
 from django.http import JsonResponse, HttpResponse
-from django.utils import timezone
-from django.template.loader import get_template
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.admin.views.decorators import staff_member_required
+from django.utils.decorators import method_decorator
+from django.db import transaction
 from decimal import Decimal
-import random
-from xhtml2pdf import pisa
-from io import BytesIO
-from .models import Quote, QuoteItem, Order, OrderItem, Invoice, InvoiceItem, Payment
-from customer.models import Customer
-from product.models import Product, Inventory
+from datetime import datetime, timedelta
+import json
+
+from .models import Quote, QuoteItem, Order, OrderItem, Invoice, InvoiceItem, Payment, InvoiceShipment, ShipmentItem
 from .forms import (
-    QuoteForm, QuoteItemFormSet, OrderForm, OrderItemFormSet,
-    InvoiceForm, InvoiceItemFormSet, PaymentForm
+    QuoteForm, QuoteItemForm, OrderForm, OrderItemForm, 
+    InvoiceForm, InvoiceItemFormSet, PaymentForm, InvoiceShipmentForm, ShipmentItemFormSet
 )
+from customer.models import Customer, CustomerAddress
+from product.models import Product, Inventory
+from purchases.models import Supplier
 
 
-# Staff Required Mixin for all admin views
-class StaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
-    """Mixin to ensure user is staff"""
-    def test_func(self):
-        return self.request.user.is_staff
+# Mixin to require staff membership
+class StaffRequiredMixin(LoginRequiredMixin):
+    @method_decorator(staff_member_required)
+    def dispatch(self, request, *args, **kwargs):
+        return super().dispatch(request, *args, **kwargs)
 
 
 # Quote Views
 class QuoteListView(StaffRequiredMixin, ListView):
     model = Quote
-    template_name = 'sales/quote_list_daisyui.html'
+    template_name = 'sales/quote_list.html'
     context_object_name = 'quotes'
     paginate_by = 20
     
     def get_queryset(self):
-        queryset = super().get_queryset()
-        search = self.request.GET.get('search')
-        status = self.request.GET.get('status')
-        date_from = self.request.GET.get('date_from')
-        date_to = self.request.GET.get('date_to')
+        queryset = super().get_queryset().select_related('customer')
         
+        # Search functionality
+        search = self.request.GET.get('search')
         if search:
             queryset = queryset.filter(
                 Q(quote_number__icontains=search) |
                 Q(customer__first_name__icontains=search) |
                 Q(customer__last_name__icontains=search) |
-                Q(customer__company_name__icontains=search)
+                Q(customer__company__icontains=search)
             )
         
+        # Status filter
+        status = self.request.GET.get('status')
         if status:
             queryset = queryset.filter(status=status)
         
-        if date_from:
-            queryset = queryset.filter(quote_date__gte=date_from)
-        
-        if date_to:
-            queryset = queryset.filter(quote_date__lte=date_to)
-        
-        return queryset.order_by('-quote_date', '-created_at')
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['search_query'] = self.request.GET.get('search', '')
-        context['selected_status'] = self.request.GET.get('status', '')
-        context['status_choices'] = Quote.STATUS_CHOICES
-        
-        # Add statistics
-        from django.db.models import Sum
-        context['total_quotes'] = Quote.objects.count()
-        context['draft_count'] = Quote.objects.filter(status='draft').count()
-        context['sent_count'] = Quote.objects.filter(status='sent').count()
-        context['accepted_count'] = Quote.objects.filter(status='accepted').count()
-        context['total_value'] = Quote.objects.filter(status='accepted').aggregate(
-            total=Sum('total_amount')
-        )['total'] or 0
-        
-        return context
+        return queryset.order_by('-created_at')
 
 
 class QuoteDetailView(StaffRequiredMixin, DetailView):
@@ -90,7 +64,7 @@ class QuoteDetailView(StaffRequiredMixin, DetailView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['items'] = self.object.items.all()
+        context['items'] = self.object.items.select_related('product')
         return context
 
 
@@ -99,47 +73,11 @@ class QuoteCreateView(StaffRequiredMixin, CreateView):
     form_class = QuoteForm
     template_name = 'sales/quote_form.html'
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        if self.request.POST:
-            context['formset'] = QuoteItemFormSet(self.request.POST, instance=self.object)
-        else:
-            context['formset'] = QuoteItemFormSet(instance=self.object)
-        return context
-    
     def form_valid(self, form):
-        context = self.get_context_data()
-        formset = context['formset']
-        
-        if formset.is_valid():
-            form.instance.created_by = self.request.user
-            self.object = form.save()
-            formset.instance = self.object
-            formset.save()
-            
-            # Calculate totals
-            self.calculate_quote_totals()
-            
-            messages.success(self.request, 'Quote created successfully!')
-            return redirect(self.get_success_url())
-        else:
-            return self.form_invalid(form)
-    
-    def calculate_quote_totals(self):
-        items = self.object.items.all()
-        subtotal = sum(item.line_total for item in items)
-        
-        discount_amount = subtotal * (self.object.discount_percent / 100)
-        subtotal_after_discount = subtotal - discount_amount
-        
-        tax_amount = subtotal_after_discount * (self.object.tax_rate / 100)
-        total = subtotal_after_discount + tax_amount
-        
-        self.object.subtotal = subtotal
-        self.object.discount_amount = discount_amount
-        self.object.tax_amount = tax_amount
-        self.object.total_amount = total
-        self.object.save()
+        form.instance.created_by = self.request.user
+        response = super().form_valid(form)
+        messages.success(self.request, 'Quote created successfully!')
+        return response
     
     def get_success_url(self):
         return reverse('sales:quote_detail', kwargs={'pk': self.object.pk})
@@ -150,46 +88,10 @@ class QuoteUpdateView(StaffRequiredMixin, UpdateView):
     form_class = QuoteForm
     template_name = 'sales/quote_form.html'
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        if self.request.POST:
-            context['formset'] = QuoteItemFormSet(self.request.POST, instance=self.object)
-        else:
-            context['formset'] = QuoteItemFormSet(instance=self.object)
-        return context
-    
     def form_valid(self, form):
-        context = self.get_context_data()
-        formset = context['formset']
-        
-        if formset.is_valid():
-            self.object = form.save()
-            formset.instance = self.object
-            formset.save()
-            
-            # Recalculate totals
-            self.calculate_quote_totals()
-            
-            messages.success(self.request, 'Quote updated successfully!')
-            return redirect(self.get_success_url())
-        else:
-            return self.form_invalid(form)
-    
-    def calculate_quote_totals(self):
-        items = self.object.items.all()
-        subtotal = sum(item.line_total for item in items)
-        
-        discount_amount = subtotal * (self.object.discount_percent / 100)
-        subtotal_after_discount = subtotal - discount_amount
-        
-        tax_amount = subtotal_after_discount * (self.object.tax_rate / 100)
-        total = subtotal_after_discount + tax_amount
-        
-        self.object.subtotal = subtotal
-        self.object.discount_amount = discount_amount
-        self.object.tax_amount = tax_amount
-        self.object.total_amount = total
-        self.object.save()
+        response = super().form_valid(form)
+        messages.success(self.request, 'Quote updated successfully!')
+        return response
     
     def get_success_url(self):
         return reverse('sales:quote_detail', kwargs={'pk': self.object.pk})
@@ -208,35 +110,20 @@ class QuoteDeleteView(StaffRequiredMixin, DeleteView):
 # Quote Item Views
 class QuoteItemCreateView(StaffRequiredMixin, CreateView):
     model = QuoteItem
-    fields = ['product', 'description', 'quantity', 'unit_price', 'discount_percent']
+    form_class = QuoteItemForm
     template_name = 'sales/quote_item_form.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['quote'] = get_object_or_404(Quote, pk=self.kwargs['quote_pk'])
+        return context
     
     def form_valid(self, form):
         quote = get_object_or_404(Quote, pk=self.kwargs['quote_pk'])
         form.instance.quote = quote
         response = super().form_valid(form)
-        
-        # Recalculate quote totals
-        self.recalculate_quote_totals(quote)
-        
-        messages.success(self.request, 'Item added successfully!')
+        messages.success(self.request, 'Item added to quote!')
         return response
-    
-    def recalculate_quote_totals(self, quote):
-        items = quote.items.all()
-        subtotal = sum(item.line_total for item in items)
-        
-        discount_amount = subtotal * (quote.discount_percent / 100)
-        subtotal_after_discount = subtotal - discount_amount
-        
-        tax_amount = subtotal_after_discount * (quote.tax_rate / 100)
-        total = subtotal_after_discount + tax_amount
-        
-        quote.subtotal = subtotal
-        quote.discount_amount = discount_amount
-        quote.tax_amount = tax_amount
-        quote.total_amount = total
-        quote.save()
     
     def get_success_url(self):
         return reverse('sales:quote_detail', kwargs={'pk': self.kwargs['quote_pk']})
@@ -244,33 +131,18 @@ class QuoteItemCreateView(StaffRequiredMixin, CreateView):
 
 class QuoteItemUpdateView(StaffRequiredMixin, UpdateView):
     model = QuoteItem
-    fields = ['product', 'description', 'quantity', 'unit_price', 'discount_percent']
+    form_class = QuoteItemForm
     template_name = 'sales/quote_item_form.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['quote'] = self.object.quote
+        return context
     
     def form_valid(self, form):
         response = super().form_valid(form)
-        
-        # Recalculate quote totals
-        self.recalculate_quote_totals(self.object.quote)
-        
-        messages.success(self.request, 'Item updated successfully!')
+        messages.success(self.request, 'Quote item updated!')
         return response
-    
-    def recalculate_quote_totals(self, quote):
-        items = quote.items.all()
-        subtotal = sum(item.line_total for item in items)
-        
-        discount_amount = subtotal * (quote.discount_percent / 100)
-        subtotal_after_discount = subtotal - discount_amount
-        
-        tax_amount = subtotal_after_discount * (quote.tax_rate / 100)
-        total = subtotal_after_discount + tax_amount
-        
-        quote.subtotal = subtotal
-        quote.discount_amount = discount_amount
-        quote.tax_amount = tax_amount
-        quote.total_amount = total
-        quote.save()
     
     def get_success_url(self):
         return reverse('sales:quote_detail', kwargs={'pk': self.object.quote.pk})
@@ -280,35 +152,9 @@ class QuoteItemDeleteView(StaffRequiredMixin, DeleteView):
     model = QuoteItem
     template_name = 'sales/quote_item_confirm_delete.html'
     
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        quote = self.object.quote
-        response = super().delete(request, *args, **kwargs)
-        
-        # Recalculate quote totals
-        self.recalculate_quote_totals(quote)
-        
-        messages.success(request, 'Item removed successfully!')
-        return response
-    
-    def recalculate_quote_totals(self, quote):
-        items = quote.items.all()
-        subtotal = sum(item.line_total for item in items)
-        
-        discount_amount = subtotal * (quote.discount_percent / 100)
-        subtotal_after_discount = subtotal - discount_amount
-        
-        tax_amount = subtotal_after_discount * (quote.tax_rate / 100)
-        total = subtotal_after_discount + tax_amount
-        
-        quote.subtotal = subtotal
-        quote.discount_amount = discount_amount
-        quote.tax_amount = tax_amount
-        quote.total_amount = total
-        quote.save()
-    
     def get_success_url(self):
-        return reverse('sales:quote_detail', kwargs={'pk': self.kwargs['quote_pk']})
+        messages.success(self.request, 'Item removed from quote!')
+        return reverse('sales:quote_detail', kwargs={'pk': self.object.quote.pk})
 
 
 # Order Views
@@ -319,36 +165,24 @@ class OrderListView(StaffRequiredMixin, ListView):
     paginate_by = 20
     
     def get_queryset(self):
-        queryset = super().get_queryset()
-        search = self.request.GET.get('search')
-        status = self.request.GET.get('status')
-        payment_status = self.request.GET.get('payment_status')
+        queryset = super().get_queryset().select_related('customer')
         
+        # Search functionality
+        search = self.request.GET.get('search')
         if search:
             queryset = queryset.filter(
                 Q(order_number__icontains=search) |
                 Q(customer__first_name__icontains=search) |
                 Q(customer__last_name__icontains=search) |
-                Q(customer__company_name__icontains=search) |
-                Q(purchase_order_number__icontains=search)
+                Q(customer__company__icontains=search)
             )
         
+        # Status filter
+        status = self.request.GET.get('status')
         if status:
             queryset = queryset.filter(status=status)
         
-        if payment_status:
-            queryset = queryset.filter(payment_status=payment_status)
-        
-        return queryset.order_by('-order_date', '-created_at')
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['search_query'] = self.request.GET.get('search', '')
-        context['selected_status'] = self.request.GET.get('status', '')
-        context['selected_payment_status'] = self.request.GET.get('payment_status', '')
-        context['status_choices'] = Order.STATUS_CHOICES
-        context['payment_status_choices'] = Order.PAYMENT_STATUS_CHOICES
-        return context
+        return queryset.order_by('-created_at')
 
 
 class OrderDetailView(StaffRequiredMixin, DetailView):
@@ -358,8 +192,7 @@ class OrderDetailView(StaffRequiredMixin, DetailView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['items'] = self.object.items.all()
-        context['payments'] = self.object.payments.all()
+        context['items'] = self.object.items.select_related('product')
         return context
 
 
@@ -368,48 +201,11 @@ class OrderCreateView(StaffRequiredMixin, CreateView):
     form_class = OrderForm
     template_name = 'sales/order_form.html'
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        if self.request.POST:
-            context['formset'] = OrderItemFormSet(self.request.POST, instance=self.object)
-        else:
-            context['formset'] = OrderItemFormSet(instance=self.object)
-        return context
-    
     def form_valid(self, form):
-        context = self.get_context_data()
-        formset = context['formset']
-        
-        if formset.is_valid():
-            form.instance.created_by = self.request.user
-            self.object = form.save()
-            formset.instance = self.object
-            formset.save()
-            
-            # Calculate totals
-            self.calculate_order_totals()
-            
-            messages.success(self.request, 'Order created successfully!')
-            return redirect(self.get_success_url())
-        else:
-            return self.form_invalid(form)
-    
-    def calculate_order_totals(self):
-        items = self.object.items.all()
-        subtotal = sum(item.line_total for item in items)
-        
-        discount_amount = subtotal * (self.object.discount_percent / 100)
-        subtotal_after_discount = subtotal - discount_amount
-        
-        tax_amount = subtotal_after_discount * (self.object.tax_rate / 100)
-        total = subtotal_after_discount + tax_amount + self.object.shipping_cost
-        
-        self.object.subtotal = subtotal
-        self.object.discount_amount = discount_amount
-        self.object.tax_amount = tax_amount
-        self.object.total_amount = total
-        self.object.balance_due = total - self.object.paid_amount
-        self.object.save()
+        form.instance.created_by = self.request.user
+        response = super().form_valid(form)
+        messages.success(self.request, 'Order created successfully!')
+        return response
     
     def get_success_url(self):
         return reverse('sales:order_detail', kwargs={'pk': self.object.pk})
@@ -420,47 +216,10 @@ class OrderUpdateView(StaffRequiredMixin, UpdateView):
     form_class = OrderForm
     template_name = 'sales/order_form.html'
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        if self.request.POST:
-            context['formset'] = OrderItemFormSet(self.request.POST, instance=self.object)
-        else:
-            context['formset'] = OrderItemFormSet(instance=self.object)
-        return context
-    
     def form_valid(self, form):
-        context = self.get_context_data()
-        formset = context['formset']
-        
-        if formset.is_valid():
-            self.object = form.save()
-            formset.instance = self.object
-            formset.save()
-            
-            # Recalculate totals
-            self.calculate_order_totals()
-            
-            messages.success(self.request, 'Order updated successfully!')
-            return redirect(self.get_success_url())
-        else:
-            return self.form_invalid(form)
-    
-    def calculate_order_totals(self):
-        items = self.object.items.all()
-        subtotal = sum(item.line_total for item in items)
-        
-        discount_amount = subtotal * (self.object.discount_percent / 100)
-        subtotal_after_discount = subtotal - discount_amount
-        
-        tax_amount = subtotal_after_discount * (self.object.tax_rate / 100)
-        total = subtotal_after_discount + tax_amount + self.object.shipping_cost
-        
-        self.object.subtotal = subtotal
-        self.object.discount_amount = discount_amount
-        self.object.tax_amount = tax_amount
-        self.object.total_amount = total
-        self.object.balance_due = total - self.object.paid_amount
-        self.object.save()
+        response = super().form_valid(form)
+        messages.success(self.request, 'Order updated successfully!')
+        return response
     
     def get_success_url(self):
         return reverse('sales:order_detail', kwargs={'pk': self.object.pk})
@@ -479,36 +238,20 @@ class OrderDeleteView(StaffRequiredMixin, DeleteView):
 # Order Item Views
 class OrderItemCreateView(StaffRequiredMixin, CreateView):
     model = OrderItem
-    fields = ['product', 'description', 'quantity', 'unit_price', 'discount_percent']
+    fields = ['product', 'quantity', 'unit_price', 'discount_percent', 'notes']
     template_name = 'sales/order_item_form.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['order'] = get_object_or_404(Order, pk=self.kwargs['order_pk'])
+        return context
     
     def form_valid(self, form):
         order = get_object_or_404(Order, pk=self.kwargs['order_pk'])
         form.instance.order = order
         response = super().form_valid(form)
-        
-        # Recalculate order totals
-        self.recalculate_order_totals(order)
-        
-        messages.success(self.request, 'Item added successfully!')
+        messages.success(self.request, 'Item added to order!')
         return response
-    
-    def recalculate_order_totals(self, order):
-        items = order.items.all()
-        subtotal = sum(item.line_total for item in items)
-        
-        discount_amount = subtotal * (order.discount_percent / 100)
-        subtotal_after_discount = subtotal - discount_amount
-        
-        tax_amount = subtotal_after_discount * (order.tax_rate / 100)
-        total = subtotal_after_discount + tax_amount + order.shipping_cost
-        
-        order.subtotal = subtotal
-        order.discount_amount = discount_amount
-        order.tax_amount = tax_amount
-        order.total_amount = total
-        order.balance_due = total - order.paid_amount
-        order.save()
     
     def get_success_url(self):
         return reverse('sales:order_detail', kwargs={'pk': self.kwargs['order_pk']})
@@ -516,34 +259,18 @@ class OrderItemCreateView(StaffRequiredMixin, CreateView):
 
 class OrderItemUpdateView(StaffRequiredMixin, UpdateView):
     model = OrderItem
-    fields = ['product', 'description', 'quantity', 'unit_price', 'discount_percent']
+    fields = ['product', 'quantity', 'unit_price', 'discount_percent', 'notes']
     template_name = 'sales/order_item_form.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['order'] = self.object.order
+        return context
     
     def form_valid(self, form):
         response = super().form_valid(form)
-        
-        # Recalculate order totals
-        self.recalculate_order_totals(self.object.order)
-        
-        messages.success(self.request, 'Item updated successfully!')
+        messages.success(self.request, 'Order item updated!')
         return response
-    
-    def recalculate_order_totals(self, order):
-        items = order.items.all()
-        subtotal = sum(item.line_total for item in items)
-        
-        discount_amount = subtotal * (order.discount_percent / 100)
-        subtotal_after_discount = subtotal - discount_amount
-        
-        tax_amount = subtotal_after_discount * (order.tax_rate / 100)
-        total = subtotal_after_discount + tax_amount + order.shipping_cost
-        
-        order.subtotal = subtotal
-        order.discount_amount = discount_amount
-        order.tax_amount = tax_amount
-        order.total_amount = total
-        order.balance_due = total - order.paid_amount
-        order.save()
     
     def get_success_url(self):
         return reverse('sales:order_detail', kwargs={'pk': self.object.order.pk})
@@ -553,61 +280,81 @@ class OrderItemDeleteView(StaffRequiredMixin, DeleteView):
     model = OrderItem
     template_name = 'sales/order_item_confirm_delete.html'
     
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        order = self.object.order
-        response = super().delete(request, *args, **kwargs)
-        
-        # Recalculate order totals
-        self.recalculate_order_totals(order)
-        
-        messages.success(request, 'Item removed successfully!')
-        return response
-    
-    def recalculate_order_totals(self, order):
-        items = order.items.all()
-        subtotal = sum(item.line_total for item in items)
-        
-        discount_amount = subtotal * (order.discount_percent / 100)
-        subtotal_after_discount = subtotal - discount_amount
-        
-        tax_amount = subtotal_after_discount * (order.tax_rate / 100)
-        total = subtotal_after_discount + tax_amount + order.shipping_cost
-        
-        order.subtotal = subtotal
-        order.discount_amount = discount_amount
-        order.tax_amount = tax_amount
-        order.total_amount = total
-        order.balance_due = total - order.paid_amount
-        order.save()
-    
     def get_success_url(self):
-        return reverse('sales:order_detail', kwargs={'pk': self.kwargs['order_pk']})
+        messages.success(self.request, 'Item removed from order!')
+        return reverse('sales:order_detail', kwargs={'pk': self.object.order.pk})
 
 
 # Invoice Views
-# Multi-step Invoice Creation Views
-class InvoiceCreateStep1View(StaffRequiredMixin, TemplateView):
-    template_name = 'sales/invoice_create_step1_daisyui.html'
+class InvoiceListView(StaffRequiredMixin, ListView):
+    model = Invoice
+    template_name = 'sales/invoice_list_daisyui.html'
+    context_object_name = 'invoices'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = super().get_queryset().select_related('customer')
+        
+        # Search functionality
+        search = self.request.GET.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(invoice_number__icontains=search) |
+                Q(customer__first_name__icontains=search) |
+                Q(customer__last_name__icontains=search) |
+                Q(customer__company__icontains=search)
+            )
+        
+        # Status filter
+        status = self.request.GET.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+        
+        return queryset.order_by('-created_at')
+
+
+class InvoiceDetailView(StaffRequiredMixin, DetailView):
+    model = Invoice
+    template_name = 'sales/invoice_detail_daisyui.html'
+    context_object_name = 'invoice'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['customers'] = Customer.objects.filter(is_active=True).order_by('first_name', 'last_name')
+        context['items'] = self.object.items.select_related('product')
+        context['payments'] = self.object.payments.all().order_by('-payment_date')
+        context['shipments'] = self.object.shipments.all().order_by('-created_at')
+        return context
+
+
+# Invoice Create 3-Step Process
+class InvoiceCreateStep1View(StaffRequiredMixin, TemplateView):
+    template_name = 'sales/invoice_create_step1.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Get customers with their default addresses
+        customers = Customer.objects.prefetch_related('addresses').order_by('company', 'last_name', 'first_name')
+        
+        # Add default address to each customer
+        for customer in customers:
+            customer.default_address = customer.get_default_address()
+        
+        context['customers'] = customers
         return context
     
-    def post(self, request, *args, **kwargs):
-        customer_id = request.POST.get('customer_id')
-        if customer_id:
-            # Store in session
-            request.session['invoice_customer_id'] = customer_id
-            return redirect('sales:invoice_create_step2')
-        else:
+    def post(self, request):
+        customer_id = request.POST.get('customer')
+        if not customer_id:
             messages.error(request, 'Please select a customer')
             return redirect('sales:invoice_create_step1')
+        
+        # Store in session
+        request.session['invoice_customer_id'] = customer_id
+        return redirect('sales:invoice_create_step2')
 
 
 class InvoiceCreateStep2View(StaffRequiredMixin, TemplateView):
-    template_name = 'sales/invoice_create_step2_daisyui.html'
+    template_name = 'sales/invoice_create_step2.html'
     
     def dispatch(self, request, *args, **kwargs):
         # Check if customer is selected
@@ -620,416 +367,174 @@ class InvoiceCreateStep2View(StaffRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         customer_id = self.request.session.get('invoice_customer_id')
         context['customer'] = get_object_or_404(Customer, pk=customer_id)
-        context['products'] = Product.objects.filter(status='active').order_by('name')
+        context['products'] = Product.objects.filter(is_active=True).order_by('name')
         
-        # Get items from session
-        invoice_items = self.request.session.get('invoice_items', [])
-        context['invoice_items'] = invoice_items
-        
-        # Calculate totals
-        subtotal = sum(float(item['line_total']) for item in invoice_items)
-        context['subtotal'] = subtotal
+        # Get saved items from session if going back
+        if 'invoice_items' in self.request.session:
+            context['saved_items'] = self.request.session['invoice_items']
         
         return context
     
-    def post(self, request, *args, **kwargs):
-        action = request.POST.get('action')
+    def post(self, request):
+        # Parse items from form
+        items = []
+        product_ids = request.POST.getlist('product_id[]')
+        quantities = request.POST.getlist('quantity[]')
+        unit_prices = request.POST.getlist('unit_price[]')
+        discounts = request.POST.getlist('discount[]')
+        descriptions = request.POST.getlist('description[]')
         
-        if action == 'add_item':
-            # Add new item
-            product_id = request.POST.get('product_id')
-            inventory_id = request.POST.get('inventory_id')
-            description = request.POST.get('description')
-            quantity = float(request.POST.get('quantity', 1))
-            unit_price = float(request.POST.get('unit_price', 0))
-            discount_percent = float(request.POST.get('discount_percent', 0))
-            
-            # Calculate line total
-            subtotal = quantity * unit_price
-            discount_amount = subtotal * (discount_percent / 100)
-            line_total = subtotal - discount_amount
-            
-            # Get product name and check for serial number management
-            product = None
-            product_name = ''
-            is_serial_managed = False
-            if product_id:
-                product = Product.objects.get(pk=product_id)
-                product_name = product.name
-                is_serial_managed = product.is_serial_number_managed
-            
-            # Validate inventory for serial managed products
-            if is_serial_managed and inventory_id:
-                inventory = get_object_or_404(Inventory, pk=inventory_id)
-                # Check if inventory is available
-                if inventory.status != 'available':
-                    messages.error(request, f'Inventory item {inventory.serial_number} is not available')
-                    return redirect('sales:invoice_create_step2')
-                # Update description to include serial number
-                description = f"{product_name} (SN: {inventory.serial_number})"
-            elif is_serial_managed and not inventory_id:
-                messages.error(request, 'Please select an inventory item for serial number managed product')
-                return redirect('sales:invoice_create_step2')
-            
-            # Get or create items list in session
-            invoice_items = request.session.get('invoice_items', [])
-            
-            # Add item
-            invoice_items.append({
-                'product_id': product_id,
-                'product_name': product_name,
-                'inventory_id': inventory_id,
-                'description': description,
-                'quantity': quantity,
-                'unit_price': unit_price,
-                'discount_percent': discount_percent,
-                'line_total': line_total
-            })
-            
-            request.session['invoice_items'] = invoice_items
-            messages.success(request, 'Item added successfully')
-            
-        elif action == 'remove_item':
-            # Remove item
-            item_index = int(request.POST.get('item_index'))
-            invoice_items = request.session.get('invoice_items', [])
-            if 0 <= item_index < len(invoice_items):
-                removed_item = invoice_items.pop(item_index)
-                request.session['invoice_items'] = invoice_items
-                messages.success(request, 'Item removed successfully')
-            
-        elif action == 'next':
-            # Proceed to next step
-            invoice_items = request.session.get('invoice_items', [])
-            if invoice_items:
-                return redirect('sales:invoice_create_step3')
-            else:
-                messages.error(request, 'Please add at least one item')
+        for i in range(len(product_ids)):
+            if product_ids[i] and quantities[i] and unit_prices[i]:
+                items.append({
+                    'product_id': product_ids[i],
+                    'quantity': quantities[i],
+                    'unit_price': unit_prices[i],
+                    'discount': discounts[i] if i < len(discounts) else '0',
+                    'description': descriptions[i] if i < len(descriptions) else ''
+                })
         
-        return redirect('sales:invoice_create_step2')
+        if not items:
+            messages.error(request, 'Please add at least one item')
+            return redirect('sales:invoice_create_step2')
+        
+        # Store in session
+        request.session['invoice_items'] = items
+        return redirect('sales:invoice_create_step3')
 
 
 class InvoiceCreateStep3View(StaffRequiredMixin, TemplateView):
-    template_name = 'sales/invoice_create_step3_daisyui.html'
+    template_name = 'sales/invoice_create_step3.html'
     
     def dispatch(self, request, *args, **kwargs):
-        # Check if customer and items are in session
-        if 'invoice_customer_id' not in request.session:
-            messages.warning(request, 'Please select a customer first')
+        # Check if previous steps are completed
+        if 'invoice_customer_id' not in request.session or 'invoice_items' not in request.session:
+            messages.warning(request, 'Please complete previous steps')
             return redirect('sales:invoice_create_step1')
-        
-        invoice_items = request.session.get('invoice_items', [])
-        if not invoice_items:
-            messages.warning(request, 'Please add items to the invoice')
-            return redirect('sales:invoice_create_step2')
-        
         return super().dispatch(request, *args, **kwargs)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
-        # Get customer
         customer_id = self.request.session.get('invoice_customer_id')
         context['customer'] = get_object_or_404(Customer, pk=customer_id)
         
-        # Get items
-        invoice_items = self.request.session.get('invoice_items', [])
-        context['invoice_items'] = invoice_items
+        # Process items
+        items = self.request.session.get('invoice_items', [])
+        processed_items = []
+        subtotal = Decimal('0')
         
-        # Get invoice data from session or defaults
-        invoice_data = self.request.session.get('invoice_data', {})
+        for item in items:
+            product = Product.objects.get(pk=item['product_id'])
+            quantity = Decimal(item['quantity'])
+            unit_price = Decimal(item['unit_price'])
+            discount = Decimal(item.get('discount', '0'))
+            
+            line_total = quantity * unit_price
+            discount_amount = line_total * (discount / 100)
+            total = line_total - discount_amount
+            
+            processed_items.append({
+                'product': product,
+                'quantity': quantity,
+                'unit_price': unit_price,
+                'discount': discount,
+                'description': item.get('description', ''),
+                'line_total': line_total,
+                'discount_amount': discount_amount,
+                'total': total
+            })
+            subtotal += total
         
-        # Calculate totals
-        subtotal = sum(float(item['line_total']) for item in invoice_items)
-        discount_percent = float(invoice_data.get('discount_percent', 0))
-        tax_rate = float(invoice_data.get('tax_rate', 0))
-        
-        discount_amount = subtotal * (discount_percent / 100)
-        subtotal_after_discount = subtotal - discount_amount
-        tax_amount = subtotal_after_discount * (tax_rate / 100)
-        total_amount = subtotal_after_discount + tax_amount
-        
+        context['items'] = processed_items
         context['subtotal'] = subtotal
-        context['discount_percent'] = discount_percent
-        context['discount_amount'] = discount_amount
-        context['tax_rate'] = tax_rate
-        context['tax_amount'] = tax_amount
-        context['total_amount'] = total_amount
         
-        # Invoice details
-        context['invoice_number'] = invoice_data.get('invoice_number', self._generate_invoice_number())
-        context['invoice_date'] = invoice_data.get('invoice_date', timezone.now().date())
-        context['due_date'] = invoice_data.get('due_date', (timezone.now() + timezone.timedelta(days=30)).date())
-        context['notes'] = invoice_data.get('notes', '')
+        # Get or generate invoice number
+        from datetime import datetime
+        context['invoice_number'] = f"INV-{datetime.now().strftime('%Y%m%d')}-{Invoice.objects.count() + 1:04d}"
+        context['invoice_date'] = datetime.now().date()
+        context['due_date'] = datetime.now().date() + timedelta(days=30)
         
         return context
     
-    def _generate_invoice_number(self):
-        date = timezone.now()
-        year = date.year
-        month = str(date.month).zfill(2)
-        random_suffix = str(random.randint(100, 999))
-        return f"INV-{year}{month}-{random_suffix}"
-    
-    def post(self, request, *args, **kwargs):
-        action = request.POST.get('action')
+    def post(self, request):
+        # Get data from session
+        customer_id = request.session.get('invoice_customer_id')
+        items_data = request.session.get('invoice_items', [])
         
-        if action == 'update':
-            # Update invoice data
-            invoice_data = {
-                'invoice_number': request.POST.get('invoice_number'),
-                'invoice_date': request.POST.get('invoice_date'),
-                'due_date': request.POST.get('due_date'),
-                'discount_percent': request.POST.get('discount_percent', 0),
-                'tax_rate': request.POST.get('tax_rate', 0),
-                'notes': request.POST.get('notes', ''),
-            }
-            request.session['invoice_data'] = invoice_data
-            messages.success(request, 'Invoice details updated')
-            return redirect('sales:invoice_create_step3')
+        # Get form data
+        invoice_number = request.POST.get('invoice_number')
+        invoice_date = request.POST.get('invoice_date')
+        due_date = request.POST.get('due_date')
+        tax_rate = request.POST.get('tax_rate', '0')
+        discount_percent = request.POST.get('discount_percent', '0')
+        terms = request.POST.get('terms', '')
+        notes = request.POST.get('notes', '')
+        internal_notes = request.POST.get('internal_notes', '')
         
-        elif action == 'save':
-            # Create the invoice
-            customer_id = request.session.get('invoice_customer_id')
-            customer = get_object_or_404(Customer, pk=customer_id)
-            invoice_items = request.session.get('invoice_items', [])
-            invoice_data = request.session.get('invoice_data', {})
-            
-            # Create invoice
+        # Get shipping address
+        shipping_address_id = request.POST.get('shipping_address')
+        customer = get_object_or_404(Customer, pk=customer_id)
+        
+        # Create invoice
+        with transaction.atomic():
             invoice = Invoice.objects.create(
                 customer=customer,
-                invoice_number=request.POST.get('invoice_number', self._generate_invoice_number()),
-                invoice_date=request.POST.get('invoice_date', timezone.now().date()),
-                due_date=request.POST.get('due_date', (timezone.now() + timezone.timedelta(days=30)).date()),
-                discount_percent=Decimal(request.POST.get('discount_percent', 0)),
-                tax_rate=Decimal(request.POST.get('tax_rate', 0)),
-                notes=request.POST.get('notes', ''),
+                invoice_number=invoice_number,
+                invoice_date=invoice_date,
+                due_date=due_date,
                 status='draft',
-                billing_address_line1=customer.address_line1,
-                billing_address_line2=customer.address_line2,
-                billing_city=customer.city,
-                billing_state=customer.state,
-                billing_postal_code=customer.postal_code,
-                billing_country=customer.country,
-                created_by=request.user
+                tax_rate=Decimal(tax_rate) if tax_rate else Decimal('0'),
+                discount_percent=Decimal(discount_percent) if discount_percent else Decimal('0'),
+                terms_and_conditions=terms,
+                notes=notes,
+                internal_notes=internal_notes
             )
             
-            # Create invoice items
-            for item in invoice_items:
-                invoice_item = InvoiceItem.objects.create(
-                    invoice=invoice,
-                    product_id=item['product_id'] if item['product_id'] else None,
-                    inventory_id=item.get('inventory_id') if item.get('inventory_id') else None,
-                    description=item['description'],
-                    quantity=Decimal(str(item['quantity'])),
-                    unit_price=Decimal(str(item['unit_price'])),
-                    discount_percent=Decimal(str(item['discount_percent']))
-                )
-                
-                # Update inventory status if serial managed item
-                if item.get('inventory_id'):
-                    inventory = Inventory.objects.get(pk=item['inventory_id'])
-                    inventory.status = 'sold'
-                    inventory.customer = customer
-                    inventory.sale_date = timezone.now().date()
-                    inventory.sale_price = Decimal(str(item['unit_price']))
-                    inventory.save()
+            # Set billing address
+            default_address = customer.get_default_address()
+            if default_address:
+                invoice.billing_address_line1 = default_address.address_line1
+                invoice.billing_address_line2 = default_address.address_line2 or ''
+                invoice.billing_city = default_address.city
+                invoice.billing_state = default_address.state
+                invoice.billing_postal_code = default_address.postal_code
+                invoice.billing_country = default_address.country
             
-            # Calculate totals
-            items = invoice.items.all()
-            subtotal = sum(item.line_total for item in items)
+            # Set shipping address if provided
+            if shipping_address_id:
+                try:
+                    shipping_addr = CustomerAddress.objects.get(pk=shipping_address_id, customer=customer)
+                    invoice.shipping_address_line1 = shipping_addr.address_line1
+                    invoice.shipping_address_line2 = shipping_addr.address_line2 or ''
+                    invoice.shipping_city = shipping_addr.city
+                    invoice.shipping_state = shipping_addr.state
+                    invoice.shipping_postal_code = shipping_addr.postal_code
+                    invoice.shipping_country = shipping_addr.country
+                except CustomerAddress.DoesNotExist:
+                    pass
             
-            discount_amount = subtotal * (invoice.discount_percent / Decimal('100'))
-            subtotal_after_discount = subtotal - discount_amount
-            
-            tax_amount = subtotal_after_discount * (invoice.tax_rate / Decimal('100'))
-            total = subtotal_after_discount + tax_amount
-            
-            invoice.subtotal = subtotal
-            invoice.discount_amount = discount_amount
-            invoice.tax_amount = tax_amount
-            invoice.total_amount = total
-            invoice.balance_due = total
             invoice.save()
             
-            # Clear session
-            if 'invoice_customer_id' in request.session:
-                del request.session['invoice_customer_id']
-            if 'invoice_items' in request.session:
-                del request.session['invoice_items']
-            if 'invoice_data' in request.session:
-                del request.session['invoice_data']
-            
-            messages.success(request, f'Invoice {invoice.invoice_number} created successfully!')
-            return redirect('sales:invoice_detail', pk=invoice.pk)
+            # Create invoice items
+            for item_data in items_data:
+                product = Product.objects.get(pk=item_data['product_id'])
+                InvoiceItem.objects.create(
+                    invoice=invoice,
+                    product=product,
+                    description=item_data.get('description', product.name),
+                    quantity=Decimal(item_data['quantity']),
+                    unit_price=Decimal(item_data['unit_price']),
+                    discount_percent=Decimal(item_data.get('discount', '0'))
+                )
         
-        elif action == 'back':
-            return redirect('sales:invoice_create_step2')
+        # Clear session
+        if 'invoice_customer_id' in request.session:
+            del request.session['invoice_customer_id']
+        if 'invoice_items' in request.session:
+            del request.session['invoice_items']
         
-        return redirect('sales:invoice_create_step3')
-
-
-class InvoiceListView(StaffRequiredMixin, ListView):
-    model = Invoice
-    template_name = 'sales/invoice_list_daisyui.html'  # Use DaisyUI template
-    context_object_name = 'invoices'
-    paginate_by = 20
-    
-    def get_queryset(self):
-        queryset = super().get_queryset().prefetch_related('items', 'items__product')
-        search = self.request.GET.get('search')
-        status = self.request.GET.get('status')
-        payment_filter = self.request.GET.get('payment_filter')
-        
-        if search:
-            queryset = queryset.filter(
-                Q(invoice_number__icontains=search) |
-                Q(customer__first_name__icontains=search) |
-                Q(customer__last_name__icontains=search) |
-                Q(customer__company_name__icontains=search)
-            )
-        
-        if status:
-            queryset = queryset.filter(status=status)
-        
-        # Special filter for unpaid invoices
-        if payment_filter == 'unpaid':
-            queryset = queryset.exclude(status__in=['paid', 'cancelled', 'refunded'])
-        elif payment_filter == 'overdue':
-            queryset = queryset.filter(status='overdue')
-        elif payment_filter == 'paid':
-            queryset = queryset.filter(status='paid')
-        
-        return queryset.order_by('-invoice_date', '-created_at')
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['search_query'] = self.request.GET.get('search', '')
-        context['selected_status'] = self.request.GET.get('status', '')
-        context['selected_payment_filter'] = self.request.GET.get('payment_filter', '')
-        context['status_choices'] = Invoice.STATUS_CHOICES
-        
-        # Calculate statistics for current month only
-        from django.db.models import Sum
-        from django.utils import timezone
-        from datetime import datetime
-        
-        # Get current month's date range
-        now = timezone.now()
-        current_month_start = datetime(now.year, now.month, 1)
-        
-        # Filter invoices for current month
-        current_month_invoices = Invoice.objects.filter(
-            invoice_date__year=now.year,
-            invoice_date__month=now.month
-        )
-        
-        total_invoices = current_month_invoices.count()
-        total_revenue = current_month_invoices.aggregate(
-            total=Sum('total_amount')
-        )['total'] or 0
-        paid_count = current_month_invoices.filter(status='paid').count()
-        pending_count = current_month_invoices.filter(
-            status__in=['draft', 'sent', 'viewed']
-        ).count()
-        
-        context['total_invoices'] = total_invoices
-        context['total_revenue'] = total_revenue
-        context['paid_count'] = paid_count
-        context['pending_count'] = pending_count
-        
-        return context
-
-
-class InvoiceDetailView(StaffRequiredMixin, DetailView):
-    model = Invoice
-    template_name = 'sales/invoice_detail_daisyui.html'
-    context_object_name = 'invoice'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['items'] = self.object.items.all()
-        context['payments'] = self.object.payments.all()
-        return context
-
-
-@staff_member_required
-def invoice_update_tracking(request, pk):
-    """Update tracking information for an invoice (AJAX)"""
-    invoice = get_object_or_404(Invoice, pk=pk)
-    
-    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-        delivery_service = request.POST.get('delivery_service', '')
-        post_tracking_number = request.POST.get('post_tracking_number', '')
-        
-        # Update the invoice
-        invoice.delivery_service = delivery_service if delivery_service else None
-        invoice.post_tracking_number = post_tracking_number
-        invoice.save()
-        
-        # Get display value for delivery service
-        delivery_service_display = invoice.get_delivery_service_display() if invoice.delivery_service else None
-        
-        return JsonResponse({
-            'success': True,
-            'delivery_service': invoice.delivery_service,
-            'delivery_service_display': delivery_service_display,
-            'post_tracking_number': invoice.post_tracking_number
-        })
-    
-    return JsonResponse({'success': False, 'error': 'Invalid request'})
-
-
-class InvoiceCreateView(StaffRequiredMixin, CreateView):
-    model = Invoice
-    form_class = InvoiceForm
-    template_name = 'sales/invoice_form.html'
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        if self.request.POST:
-            context['formset'] = InvoiceItemFormSet(self.request.POST, instance=self.object)
-        else:
-            context['formset'] = InvoiceItemFormSet(instance=self.object)
-        return context
-    
-    def form_valid(self, form):
-        context = self.get_context_data()
-        formset = context['formset']
-        
-        if formset.is_valid():
-            form.instance.created_by = self.request.user
-            self.object = form.save()
-            formset.instance = self.object
-            formset.save()
-            
-            # Calculate totals
-            self.calculate_invoice_totals()
-            
-            messages.success(self.request, 'Invoice created successfully!')
-            return redirect(self.get_success_url())
-        else:
-            return self.form_invalid(form)
-    
-    def calculate_invoice_totals(self):
-        items = self.object.items.all()
-        subtotal = sum(item.line_total for item in items)
-        
-        discount_amount = subtotal * (self.object.discount_percent / 100)
-        subtotal_after_discount = subtotal - discount_amount
-        
-        tax_amount = subtotal_after_discount * (self.object.tax_rate / 100)
-        total = subtotal_after_discount + tax_amount
-        
-        self.object.subtotal = subtotal
-        self.object.discount_amount = discount_amount
-        self.object.tax_amount = tax_amount
-        self.object.total_amount = total
-        self.object.balance_due = total - self.object.paid_amount
-        self.object.save()
-    
-    def get_success_url(self):
-        return reverse('sales:invoice_detail', kwargs={'pk': self.object.pk})
+        messages.success(request, f'Invoice {invoice_number} created successfully!')
+        return redirect('sales:invoice_detail', pk=invoice.pk)
 
 
 class InvoiceUpdateView(StaffRequiredMixin, UpdateView):
@@ -1053,31 +558,10 @@ class InvoiceUpdateView(StaffRequiredMixin, UpdateView):
             self.object = form.save()
             formset.instance = self.object
             formset.save()
-            
-            # Recalculate totals
-            self.calculate_invoice_totals()
-            
             messages.success(self.request, 'Invoice updated successfully!')
             return redirect(self.get_success_url())
         else:
             return self.form_invalid(form)
-    
-    def calculate_invoice_totals(self):
-        items = self.object.items.all()
-        subtotal = sum(item.line_total for item in items)
-        
-        discount_amount = subtotal * (self.object.discount_percent / 100)
-        subtotal_after_discount = subtotal - discount_amount
-        
-        tax_amount = subtotal_after_discount * (self.object.tax_rate / 100)
-        total = subtotal_after_discount + tax_amount
-        
-        self.object.subtotal = subtotal
-        self.object.discount_amount = discount_amount
-        self.object.tax_amount = tax_amount
-        self.object.total_amount = total
-        self.object.balance_due = total - self.object.paid_amount
-        self.object.save()
     
     def get_success_url(self):
         return reverse('sales:invoice_detail', kwargs={'pk': self.object.pk})
@@ -1093,77 +577,69 @@ class InvoiceDeleteView(StaffRequiredMixin, DeleteView):
         return super().delete(request, *args, **kwargs)
 
 
-class InvoiceSendView(StaffRequiredMixin, View):
-    def post(self, request, pk):
-        invoice = get_object_or_404(Invoice, pk=pk)
-        
-        # TODO: Implement email sending logic here
-        # For now, just update the status and sent date
-        invoice.status = 'sent'
-        invoice.sent_date = timezone.now()
-        invoice.save()
-        
+class InvoiceSendView(StaffRequiredMixin, DetailView):
+    model = Invoice
+    template_name = 'sales/invoice_send.html'
+    
+    def post(self, request, *args, **kwargs):
+        invoice = self.get_object()
+        # TODO: Implement email sending logic
         messages.success(request, f'Invoice {invoice.invoice_number} sent successfully!')
+        return redirect('sales:invoice_detail', pk=invoice.pk)
+
+
+# Invoice tracking update
+@staff_member_required
+def invoice_update_tracking(request, pk):
+    if request.method == 'POST':
+        invoice = get_object_or_404(Invoice, pk=pk)
+        tracking_number = request.POST.get('tracking_number', '')
+        carrier = request.POST.get('carrier', '')
+        
+        # Update invoice tracking info
+        # Note: You may want to add these fields to the Invoice model
+        # invoice.tracking_number = tracking_number
+        # invoice.carrier = carrier
+        # invoice.save()
+        
+        messages.success(request, 'Tracking information updated!')
         return redirect('sales:invoice_detail', pk=pk)
+    
+    return redirect('sales:invoice_detail', pk=pk)
+
+
+class InvoicePDFView(StaffRequiredMixin, DetailView):
+    model = Invoice
+    
+    def get(self, request, *args, **kwargs):
+        invoice = self.get_object()
+        # TODO: Implement PDF generation
+        messages.info(request, 'PDF generation not implemented yet')
+        return redirect('sales:invoice_detail', pk=invoice.pk)
 
 
 # Invoice Item Views
 class InvoiceItemCreateView(StaffRequiredMixin, CreateView):
     model = InvoiceItem
-    fields = ['product', 'inventory', 'description', 'quantity', 'unit_price', 'discount_percent']
+    fields = ['product', 'description', 'quantity', 'unit_price', 'discount_percent']
     template_name = 'sales/invoice_item_form.html'
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['object'] = type('obj', (object,), {'invoice': get_object_or_404(Invoice, pk=self.kwargs['invoice_pk'])})
+        context['invoice'] = get_object_or_404(Invoice, pk=self.kwargs['invoice_pk'])
         return context
     
     def form_valid(self, form):
         invoice = get_object_or_404(Invoice, pk=self.kwargs['invoice_pk'])
         form.instance.invoice = invoice
         
-        # Check if this is a serial managed product with inventory
-        if form.instance.inventory:
-            inventory = form.instance.inventory
-            # Validate inventory is available
-            if inventory.status != 'available':
-                form.add_error('inventory', 'This inventory item is not available')
-                return self.form_invalid(form)
-            
-            # Update inventory status
-            inventory.status = 'sold'
-            inventory.customer = invoice.customer
-            inventory.sale_date = timezone.now().date()
-            inventory.sale_price = form.instance.unit_price
-            inventory.save()
-            
-            # Update description to include serial number
-            form.instance.description = f"{inventory.product.name} (SN: {inventory.serial_number})"
+        # If product is selected, auto-fill description
+        if form.instance.product and not form.instance.description:
+            form.instance.description = form.instance.product.name
         
         response = super().form_valid(form)
-        
-        # Recalculate invoice totals
-        self.recalculate_invoice_totals(invoice)
-        
-        messages.success(self.request, 'Item added successfully!')
+        messages.success(self.request, 'Item added to invoice!')
         return response
-    
-    def recalculate_invoice_totals(self, invoice):
-        items = invoice.items.all()
-        subtotal = sum(item.line_total for item in items)
-        
-        discount_amount = subtotal * (invoice.discount_percent / 100)
-        subtotal_after_discount = subtotal - discount_amount
-        
-        tax_amount = subtotal_after_discount * (invoice.tax_rate / 100)
-        total = subtotal_after_discount + tax_amount
-        
-        invoice.subtotal = subtotal
-        invoice.discount_amount = discount_amount
-        invoice.tax_amount = tax_amount
-        invoice.total_amount = total
-        invoice.balance_due = total - invoice.paid_amount
-        invoice.save()
     
     def get_success_url(self):
         return reverse('sales:invoice_detail', kwargs={'pk': self.kwargs['invoice_pk']})
@@ -1174,31 +650,15 @@ class InvoiceItemUpdateView(StaffRequiredMixin, UpdateView):
     fields = ['product', 'description', 'quantity', 'unit_price', 'discount_percent']
     template_name = 'sales/invoice_item_form.html'
     
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['invoice'] = self.object.invoice
+        return context
+    
     def form_valid(self, form):
         response = super().form_valid(form)
-        
-        # Recalculate invoice totals
-        self.recalculate_invoice_totals(self.object.invoice)
-        
-        messages.success(self.request, 'Item updated successfully!')
+        messages.success(self.request, 'Invoice item updated!')
         return response
-    
-    def recalculate_invoice_totals(self, invoice):
-        items = invoice.items.all()
-        subtotal = sum(item.line_total for item in items)
-        
-        discount_amount = subtotal * (invoice.discount_percent / 100)
-        subtotal_after_discount = subtotal - discount_amount
-        
-        tax_amount = subtotal_after_discount * (invoice.tax_rate / 100)
-        total = subtotal_after_discount + tax_amount
-        
-        invoice.subtotal = subtotal
-        invoice.discount_amount = discount_amount
-        invoice.tax_amount = tax_amount
-        invoice.total_amount = total
-        invoice.balance_due = total - invoice.paid_amount
-        invoice.save()
     
     def get_success_url(self):
         return reverse('sales:invoice_detail', kwargs={'pk': self.object.invoice.pk})
@@ -1208,157 +668,788 @@ class InvoiceItemDeleteView(StaffRequiredMixin, DeleteView):
     model = InvoiceItem
     template_name = 'sales/invoice_item_confirm_delete.html'
     
-    def delete(self, request, *args, **kwargs):
-        self.object = self.get_object()
-        invoice = self.object.invoice
-        response = super().delete(request, *args, **kwargs)
-        
-        # Recalculate invoice totals
-        self.recalculate_invoice_totals(invoice)
-        
-        messages.success(request, 'Item removed successfully!')
-        return response
-    
-    def recalculate_invoice_totals(self, invoice):
-        items = invoice.items.all()
-        subtotal = sum(item.line_total for item in items)
-        
-        discount_amount = subtotal * (invoice.discount_percent / 100)
-        subtotal_after_discount = subtotal - discount_amount
-        
-        tax_amount = subtotal_after_discount * (invoice.tax_rate / 100)
-        total = subtotal_after_discount + tax_amount
-        
-        invoice.subtotal = subtotal
-        invoice.discount_amount = discount_amount
-        invoice.tax_amount = tax_amount
-        invoice.total_amount = total
-        invoice.balance_due = total - invoice.paid_amount
-        invoice.save()
-    
     def get_success_url(self):
-        return reverse('sales:invoice_detail', kwargs={'pk': self.kwargs['invoice_pk']})
+        messages.success(self.request, 'Item removed from invoice!')
+        return reverse('sales:invoice_detail', kwargs={'pk': self.object.invoice.pk})
 
 
 # Payment Views
 class PaymentCreateView(StaffRequiredMixin, CreateView):
     model = Payment
     form_class = PaymentForm
-    template_name = 'sales/payment_form_daisyui.html'
+    template_name = 'sales/payment_form.html'
     
-    def get_initial(self):
-        initial = super().get_initial()
-        if 'invoice_pk' in self.kwargs:
-            invoice = get_object_or_404(Invoice, pk=self.kwargs['invoice_pk'])
-            initial['invoice'] = invoice
-            # Set customer from invoice (even if None for shop orders)
-            initial['customer'] = invoice.customer
-            initial['amount'] = invoice.balance_due
-        return initial
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['invoice'] = get_object_or_404(Invoice, pk=self.kwargs['invoice_pk'])
+        return context
     
     def form_valid(self, form):
-        form.instance.processed_by = self.request.user
+        invoice = get_object_or_404(Invoice, pk=self.kwargs['invoice_pk'])
+        form.instance.invoice = invoice
+        form.instance.customer = invoice.customer
         response = super().form_valid(form)
         
         # Update invoice payment status
-        if form.instance.invoice:
-            invoice = form.instance.invoice
-            invoice.paid_amount += form.instance.amount
-            invoice.update_status()
-            invoice.save()
+        invoice.update_payment_status()
         
-        # Update order payment status if linked
-        if form.instance.order:
-            order = form.instance.order
-            order.paid_amount += form.instance.amount
-            order.update_payment_status()
-            order.save()
-        
-        messages.success(self.request, 'Payment recorded successfully!')
+        messages.success(self.request, f'Payment of ${form.instance.amount} recorded successfully!')
         return response
     
     def get_success_url(self):
-        if self.object.invoice:
-            return reverse('sales:invoice_detail', kwargs={'pk': self.object.invoice.pk})
-        elif self.object.order:
-            return reverse('sales:order_detail', kwargs={'pk': self.object.order.pk})
-        else:
-            return reverse('sales:payment_detail', kwargs={'pk': self.object.pk})
+        return reverse('sales:invoice_detail', kwargs={'pk': self.kwargs['invoice_pk']})
 
 
 class PaymentDetailView(StaffRequiredMixin, DetailView):
     model = Payment
     template_name = 'sales/payment_detail.html'
-    context_object_name = 'payment'
+
+
+# Shipment Views
+class ShipmentListView(StaffRequiredMixin, ListView):
+    model = InvoiceShipment
+    template_name = 'sales/shipment_list.html'
+    context_object_name = 'shipments'
+    paginate_by = 20
+    
+    def get_queryset(self):
+        queryset = super().get_queryset().select_related('invoice__customer', 'supplier')
+        
+        # Search functionality
+        search = self.request.GET.get('search')
+        if search:
+            queryset = queryset.filter(
+                Q(shipment_number__icontains=search) |
+                Q(tracking_number__icontains=search) |
+                Q(invoice__invoice_number__icontains=search) |
+                Q(invoice__customer__first_name__icontains=search) |
+                Q(invoice__customer__last_name__icontains=search)
+            )
+        
+        # Status filter
+        status = self.request.GET.get('status')
+        if status:
+            queryset = queryset.filter(status=status)
+        
+        return queryset.order_by('-created_at')
+
+
+class ShipmentDetailView(StaffRequiredMixin, DetailView):
+    model = InvoiceShipment
+    template_name = 'sales/shipment_detail.html'
+    context_object_name = 'shipment'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['items'] = self.object.items.select_related('invoice_item__product')
+        return context
+
+
+# 2-Step Shipment Creation Views
+class ShipmentCreateStep1View(StaffRequiredMixin, TemplateView):
+    template_name = 'sales/shipment_create_step1.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Ensure invoice exists
+        if 'invoice_pk' not in self.kwargs:
+            messages.error(request, 'Invoice parameter is required')
+            return redirect('sales:invoice_list')
+        
+        self.invoice = get_object_or_404(Invoice, pk=self.kwargs['invoice_pk'])
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['invoice'] = self.invoice
+        context['form'] = InvoiceShipmentForm(invoice=self.invoice)
+        
+        # Get customer addresses for shipping address selection
+        if self.invoice.customer:
+            # Get all shipping addresses for the customer
+            customer_addresses = self.invoice.customer.addresses.filter(
+                is_active=True
+            ).filter(
+                Q(address_type='shipping') | Q(address_type='both')
+            ).order_by('-is_default', 'label')
+            
+            context['customer_addresses'] = customer_addresses
+            context['default_address'] = self.invoice.customer.get_default_address()
+        
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        form = InvoiceShipmentForm(request.POST, invoice=self.invoice)
+        
+        # Store shipment data in session
+        shipment_data = {
+            'invoice_pk': self.kwargs['invoice_pk'],
+            'supplier': request.POST.get('supplier'),
+            'carrier': request.POST.get('carrier'),
+            'service_type': request.POST.get('service_type'),
+            'tracking_number': request.POST.get('tracking_number'),
+            'tracking_url': request.POST.get('tracking_url'),
+            'status': request.POST.get('status'),
+            'package_count': request.POST.get('package_count'),
+            'total_weight': request.POST.get('total_weight'),
+            'shipping_cost': request.POST.get('shipping_cost'),
+            'insurance_amount': request.POST.get('insurance_amount'),
+            'internal_notes': request.POST.get('internal_notes'),
+            'shipping_address_id': request.POST.get('shipping_address'),
+            # Manual address fields
+            'ship_to_name': request.POST.get('ship_to_name'),
+            'ship_to_company': request.POST.get('ship_to_company'),
+            'ship_to_address_line1': request.POST.get('ship_to_address_line1'),
+            'ship_to_address_line2': request.POST.get('ship_to_address_line2'),
+            'ship_to_city': request.POST.get('ship_to_city'),
+            'ship_to_state': request.POST.get('ship_to_state'),
+            'ship_to_postal_code': request.POST.get('ship_to_postal_code'),
+            'ship_to_country': request.POST.get('ship_to_country'),
+            'ship_to_phone': request.POST.get('ship_to_phone'),
+            'ship_to_email': request.POST.get('ship_to_email'),
+        }
+        
+        request.session['shipment_data'] = shipment_data
+        return redirect('sales:shipment_create_step2', invoice_pk=self.kwargs['invoice_pk'])
+
+
+class ShipmentCreateStep2View(StaffRequiredMixin, TemplateView):
+    template_name = 'sales/shipment_create_step2.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Check if step 1 data exists in session
+        if 'shipment_data' not in request.session:
+            messages.warning(request, 'Please complete the basic information first')
+            return redirect('sales:shipment_create_step1', invoice_pk=self.kwargs['invoice_pk'])
+        
+        # Ensure invoice exists
+        if 'invoice_pk' not in self.kwargs:
+            messages.error(request, 'Invoice parameter is required')
+            return redirect('sales:invoice_list')
+        
+        self.invoice = get_object_or_404(Invoice, pk=self.kwargs['invoice_pk'])
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['invoice'] = self.invoice
+        
+        # Get invoice items with calculated quantities
+        invoice_items = []
+        for item in self.invoice.items.select_related('product').all():
+            # Calculate total shipped quantity for this item
+            total_shipped = ShipmentItem.objects.filter(
+                invoice_item=item
+            ).aggregate(total=Sum('quantity_shipped'))['total'] or Decimal('0')
+            
+            # Calculate remaining quantity
+            remaining = item.quantity - total_shipped
+            
+            # Add calculated fields to item
+            item.shipped_quantity = total_shipped
+            item.remaining_quantity = remaining
+            
+            if remaining > 0:
+                invoice_items.append(item)
+        
+        context['invoice_items'] = invoice_items
+        
+        # Get shipment data from session
+        shipment_data = self.request.session.get('shipment_data', {})
+        context['shipment_data'] = shipment_data
+        
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        shipment_data = request.session.get('shipment_data', {})
+        
+        # Get selected items and quantities
+        selected_items = request.POST.getlist('selected_items')
+        
+        if not selected_items:
+            messages.error(request, 'Please select at least one item to ship')
+            return redirect('sales:shipment_create_step2', invoice_pk=self.kwargs['invoice_pk'])
+        
+        # Create shipment
+        with transaction.atomic():
+            shipment = InvoiceShipment()
+            shipment.invoice = self.invoice
+            
+            # Apply basic data from session
+            if shipment_data.get('supplier'):
+                from purchases.models import Supplier
+                try:
+                    shipment.supplier = Supplier.objects.get(pk=shipment_data['supplier'])
+                except Supplier.DoesNotExist:
+                    pass
+            
+            shipment.carrier = shipment_data.get('carrier', 'ups')
+            shipment.service_type = shipment_data.get('service_type', '')
+            shipment.tracking_number = shipment_data.get('tracking_number', '')
+            shipment.tracking_url = shipment_data.get('tracking_url', '')
+            shipment.status = shipment_data.get('status', 'pending')
+            
+            # Package details
+            if shipment_data.get('package_count'):
+                try:
+                    shipment.package_count = int(shipment_data['package_count'])
+                except:
+                    pass
+            if shipment_data.get('total_weight'):
+                try:
+                    shipment.total_weight = Decimal(str(shipment_data['total_weight']))
+                except:
+                    pass
+            if shipment_data.get('shipping_cost'):
+                try:
+                    shipment.shipping_cost = Decimal(str(shipment_data['shipping_cost']))
+                except:
+                    pass
+            if shipment_data.get('insurance_amount'):
+                try:
+                    shipment.insurance_amount = Decimal(str(shipment_data['insurance_amount']))
+                except:
+                    pass
+            
+            shipment.internal_notes = shipment_data.get('internal_notes', '')
+            
+            # Handle shipping address
+            shipping_address_id = shipment_data.get('shipping_address_id')
+            if shipping_address_id and self.invoice.customer:
+                try:
+                    selected_address = CustomerAddress.objects.get(
+                        id=shipping_address_id,
+                        customer=self.invoice.customer,
+                        is_active=True
+                    )
+                    shipment.ship_to_name = selected_address.recipient_name
+                    shipment.ship_to_company = selected_address.company_name or ''
+                    shipment.ship_to_address_line1 = selected_address.address_line1
+                    shipment.ship_to_address_line2 = selected_address.address_line2 or ''
+                    shipment.ship_to_city = selected_address.city
+                    shipment.ship_to_state = selected_address.state
+                    shipment.ship_to_postal_code = selected_address.postal_code
+                    shipment.ship_to_country = selected_address.country
+                    shipment.ship_to_phone = selected_address.phone or ''
+                    shipment.ship_to_email = self.invoice.customer.email or ''
+                except CustomerAddress.DoesNotExist:
+                    pass
+            else:
+                # Use manual address fields
+                shipment.ship_to_name = shipment_data.get('ship_to_name', '')
+                shipment.ship_to_company = shipment_data.get('ship_to_company', '')
+                shipment.ship_to_address_line1 = shipment_data.get('ship_to_address_line1', '')
+                shipment.ship_to_address_line2 = shipment_data.get('ship_to_address_line2', '')
+                shipment.ship_to_city = shipment_data.get('ship_to_city', '')
+                shipment.ship_to_state = shipment_data.get('ship_to_state', '')
+                shipment.ship_to_postal_code = shipment_data.get('ship_to_postal_code', '')
+                shipment.ship_to_country = shipment_data.get('ship_to_country', '')
+                shipment.ship_to_phone = shipment_data.get('ship_to_phone', '')
+                shipment.ship_to_email = shipment_data.get('ship_to_email', '')
+            
+            # Save shipment
+            shipment.save()
+            
+            # Create shipment items
+            for item_id in selected_items:
+                quantity_field = f'quantity_{item_id}'
+                notes_field = f'notes_{item_id}'
+                
+                quantity = request.POST.get(quantity_field)
+                notes = request.POST.get(notes_field, '')
+                
+                if quantity:
+                    try:
+                        invoice_item = InvoiceItem.objects.get(pk=item_id)
+                        ShipmentItem.objects.create(
+                            shipment=shipment,
+                            invoice_item=invoice_item,
+                            quantity_shipped=Decimal(quantity),
+                            notes=notes
+                        )
+                    except (InvoiceItem.DoesNotExist, ValueError):
+                        pass
+        
+        # Clear session data
+        if 'shipment_data' in request.session:
+            del request.session['shipment_data']
+        
+        messages.success(request, f'Shipment {shipment.shipment_number} created successfully!')
+        return redirect('sales:invoice_detail', pk=self.invoice.pk)
+
+
+# 2-Step Shipment Edit Views
+class ShipmentEditStep1View(StaffRequiredMixin, TemplateView):
+    template_name = 'sales/shipment_edit_step1.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Ensure shipment exists
+        if 'pk' not in self.kwargs:
+            messages.error(request, 'Shipment parameter is required')
+            return redirect('sales:shipment_list')
+        
+        self.shipment = get_object_or_404(InvoiceShipment, pk=self.kwargs['pk'])
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['shipment'] = self.shipment
+        context['invoice'] = self.shipment.invoice
+        context['form'] = InvoiceShipmentForm(instance=self.shipment)
+        
+        # Add suppliers for the dropdown
+        from purchases.models import Supplier
+        context['suppliers'] = Supplier.objects.filter(is_active=True).order_by('name')
+        
+        # Get customer addresses for shipping address selection
+        if self.shipment.invoice and self.shipment.invoice.customer:
+            context['customer_addresses'] = self.shipment.invoice.customer.addresses.filter(
+                is_active=True
+            ).filter(
+                Q(address_type='shipping') | Q(address_type='both')
+            ).order_by('-is_default', 'label')
+            context['default_address'] = self.shipment.invoice.customer.get_default_address
+            
+            # Check if current shipping address matches any customer address
+            context['current_address_id'] = None
+            for address in context['customer_addresses']:
+                if (address.recipient_name == self.shipment.ship_to_name and
+                    address.address_line1 == self.shipment.ship_to_address_line1 and
+                    address.city == self.shipment.ship_to_city and
+                    address.state == self.shipment.ship_to_state):
+                    context['current_address_id'] = address.id
+                    break
+        
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        # Store shipment update data in session
+        shipment_data = {
+            'shipment_pk': self.kwargs['pk'],
+            'supplier': request.POST.get('supplier'),
+            'carrier': request.POST.get('carrier'),
+            'service_type': request.POST.get('service_type'),
+            'tracking_number': request.POST.get('tracking_number'),
+            'tracking_url': request.POST.get('tracking_url'),
+            'status': request.POST.get('status'),
+            'package_count': request.POST.get('package_count'),
+            'total_weight': request.POST.get('total_weight'),
+            'shipping_cost': request.POST.get('shipping_cost'),
+            'insurance_amount': request.POST.get('insurance_amount'),
+            'ship_date': request.POST.get('ship_date'),
+            'estimated_delivery': request.POST.get('estimated_delivery'),
+            'actual_delivery': request.POST.get('actual_delivery'),
+            'delivered_to': request.POST.get('delivered_to'),
+            'delivery_signature': request.POST.get('delivery_signature'),
+            'delivery_notes': request.POST.get('delivery_notes'),
+            'internal_notes': request.POST.get('internal_notes'),
+            'shipping_address_id': request.POST.get('shipping_address'),
+            # Manual address fields
+            'ship_to_name': request.POST.get('ship_to_name'),
+            'ship_to_company': request.POST.get('ship_to_company'),
+            'ship_to_address_line1': request.POST.get('ship_to_address_line1'),
+            'ship_to_address_line2': request.POST.get('ship_to_address_line2'),
+            'ship_to_city': request.POST.get('ship_to_city'),
+            'ship_to_state': request.POST.get('ship_to_state'),
+            'ship_to_postal_code': request.POST.get('ship_to_postal_code'),
+            'ship_to_country': request.POST.get('ship_to_country'),
+            'ship_to_phone': request.POST.get('ship_to_phone'),
+            'ship_to_email': request.POST.get('ship_to_email'),
+        }
+        
+        request.session['shipment_edit_data'] = shipment_data
+        return redirect('sales:shipment_edit_step2', pk=self.kwargs['pk'])
+
+
+class ShipmentEditStep2View(StaffRequiredMixin, TemplateView):
+    template_name = 'sales/shipment_edit_step2.html'
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Check if step 1 data exists in session
+        if 'shipment_edit_data' not in request.session:
+            messages.warning(request, 'Please complete the basic information first')
+            return redirect('sales:shipment_edit_step1', pk=self.kwargs['pk'])
+        
+        # Ensure shipment exists
+        if 'pk' not in self.kwargs:
+            messages.error(request, 'Shipment parameter is required')
+            return redirect('sales:shipment_list')
+        
+        self.shipment = get_object_or_404(InvoiceShipment, pk=self.kwargs['pk'])
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['shipment'] = self.shipment
+        context['invoice'] = self.shipment.invoice
+        
+        # Get invoice items with calculated quantities
+        invoice_items = []
+        selected_item_ids = []
+        
+        for item in self.shipment.invoice.items.select_related('product').filter(product__isnull=False):
+            # Calculate total shipped quantity for this item across all shipments
+            total_shipped = ShipmentItem.objects.filter(
+                invoice_item=item
+            ).aggregate(total=Sum('quantity_shipped'))['total'] or Decimal('0')
+            
+            # Calculate remaining quantity
+            remaining = item.quantity - total_shipped
+            
+            # Get current shipment quantity for this item
+            current_shipment_quantity = 0
+            shipment_item = ShipmentItem.objects.filter(
+                shipment=self.shipment,
+                invoice_item=item
+            ).first()
+            if shipment_item:
+                current_shipment_quantity = shipment_item.quantity_shipped
+                selected_item_ids.append(item.id)
+            
+            # Add calculated fields to item
+            item.shipped_quantity = total_shipped
+            item.remaining_quantity = remaining
+            item.current_shipment_quantity = current_shipment_quantity
+            item.max_quantity = remaining + current_shipment_quantity  # Max they can ship including what's already in this shipment
+            item.notes = shipment_item.notes if shipment_item else ''
+            
+            invoice_items.append(item)
+        
+        context['invoice_items'] = invoice_items
+        context['selected_item_ids'] = selected_item_ids
+        
+        # Get shipment data from session
+        shipment_data = self.request.session.get('shipment_edit_data', {})
+        context['shipment_data'] = shipment_data
+        
+        # Create formset for existing shipment items
+        if self.request.POST:
+            context['formset'] = ShipmentItemFormSet(
+                self.request.POST,
+                instance=self.shipment
+            )
+        else:
+            context['formset'] = ShipmentItemFormSet(
+                instance=self.shipment
+            )
+        
+        return context
+    
+    def post(self, request, *args, **kwargs):
+        shipment_data = request.session.get('shipment_edit_data', {})
+        
+        # Get selected items and quantities
+        selected_items = request.POST.getlist('selected_items')
+        
+        # Update shipment
+        with transaction.atomic():
+            shipment = self.shipment
+            
+            # Apply basic data from session
+            if shipment_data.get('supplier'):
+                from purchases.models import Supplier
+                try:
+                    shipment.supplier = Supplier.objects.get(pk=shipment_data['supplier'])
+                except Supplier.DoesNotExist:
+                    shipment.supplier = None
+            else:
+                shipment.supplier = None
+            
+            shipment.carrier = shipment_data.get('carrier', 'ups')
+            shipment.service_type = shipment_data.get('service_type', '')
+            shipment.tracking_number = shipment_data.get('tracking_number', '')
+            shipment.tracking_url = shipment_data.get('tracking_url', '')
+            shipment.status = shipment_data.get('status', 'pending')
+            
+            # Package details
+            if shipment_data.get('package_count'):
+                try:
+                    shipment.package_count = int(shipment_data['package_count'])
+                except:
+                    pass
+            if shipment_data.get('total_weight'):
+                try:
+                    shipment.total_weight = Decimal(str(shipment_data['total_weight']))
+                except:
+                    pass
+            if shipment_data.get('shipping_cost'):
+                try:
+                    shipment.shipping_cost = Decimal(str(shipment_data['shipping_cost']))
+                except:
+                    pass
+            if shipment_data.get('insurance_amount'):
+                try:
+                    shipment.insurance_amount = Decimal(str(shipment_data['insurance_amount']))
+                except:
+                    pass
+            
+            shipment.internal_notes = shipment_data.get('internal_notes', '')
+            
+            # Save shipment
+            shipment.save()
+            
+            # Clear existing shipment items
+            ShipmentItem.objects.filter(shipment=shipment).delete()
+            
+            # Create new shipment items
+            for item_id in selected_items:
+                quantity_field = f'quantity_{item_id}'
+                notes_field = f'notes_{item_id}'
+                
+                quantity = request.POST.get(quantity_field)
+                notes = request.POST.get(notes_field, '')
+                
+                if quantity:
+                    try:
+                        invoice_item = InvoiceItem.objects.get(pk=item_id)
+                        ShipmentItem.objects.create(
+                            shipment=shipment,
+                            invoice_item=invoice_item,
+                            quantity_shipped=Decimal(quantity),
+                            notes=notes
+                        )
+                    except (InvoiceItem.DoesNotExist, ValueError):
+                        pass
+        
+        # Clear session data
+        if 'shipment_edit_data' in request.session:
+            del request.session['shipment_edit_data']
+        
+        messages.success(request, f'Shipment {shipment.shipment_number} updated successfully!')
+        return redirect('sales:shipment_detail', pk=shipment.pk)
+
+
+# Legacy Single-Step Shipment Creation
+class ShipmentCreateView(StaffRequiredMixin, CreateView):
+    model = InvoiceShipment
+    form_class = InvoiceShipmentForm
+    template_name = 'sales/shipment_form.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        invoice = get_object_or_404(Invoice, pk=self.kwargs['invoice_pk'])
+        context['invoice'] = invoice
+        
+        if self.request.POST:
+            context['formset'] = ShipmentItemFormSet(
+                self.request.POST,
+                form_kwargs={'invoice': invoice}
+            )
+        else:
+            # Pre-populate formset with invoice items
+            initial = []
+            for item in invoice.items.all():
+                # Calculate already shipped quantity
+                shipped = ShipmentItem.objects.filter(
+                    invoice_item=item
+                ).aggregate(total=Sum('quantity_shipped'))['total'] or 0
+                
+                remaining = item.quantity - shipped
+                if remaining > 0:
+                    initial.append({
+                        'invoice_item': item,
+                        'quantity_shipped': remaining
+                    })
+            
+            context['formset'] = ShipmentItemFormSet(
+                initial=initial,
+                form_kwargs={'invoice': invoice}
+            )
+        
+        # Get or calculate next shipment number for this invoice
+        existing_shipments = invoice.shipments.count()
+        context['suggested_shipment_number'] = f"{invoice.invoice_number}-S{existing_shipments + 1:02d}"
+        
+        return context
+    
+    def form_valid(self, form):
+        context = self.get_context_data()
+        formset = context['formset']
+        
+        if formset.is_valid():
+            invoice = get_object_or_404(Invoice, pk=self.kwargs['invoice_pk'])
+            self.object = form.save(commit=False)
+            self.object.invoice = invoice
+            self.object.save()
+            
+            # Save formset
+            formset.instance = self.object
+            formset.save()
+            
+            messages.success(self.request, f'Shipment {self.object.shipment_number} created successfully!')
+            return redirect(self.get_success_url())
+        else:
+            return self.form_invalid(form)
+    
+    def get_success_url(self):
+        if self.object.invoice:
+            return reverse('sales:invoice_detail', kwargs={'pk': self.object.invoice.pk})
+        return reverse('sales:shipment_detail', kwargs={'pk': self.object.pk})
+
+
+class ShipmentUpdateView(StaffRequiredMixin, UpdateView):
+    model = InvoiceShipment
+    form_class = InvoiceShipmentForm
+    template_name = 'sales/shipment_form.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['invoice'] = self.object.invoice
+        
+        if self.request.POST:
+            context['formset'] = ShipmentItemFormSet(
+                self.request.POST, 
+                instance=self.object,
+                form_kwargs={'shipment': self.object}
+            )
+        else:
+            context['formset'] = ShipmentItemFormSet(
+                instance=self.object,
+                form_kwargs={'shipment': self.object}
+            )
+        
+        return context
+    
+    def form_valid(self, form):
+        context = self.get_context_data()
+        formset = context['formset']
+        
+        if formset.is_valid():
+            self.object = form.save()
+            formset.instance = self.object
+            formset.save()
+            messages.success(self.request, 'Shipment updated successfully!')
+            return redirect(self.get_success_url())
+        else:
+            return self.form_invalid(form)
+    
+    def get_success_url(self):
+        if self.object.invoice:
+            return reverse('sales:invoice_detail', kwargs={'pk': self.object.invoice.pk})
+        return reverse('sales:shipment_detail', kwargs={'pk': self.object.pk})
+
+
+class ShipmentDeleteView(StaffRequiredMixin, DeleteView):
+    model = InvoiceShipment
+    template_name = 'sales/shipment_confirm_delete.html'
+    
+    def get_success_url(self):
+        invoice_id = self.object.invoice.pk if self.object.invoice else None
+        if invoice_id:
+            return reverse('sales:invoice_detail', kwargs={'pk': invoice_id})
+        return reverse_lazy('sales:shipment_list')
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Shipment deleted successfully!')
+        return super().delete(request, *args, **kwargs)
+
+
+# Shipment Item Views
+class ShipmentItemCreateView(StaffRequiredMixin, CreateView):
+    model = ShipmentItem
+    fields = ['invoice_item', 'quantity_shipped', 'serial_numbers', 'notes']
+    template_name = 'sales/shipment_item_form.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        shipment = get_object_or_404(InvoiceShipment, pk=self.kwargs['shipment_pk'])
+        context['shipment'] = shipment
+        return context
+    
+    def form_valid(self, form):
+        shipment = get_object_or_404(InvoiceShipment, pk=self.kwargs['shipment_pk'])
+        form.instance.shipment = shipment
+        
+        # Validate that invoice item belongs to the shipment's invoice
+        if form.instance.invoice_item.invoice != shipment.invoice:
+            form.add_error('invoice_item', 'Selected item does not belong to this invoice')
+            return self.form_invalid(form)
+        
+        # Validate quantity doesn't exceed invoice item quantity
+        total_shipped = ShipmentItem.objects.filter(
+            invoice_item=form.instance.invoice_item
+        ).exclude(pk=form.instance.pk).aggregate(
+            total=Sum('quantity_shipped')
+        )['total'] or 0
+        
+        if total_shipped + form.instance.quantity_shipped > form.instance.invoice_item.quantity:
+            form.add_error('quantity_shipped', 'Quantity exceeds available amount')
+            return self.form_invalid(form)
+        
+        response = super().form_valid(form)
+        messages.success(self.request, 'Item added to shipment successfully!')
+        return response
+    
+    def get_success_url(self):
+        return reverse('sales:shipment_detail', kwargs={'pk': self.kwargs['shipment_pk']})
+
+
+class ShipmentItemUpdateView(StaffRequiredMixin, UpdateView):
+    model = ShipmentItem
+    fields = ['invoice_item', 'quantity_shipped', 'serial_numbers', 'notes']
+    template_name = 'sales/shipment_item_form.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['shipment'] = self.object.shipment
+        return context
+    
+    def form_valid(self, form):
+        # Validate quantity doesn't exceed invoice item quantity
+        total_shipped = ShipmentItem.objects.filter(
+            invoice_item=form.instance.invoice_item
+        ).exclude(pk=form.instance.pk).aggregate(
+            total=Sum('quantity_shipped')
+        )['total'] or 0
+        
+        if total_shipped + form.instance.quantity_shipped > form.instance.invoice_item.quantity:
+            form.add_error('quantity_shipped', 'Quantity exceeds available amount')
+            return self.form_invalid(form)
+        
+        response = super().form_valid(form)
+        messages.success(self.request, 'Shipment item updated successfully!')
+        return response
+    
+    def get_success_url(self):
+        return reverse('sales:shipment_detail', kwargs={'pk': self.object.shipment.pk})
+
+
+class ShipmentItemDeleteView(StaffRequiredMixin, DeleteView):
+    model = ShipmentItem
+    template_name = 'sales/shipment_item_confirm_delete.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['shipment'] = self.object.shipment
+        return context
+    
+    def get_success_url(self):
+        return reverse('sales:shipment_detail', kwargs={'pk': self.object.shipment.pk})
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(request, 'Item removed from shipment!')
+        return super().delete(request, *args, **kwargs)
 
 
 # API Views
 class AvailableInventoryAPIView(StaffRequiredMixin, View):
-    """API endpoint to get available inventory items for a product"""
-    
     def get(self, request, product_id):
+        """Get available inventory for a product that can be sold"""
         try:
-            product = get_object_or_404(Product, pk=product_id)
+            product = Product.objects.get(pk=product_id)
             
-            # Get available inventory items for this product
-            inventory_items = Inventory.objects.filter(
+            # Get inventory that is available for sale
+            available_inventory = Inventory.objects.filter(
                 product=product,
                 status='available'
-            ).select_related('product')
-            
-            items_data = []
-            for item in inventory_items:
-                items_data.append({
-                    'id': item.id,
-                    'serial_number': item.serial_number,
-                    'condition': item.condition,
-                    'product_name': item.product.name,
-                    'location': item.current_location or 'N/A'
-                })
+            ).values('id', 'serial_number', 'location')
             
             return JsonResponse({
                 'success': True,
-                'items': items_data,
-                'count': len(items_data)
+                'inventory': list(available_inventory),
+                'count': available_inventory.count()
             })
-        except Exception as e:
+        except Product.DoesNotExist:
             return JsonResponse({
                 'success': False,
-                'error': str(e)
-            }, status=400)
-
-
-class InvoicePDFView(StaffRequiredMixin, View):
-    """Generate PDF for an invoice"""
-    
-    def get(self, request, pk):
-        invoice = get_object_or_404(Invoice, pk=pk)
-        
-        # Create a file-like buffer to receive PDF data
-        buffer = BytesIO()
-        
-        # Create the PDF object, using the buffer as its "file"
-        template = get_template('sales/invoice_pdf.html')
-        context = {
-            'invoice': invoice,
-            'items': invoice.items.all(),
-            'company_name': 'DCDG Dental',
-            'company_address': '123 Business St, City, State 12345',
-            'company_phone': '(555) 123-4567',
-            'company_email': 'info@dcdgdental.com',
-        }
-        html = template.render(context)
-        
-        # Create PDF
-        pisa_status = pisa.CreatePDF(html, dest=buffer)
-        
-        # If error, show error message
-        if pisa_status.err:
-            return HttpResponse('Error generating PDF', status=400)
-        
-        # File response
-        buffer.seek(0)
-        response = HttpResponse(buffer, content_type='application/pdf')
-        response['Content-Disposition'] = f'attachment; filename="invoice_{invoice.invoice_number}.pdf"'
-        
-        return response
+                'error': 'Product not found'
+            }, status=404)

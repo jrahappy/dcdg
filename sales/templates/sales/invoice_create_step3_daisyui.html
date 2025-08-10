@@ -68,13 +68,33 @@
                         </div>
                     </div>
                     <div class="text-right">
-                        <h3 class="text-lg font-semibold mb-2">Your Company Name</h3>
+                        {% if organization %}
+                        <h3 class="text-lg font-semibold mb-2">{{ organization.name }}</h3>
                         <div class="text-sm text-base-content/60">
-                            <p>123 Business Street</p>
-                            <p>City, State 12345</p>
-                            <p>Phone: (123) 456-7890</p>
-                            <p>Email: info@company.com</p>
+                            {% if organization.address_line1 %}
+                            <p>{{ organization.address_line1 }}</p>
+                            {% if organization.address_line2 %}
+                            <p>{{ organization.address_line2 }}</p>
+                            {% endif %}
+                            <p>{{ organization.city }}, {{ organization.state }} {{ organization.postal_code }}</p>
+                            {% endif %}
+                            {% if organization.phone %}
+                            <p>Phone: {{ organization.phone }}</p>
+                            {% endif %}
+                            {% if organization.email %}
+                            <p>Email: {{ organization.email }}</p>
+                            {% endif %}
+                            {% if organization.website %}
+                            <p>Website: {{ organization.website }}</p>
+                            {% endif %}
                         </div>
+                        {% else %}
+                        <h3 class="text-lg font-semibold mb-2">Your Organization</h3>
+                        <div class="text-sm text-base-content/60">
+                            <p class="text-warning">No organization configured</p>
+                            <p>Please set up your organization in settings</p>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -84,10 +104,16 @@
                     <div class="bg-base-200 p-4 rounded-lg">
                         <p class="font-semibold">{{ customer.get_full_name }}</p>
                         {% if customer.company_name %}<p>{{ customer.company_name }}</p>{% endif %}
-                        <p>{{ customer.address_line1 }}</p>
-                        {% if customer.address_line2 %}<p>{{ customer.address_line2 }}</p>{% endif %}
-                        <p>{{ customer.city }}, {{ customer.state }} {{ customer.postal_code }}</p>
-                        <p>{{ customer.country }}</p>
+                        {% with customer.get_default_address as address %}
+                            {% if address %}
+                                <p>{{ address.address_line1 }}</p>
+                                {% if address.address_line2 %}<p>{{ address.address_line2 }}</p>{% endif %}
+                                <p>{{ address.city }}, {{ address.state }} {{ address.postal_code }}</p>
+                                <p>{{ address.country }}</p>
+                            {% else %}
+                                <p class="text-warning">No address on file</p>
+                            {% endif %}
+                        {% endwith %}
                     </div>
                 </div>
 

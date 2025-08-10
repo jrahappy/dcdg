@@ -30,7 +30,7 @@ urlpatterns = [
     path("home/purchases/", include("purchases.urls")),  # Purchase orders
     path("home/sales/", include("sales.urls")),  # Sales app (quotes, orders, invoices)
     path("home/blog/", include("blog.urls")),  # Blog moved to /blog/
-    path("shop/", include("shop.urls")),  # Shop for anonymous visitors
+    # path("shop/", include("shop.urls")),  # Shop for anonymous visitors
     path(
         "account/", include("customer_portal.urls")
     ),  # Customer portal for logged-in shoppers

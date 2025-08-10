@@ -1,124 +1,322 @@
 {% extends 'customer_portal/base.html' %}
 
-{% block title %}My Orders{% endblock %}
+{% block account_page_title %}My Orders{% endblock %}
 
-{% block content %}
-<div class="sm:flex sm:items-center">
-    <div class="sm:flex-auto">
-        <h1 class="text-2xl font-bold text-gray-900">My Orders</h1>
-        <p class="mt-2 text-sm text-gray-700">Track and manage all your orders from the DCDG Shop.</p>
+{% block account_content %}
+<!-- Breadcrumb -->
+<div class="breadcrumbs text-sm mb-6">
+    <ul>
+        <li><a href="{% url 'customer_portal:dashboard' %}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+        </a></li>
+        <li>My Orders</li>
+    </ul>
+</div>
+
+<!-- Page Header -->
+<div class="flex justify-between items-center mb-8">
+    <div>
+        <h1 class="text-3xl font-bold text-gray-900">My Orders</h1>
+        <p class="mt-2 text-sm text-gray-600">Track and manage all your orders</p>
     </div>
-    <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-        <a href="{% url 'shop:product_list' %}" class="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-            Continue Shopping
-        </a>
+    <a href="{% url 'shop:product_list' %}" class="btn btn-primary">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+        </svg>
+        Continue Shopping
+    </a>
+</div>
+
+<!-- Statistics Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <!-- Total Orders -->
+    <div class="stats shadow">
+        <div class="stat">
+            <div class="stat-figure text-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+            </div>
+            <div class="stat-title">Total Orders</div>
+            <div class="stat-value text-primary">{{ total_orders }}</div>
+            <div class="stat-desc">{{ recent_count }} in last 30 days</div>
+        </div>
+    </div>
+
+    <!-- Total Spent -->
+    <div class="stats shadow">
+        <div class="stat">
+            <div class="stat-figure text-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div class="stat-title">Total Spent</div>
+            <div class="stat-value text-secondary">${{ total_spent|floatformat:2 }}</div>
+            <div class="stat-desc">Lifetime value</div>
+        </div>
+    </div>
+
+    <!-- Completed Orders -->
+    <div class="stats shadow">
+        <div class="stat">
+            <div class="stat-figure text-success">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div class="stat-title">Completed</div>
+            <div class="stat-value text-success">{{ paid_count }}</div>
+            <div class="stat-desc">Successfully delivered</div>
+        </div>
+    </div>
+
+    <!-- Pending Orders -->
+    <div class="stats shadow">
+        <div class="stat">
+            <div class="stat-figure text-warning">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div class="stat-title">In Progress</div>
+            <div class="stat-value text-warning">{{ pending_count|add:processing_count|add:shipped_count }}</div>
+            <div class="stat-desc">Being processed</div>
+        </div>
     </div>
 </div>
 
+<!-- Order Status Filter -->
+<div class="tabs tabs-boxed mb-6">
+    <a class="tab tab-active" onclick="filterOrders('all')">All Orders ({{ total_orders }})</a>
+    <a class="tab" onclick="filterOrders('pending')">Pending ({{ pending_count }})</a>
+    <a class="tab" onclick="filterOrders('processing')">Processing ({{ processing_count }})</a>
+    <a class="tab" onclick="filterOrders('paid')">Paid ({{ paid_count }})</a>
+    <a class="tab" onclick="filterOrders('shipped')">Shipped ({{ shipped_count }})</a>
+    {% if cancelled_count > 0 %}
+    <a class="tab" onclick="filterOrders('cancelled')">Cancelled ({{ cancelled_count }})</a>
+    {% endif %}
+</div>
+
 {% if object_list %}
-<div class="mt-8 space-y-4">
+<!-- Orders List -->
+<div class="space-y-4">
     {% for order in object_list %}
-    <div class="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div class="px-4 py-5 sm:px-6 cursor-pointer hover:bg-gray-50" onclick="toggleOrderItems('order-{{ order.id }}')">
-            <div class="flex items-center justify-between">
+    <div class="card bg-base-100 shadow-xl order-card" data-status="{{ order.status }}">
+        <div class="card-body">
+            <!-- Order Header -->
+            <div class="flex justify-between items-start">
                 <div class="flex-1">
-                    <div class="flex items-center justify-between">
-                        <h3 class="text-lg leading-6 font-medium text-gray-900">
-                            Order {{ order.order_number }}
-                        </h3>
-                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
-                            {% if order.status == 'draft' or order.status == 'sent' %}bg-yellow-100 text-yellow-800
-                            {% elif order.status == 'partial' %}bg-blue-100 text-blue-800
-                            {% elif order.status == 'paid' %}bg-green-100 text-green-800
-                            {% elif order.status == 'cancelled' %}bg-red-100 text-red-800
-                            {% elif order.status == 'refunded' %}bg-gray-100 text-gray-800
-                            {% else %}bg-gray-100 text-gray-800{% endif %}">
-                            {{ order.get_status_display }}
+                    <div class="flex items-center gap-4">
+                        <h2 class="card-title">
+                            Order #{{ order.invoice_number }}
+                        </h2>
+                        {% with order.shipments.first as shipment %}
+                        {% if shipment %}
+                        <div class="badge 
+                            {% if shipment.status == 'pending' %}badge-warning
+                            {% elif shipment.status == 'processing' %}badge-info
+                            {% elif shipment.status == 'ready' %}badge-info
+                            {% elif shipment.status == 'shipped' %}badge-primary
+                            {% elif shipment.status == 'in_transit' %}badge-primary
+                            {% elif shipment.status == 'out_for_delivery' %}badge-accent
+                            {% elif shipment.status == 'delivered' %}badge-success
+                            {% elif shipment.status == 'failed_delivery' %}badge-error
+                            {% elif shipment.status == 'returned' %}badge-error
+                            {% elif shipment.status == 'cancelled' %}badge-ghost
+                            {% else %}badge-ghost{% endif %} badge-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                            </svg>
+                            {{ shipment.get_status_display }}
+                        </div>
+                        {% if shipment.tracking_number %}
+                        <div class="text-xs text-base-content/60">
+                            {{ shipment.get_carrier_display }}: {{ shipment.tracking_number }}
+                        </div>
+                        {% endif %}
+                        {% else %}
+                        <div class="badge badge-ghost badge-lg">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                            </svg>
+                            Awaiting Shipment
+                        </div>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                    
+                    <!-- Order Meta Information -->
+                    <div class="mt-2 flex flex-wrap gap-4 text-sm text-gray-600">
+                        <span class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            {{ order.created_at|date:"F d, Y" }}
+                        </span>
+                        <span class="flex items-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                            </svg>
+                            {{ order.items.count }} item{{ order.items.count|pluralize }}
+                        </span>
+                        <span class="flex items-center font-semibold text-gray-900">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            ${{ order.total_amount|floatformat:2 }}
                         </span>
                     </div>
-                    <div class="mt-2 sm:flex sm:justify-between">
-                        <div class="sm:flex">
-                            <p class="text-sm text-gray-500">
-                                {{ order.order_date|date:"F d, Y" }}
-                            </p>
-                            <p class="mt-2 text-sm text-gray-500 sm:mt-0 sm:ml-6">
-                                {{ order.items.count }} item{{ order.items.count|pluralize }}
-                            </p>
-                            <p class="mt-2 text-sm text-gray-500 sm:mt-0 sm:ml-6">
-                                Total: <span class="font-medium text-gray-900">${{ order.total_amount|floatformat:2 }}</span>
-                            </p>
-                        </div>
-                        <div class="mt-2 flex items-center text-sm text-gray-500 sm:mt-0">
-                            <svg class="flex-shrink-0 mr-1.5 h-5 w-5 text-gray-400" id="chevron-order-{{ order.id }}" fill="currentColor" viewBox="0 0 20 20">
-                                <path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />
-                            </svg>
-                            <p>Click to expand</p>
+                </div>
+                
+                <!-- Action Buttons -->
+                <div class="flex items-center gap-2">
+                    <a href="{% url 'customer_portal:order_detail' order.pk %}" class="btn btn-sm btn-outline">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        View Details
+                    </a>
+                    <!-- Expand/Collapse Button -->
+                    <button class="btn btn-ghost btn-sm" onclick="toggleOrderDetails('order-{{ order.id }}')">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 transition-transform" id="chevron-order-{{ order.id }}" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Expandable Order Details -->
+            <div id="order-{{ order.id }}" class="hidden mt-6">
+                <div class="divider"></div>
+                
+                <!-- Order Items -->
+                <h3 class="font-semibold mb-4">Order Items</h3>
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>SKU</th>
+                                <th class="text-right">Quantity</th>
+                                <th class="text-right">Unit Price</th>
+                                <th class="text-right">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in order.items.all %}
+                            <tr>
+                                <td>
+                                    <div class="font-medium">{{ item.description }}</div>
+                                </td>
+                                <td>
+                                    {% if item.product %}
+                                    <span class="text-sm text-gray-500">{{ item.product.sku }}</span>
+                                    {% else %}
+                                    <span class="text-sm text-gray-400">-</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-right">{{ item.quantity|floatformat:0 }}</td>
+                                <td class="text-right">${{ item.unit_price|floatformat:2 }}</td>
+                                <td class="text-right font-medium">${{ item.line_total|floatformat:2 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Order Summary -->
+                <div class="mt-6 flex justify-end">
+                    <div class="w-full max-w-xs">
+                        <div class="space-y-2">
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Subtotal</span>
+                                <span>${{ order.subtotal|floatformat:2 }}</span>
+                            </div>
+                            {% if order.shipping_cost %}
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Shipping</span>
+                                <span>${{ order.shipping_cost|floatformat:2 }}</span>
+                            </div>
+                            {% endif %}
+                            {% if order.tax_amount %}
+                            <div class="flex justify-between text-sm">
+                                <span class="text-gray-600">Tax</span>
+                                <span>${{ order.tax_amount|floatformat:2 }}</span>
+                            </div>
+                            {% endif %}
+                            {% if order.discount_amount %}
+                            <div class="flex justify-between text-sm text-success">
+                                <span>Discount</span>
+                                <span>-${{ order.discount_amount|floatformat:2 }}</span>
+                            </div>
+                            {% endif %}
+                            <div class="divider my-2"></div>
+                            <div class="flex justify-between font-semibold">
+                                <span>Total</span>
+                                <span class="text-lg">${{ order.total_amount|floatformat:2 }}</span>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- Expandable items section -->
-        <div id="order-{{ order.id }}" class="hidden border-t border-gray-200">
-            <div class="px-4 py-4 sm:px-6">
-                <h4 class="text-sm font-medium text-gray-900 mb-3">Order Items</h4>
-                <ul role="list" class="divide-y divide-gray-200">
-                    {% for item in order.items.all %}
-                    <li class="py-3 flex justify-between">
-                        <div class="flex items-center">
-                            <div>
-                                <p class="text-sm font-medium text-gray-900">{{ item.description }}</p>
-                                {% if item.product %}
-                                <p class="text-sm text-gray-500">SKU: {{ item.product.sku }}</p>
-                                {% endif %}
+                
+                <!-- Shipping Information -->
+                <div class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {% if order.shipping_address_line1 %}
+                    <div>
+                        <h3 class="font-semibold mb-2">Shipping Address</h3>
+                        <div class="text-sm text-gray-600">
+                            {{ order.first_name }} {{ order.last_name }}<br>
+                            {{ order.shipping_address_line1 }}<br>
+                            {% if order.shipping_address_line2 %}{{ order.shipping_address_line2 }}<br>{% endif %}
+                            {{ order.shipping_city }}, {{ order.shipping_state }} {{ order.shipping_postal_code }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Shipment Details -->
+                    {% if order.shipments.exists %}
+                    <div>
+                        <h3 class="font-semibold mb-2">Shipment Details</h3>
+                        {% for shipment in order.shipments.all %}
+                        <div class="text-sm {% if not forloop.last %}mb-3 pb-3 border-b{% endif %}">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="font-medium">{{ shipment.get_carrier_display }}</span>
+                                <span class="badge badge-sm 
+                                    {% if shipment.status == 'delivered' %}badge-success
+                                    {% elif shipment.status in 'shipped,in_transit,out_for_delivery' %}badge-primary
+                                    {% elif shipment.status in 'failed_delivery,returned' %}badge-error
+                                    {% else %}badge-ghost{% endif %}">
+                                    {{ shipment.get_status_display }}
+                                </span>
                             </div>
+                            {% if shipment.tracking_number %}
+                            <div class="text-xs text-gray-500">
+                                Tracking: <span class="font-mono">{{ shipment.tracking_number }}</span>
+                            </div>
+                            {% endif %}
+                            {% if shipment.shipped_date %}
+                            <div class="text-xs text-gray-500">
+                                Shipped: {{ shipment.shipped_date|date:"M d, Y" }}
+                            </div>
+                            {% endif %}
+                            {% if shipment.estimated_delivery %}
+                            <div class="text-xs text-gray-500">
+                                Est. Delivery: {{ shipment.estimated_delivery|date:"M d, Y" }}
+                            </div>
+                            {% endif %}
+                            {% if shipment.delivered_date %}
+                            <div class="text-xs text-success">
+                                Delivered: {{ shipment.delivered_date|date:"M d, Y g:i A" }}
+                            </div>
+                            {% endif %}
                         </div>
-                        <div class="text-right">
-                            <p class="text-sm text-gray-500">{{ item.quantity|floatformat:0 }} × ${{ item.unit_price|floatformat:2 }}</p>
-                            <p class="text-sm font-medium text-gray-900">${{ item.line_total|floatformat:2 }}</p>
-                        </div>
-                    </li>
-                    {% endfor %}
-                </ul>
-                
-                <!-- Order summary -->
-                <div class="mt-4 border-t border-gray-200 pt-4">
-                    <dl class="space-y-2">
-                        <div class="flex justify-between text-sm">
-                            <dt class="text-gray-500">Subtotal</dt>
-                            <dd class="text-gray-900">${{ order.subtotal|floatformat:2 }}</dd>
-                        </div>
-                        {% if order.shipping_cost %}
-                        <div class="flex justify-between text-sm">
-                            <dt class="text-gray-500">Shipping</dt>
-                            <dd class="text-gray-900">${{ order.shipping_cost|floatformat:2 }}</dd>
-                        </div>
-                        {% endif %}
-                        {% if order.tax_amount %}
-                        <div class="flex justify-between text-sm">
-                            <dt class="text-gray-500">Tax</dt>
-                            <dd class="text-gray-900">${{ order.tax_amount|floatformat:2 }}</dd>
-                        </div>
-                        {% endif %}
-                        {% if order.discount_amount %}
-                        <div class="flex justify-between text-sm">
-                            <dt class="text-gray-500">Discount</dt>
-                            <dd class="text-gray-900">-${{ order.discount_amount|floatformat:2 }}</dd>
-                        </div>
-                        {% endif %}
-                        <div class="flex justify-between text-sm font-medium border-t pt-2">
-                            <dt class="text-gray-900">Total</dt>
-                            <dd class="text-gray-900">${{ order.total_amount|floatformat:2 }}</dd>
-                        </div>
-                    </dl>
-                </div>
-                
-                <!-- Actions -->
-                <div class="mt-4 flex justify-end">
-                    <a href="{% url 'customer_portal:order_detail' order.pk %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
-                        View full details →
-                    </a>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -128,55 +326,116 @@
 
 <!-- Pagination -->
 {% if is_paginated %}
-<nav class="mt-8 flex items-center justify-between px-4 sm:px-0" aria-label="Pagination">
-    <div class="hidden sm:block">
-        <p class="text-sm text-gray-700">
-            Showing <span class="font-medium">{{ page_obj.start_index }}</span> to <span class="font-medium">{{ page_obj.end_index }}</span> of <span class="font-medium">{{ paginator.count }}</span> results
-        </p>
-    </div>
-    <div class="flex flex-1 justify-between sm:justify-end">
+<div class="flex justify-center mt-8">
+    <div class="join">
         {% if page_obj.has_previous %}
-        <a href="?page={{ page_obj.previous_page_number }}" class="relative inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-offset-0">Previous</a>
+        <a href="?page={{ page_obj.previous_page_number }}" class="join-item btn">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+            </svg>
+            Previous
+        </a>
         {% endif %}
+        
+        <button class="join-item btn btn-active">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</button>
+        
         {% if page_obj.has_next %}
-        <a href="?page={{ page_obj.next_page_number }}" class="relative ml-3 inline-flex items-center rounded-md bg-white px-3 py-2 text-sm font-semibold text-gray-900 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 focus-visible:outline-offset-0">Next</a>
+        <a href="?page={{ page_obj.next_page_number }}" class="join-item btn">
+            Next
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+        </a>
         {% endif %}
     </div>
-</nav>
+</div>
+
+<!-- Results Info -->
+<div class="text-center mt-4 text-sm text-gray-600">
+    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ paginator.count }} orders
+</div>
 {% endif %}
 
 {% else %}
-<div class="mt-8 text-center py-12 bg-white rounded-lg shadow">
-    <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-    </svg>
-    <h3 class="mt-2 text-sm font-medium text-gray-900">No orders yet</h3>
-    <p class="mt-1 text-sm text-gray-500">When you place your first order, it will appear here.</p>
-    <div class="mt-6">
-        <a href="{% url 'shop:product_list' %}" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-            <i class="fas fa-shopping-cart -ml-0.5 mr-1.5 h-5 w-5"></i>
-            Start Shopping
-        </a>
+<!-- Empty State -->
+<div class="card bg-base-100 shadow-xl">
+    <div class="card-body text-center py-12">
+        <div class="flex justify-center mb-4">
+            <svg class="h-24 w-24 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+            </svg>
+        </div>
+        <h3 class="text-lg font-medium text-gray-900">No orders yet</h3>
+        <p class="mt-2 text-sm text-gray-500">When you place your first order, it will appear here.</p>
+        <div class="card-actions justify-center mt-6">
+            <a href="{% url 'shop:product_list' %}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                Start Shopping
+            </a>
+        </div>
     </div>
 </div>
 {% endif %}
+
+<!-- Order Tips -->
+<div class="alert alert-info mt-8">
+    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+    </svg>
+    <div>
+        <h3 class="font-bold">Order Management Tips</h3>
+        <div class="text-xs mt-2">
+            <ul class="space-y-1">
+                <li>• Click on any order to expand and view items</li>
+                <li>• Track your shipments using the order detail page</li>
+                <li>• Download invoices and receipts from order details</li>
+                <li>• Contact support if you have any issues with your order</li>
+            </ul>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
-{% block extra_js %}
+{% block scripts %}
+{{ block.super }}
 <script>
-function toggleOrderItems(orderId) {
-    const itemsDiv = document.getElementById(orderId);
+function toggleOrderDetails(orderId) {
+    const detailsDiv = document.getElementById(orderId);
     const chevron = document.getElementById('chevron-' + orderId);
     
-    if (itemsDiv.classList.contains('hidden')) {
-        itemsDiv.classList.remove('hidden');
-        // Rotate chevron down to up
-        chevron.innerHTML = '<path fill-rule="evenodd" d="M14.707 12.707a1 1 0 01-1.414 0L10 9.414l-3.293 3.293a1 1 0 01-1.414-1.414l4 4a1 1 0 011.414 0l4-4a1 1 0 010 1.414z" clip-rule="evenodd" />';
+    if (detailsDiv.classList.contains('hidden')) {
+        detailsDiv.classList.remove('hidden');
+        chevron.style.transform = 'rotate(180deg)';
     } else {
-        itemsDiv.classList.add('hidden');
-        // Rotate chevron up to down
-        chevron.innerHTML = '<path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd" />';
+        detailsDiv.classList.add('hidden');
+        chevron.style.transform = 'rotate(0deg)';
     }
+}
+
+function filterOrders(status) {
+    // Remove active class from all tabs
+    const tabs = document.querySelectorAll('.tabs .tab');
+    tabs.forEach(tab => tab.classList.remove('tab-active'));
+    
+    // Add active class to clicked tab
+    event.target.classList.add('tab-active');
+    
+    // Show/hide orders based on status
+    const orderCards = document.querySelectorAll('.order-card');
+    orderCards.forEach(card => {
+        if (status === 'all') {
+            card.style.display = 'block';
+        } else {
+            const cardStatus = card.getAttribute('data-status');
+            if (cardStatus === status) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        }
+    });
 }
 </script>
 {% endblock %}

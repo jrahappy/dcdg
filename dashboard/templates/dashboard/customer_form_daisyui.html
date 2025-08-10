@@ -184,125 +184,6 @@
 
                 <div class="divider"></div>
 
-                <!-- Address Information Section -->
-                <div>
-                    <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        Address Information
-                    </h2>
-                    
-                    <div class="grid grid-cols-1 gap-4">
-                        <!-- Address Line 1 -->
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text">Address Line 1</span>
-                            </label>
-                            <input type="text" 
-                                   name="address_line1" 
-                                   value="{{ form.address_line1.value|default:'' }}"
-                                   class="input input-bordered {% if form.address_line1.errors %}input-error{% endif %}"
-                                   placeholder="123 Main Street">
-                            {% if form.address_line1.errors %}
-                            <label class="label">
-                                <span class="label-text-alt text-error">{{ form.address_line1.errors.0 }}</span>
-                            </label>
-                            {% endif %}
-                        </div>
-
-                        <!-- Address Line 2 -->
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text">Address Line 2</span>
-                            </label>
-                            <input type="text" 
-                                   name="address_line2" 
-                                   value="{{ form.address_line2.value|default:'' }}"
-                                   class="input input-bordered {% if form.address_line2.errors %}input-error{% endif %}"
-                                   placeholder="Apartment, suite, etc.">
-                            {% if form.address_line2.errors %}
-                            <label class="label">
-                                <span class="label-text-alt text-error">{{ form.address_line2.errors.0 }}</span>
-                            </label>
-                            {% endif %}
-                        </div>
-
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <!-- City -->
-                            <div class="form-control">
-                                <label class="label">
-                                    <span class="label-text">City</span>
-                                </label>
-                                <input type="text" 
-                                       name="city" 
-                                       value="{{ form.city.value|default:'' }}"
-                                       class="input input-bordered {% if form.city.errors %}input-error{% endif %}"
-                                       placeholder="New York">
-                                {% if form.city.errors %}
-                                <label class="label">
-                                    <span class="label-text-alt text-error">{{ form.city.errors.0 }}</span>
-                                </label>
-                                {% endif %}
-                            </div>
-
-                            <!-- State -->
-                            <div class="form-control">
-                                <label class="label">
-                                    <span class="label-text">State/Province</span>
-                                </label>
-                                <input type="text" 
-                                       name="state" 
-                                       value="{{ form.state.value|default:'' }}"
-                                       class="input input-bordered {% if form.state.errors %}input-error{% endif %}"
-                                       placeholder="NY">
-                                {% if form.state.errors %}
-                                <label class="label">
-                                    <span class="label-text-alt text-error">{{ form.state.errors.0 }}</span>
-                                </label>
-                                {% endif %}
-                            </div>
-
-                            <!-- Postal Code -->
-                            <div class="form-control">
-                                <label class="label">
-                                    <span class="label-text">Postal Code</span>
-                                </label>
-                                <input type="text" 
-                                       name="postal_code" 
-                                       value="{{ form.postal_code.value|default:'' }}"
-                                       class="input input-bordered {% if form.postal_code.errors %}input-error{% endif %}"
-                                       placeholder="10001">
-                                {% if form.postal_code.errors %}
-                                <label class="label">
-                                    <span class="label-text-alt text-error">{{ form.postal_code.errors.0 }}</span>
-                                </label>
-                                {% endif %}
-                            </div>
-                        </div>
-
-                        <!-- Country -->
-                        <div class="form-control">
-                            <label class="label">
-                                <span class="label-text">Country</span>
-                            </label>
-                            <input type="text" 
-                                   name="country" 
-                                   value="{{ form.country.value|default:'' }}"
-                                   class="input input-bordered {% if form.country.errors %}input-error{% endif %}"
-                                   placeholder="United States">
-                            {% if form.country.errors %}
-                            <label class="label">
-                                <span class="label-text-alt text-error">{{ form.country.errors.0 }}</span>
-                            </label>
-                            {% endif %}
-                        </div>
-                    </div>
-                </div>
-
-                <div class="divider"></div>
-
                 <!-- Additional Information Section -->
                 <div>
                     <h2 class="text-xl font-semibold mb-4 flex items-center gap-2">
@@ -357,5 +238,194 @@
             </form>
         </div>
     </div>
+
+    <!-- Customer Addresses Section (Only for Edit) -->
+    {% if customer %}
+    <div class="card bg-base-100 shadow-xl mt-6">
+        <div class="card-body">
+            <h2 class="card-title flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+                Customer Addresses
+            </h2>
+
+            <!-- Existing Addresses -->
+            {% if addresses %}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                {% for address in addresses %}
+                <div class="card bg-base-200">
+                    <div class="card-body p-4">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                {% if address.is_default %}
+                                <span class="badge badge-primary badge-sm mb-2">Default</span>
+                                {% endif %}
+                                <span class="badge badge-ghost badge-sm mb-2">{{ address.get_address_type_display }}</span>
+                                {% if address.label %}
+                                <p class="font-semibold">{{ address.label }}</p>
+                                {% endif %}
+                                <p class="text-sm">{{ address.recipient_name }}</p>
+                                {% if address.company_name %}
+                                <p class="text-sm">{{ address.company_name }}</p>
+                                {% endif %}
+                                <p class="text-sm">{{ address.address_line1 }}</p>
+                                {% if address.address_line2 %}
+                                <p class="text-sm">{{ address.address_line2 }}</p>
+                                {% endif %}
+                                <p class="text-sm">{{ address.city }}, {{ address.state }} {{ address.postal_code }}</p>
+                                <p class="text-sm">{{ address.country }}</p>
+                                {% if address.phone %}
+                                <p class="text-sm">Phone: {{ address.phone }}</p>
+                                {% endif %}
+                            </div>
+                            <div class="dropdown dropdown-end">
+                                <label tabindex="0" class="btn btn-ghost btn-xs">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                    </svg>
+                                </label>
+                                <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
+                                    <li><a href="#" onclick="alert('Edit functionality to be implemented')">Edit</a></li>
+                                    <li><a href="#" onclick="alert('Delete functionality to be implemented')" class="text-error">Delete</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="alert alert-info mb-6">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <span>No addresses have been added for this customer yet.</span>
+            </div>
+            {% endif %}
+
+            <div class="divider">Add New Address</div>
+
+            <!-- Add Address Form -->
+            <form method="post" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="add_address" value="1">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Address Type -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Address Type <span class="text-error">*</span></span>
+                        </label>
+                        <select name="address_type" class="select select-bordered" required>
+                            <option value="">Select Type</option>
+                            <option value="billing">Billing</option>
+                            <option value="shipping">Shipping</option>
+                            <option value="both">Both</option>
+                        </select>
+                    </div>
+
+                    <!-- Label -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Label</span>
+                        </label>
+                        <input type="text" name="label" class="input input-bordered" placeholder="e.g., Main Office, Warehouse">
+                    </div>
+
+                    <!-- Recipient Name -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Recipient Name <span class="text-error">*</span></span>
+                        </label>
+                        <input type="text" name="recipient_name" class="input input-bordered" value="{{ customer.get_full_name }}" required>
+                    </div>
+
+                    <!-- Company Name -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Company Name</span>
+                        </label>
+                        <input type="text" name="company_name" class="input input-bordered" value="{{ customer.company_name }}">
+                    </div>
+
+                    <!-- Address Line 1 -->
+                    <div class="form-control md:col-span-2">
+                        <label class="label">
+                            <span class="label-text">Street Address <span class="text-error">*</span></span>
+                        </label>
+                        <input type="text" name="address_line1" class="input input-bordered" required>
+                    </div>
+
+                    <!-- Address Line 2 -->
+                    <div class="form-control md:col-span-2">
+                        <label class="label">
+                            <span class="label-text">Apartment, Suite, Unit, etc.</span>
+                        </label>
+                        <input type="text" name="address_line2" class="input input-bordered">
+                    </div>
+
+                    <!-- City -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">City <span class="text-error">*</span></span>
+                        </label>
+                        <input type="text" name="city" class="input input-bordered" required>
+                    </div>
+
+                    <!-- State -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">State/Province <span class="text-error">*</span></span>
+                        </label>
+                        <input type="text" name="state" class="input input-bordered" required>
+                    </div>
+
+                    <!-- Postal Code -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">ZIP/Postal Code <span class="text-error">*</span></span>
+                        </label>
+                        <input type="text" name="postal_code" class="input input-bordered" required>
+                    </div>
+
+                    <!-- Country -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Country <span class="text-error">*</span></span>
+                        </label>
+                        <input type="text" name="country" class="input input-bordered" value="United States" required>
+                    </div>
+
+                    <!-- Phone -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Phone</span>
+                        </label>
+                        <input type="tel" name="phone" class="input input-bordered" value="{{ customer.phone }}">
+                    </div>
+
+                    <!-- Is Default -->
+                    <div class="form-control">
+                        <label class="label cursor-pointer">
+                            <span class="label-text">Set as default address</span>
+                            <input type="checkbox" name="is_default" class="checkbox checkbox-primary">
+                        </label>
+                    </div>
+                </div>
+
+                <div class="flex justify-end">
+                    <button type="submit" class="btn btn-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        Add Address
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endif %}
 </div>
 {% endblock %}

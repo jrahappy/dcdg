@@ -80,7 +80,6 @@
                 <thead>
                     <tr>
                         <th>Option Name</th>
-                        <th>Description</th>
                         <th>Items</th>
                         <th>Products Using</th>
                         <th>Status</th>
@@ -94,13 +93,10 @@
                             <div class="font-bold">{{ option.name }}</div>
                         </td>
                         <td>
-                            <div class="text-sm opacity-75">{{ option.description|truncatechars:60|default:"-" }}</div>
-                        </td>
-                        <td>
                             <div class="badge badge-outline">{{ option.item_count }} items</div>
                         </td>
                         <td>
-                            <div class="badge badge-info">{{ option.product_options.count }} products</div>
+                            <div class="badge badge-info">{{ option.product_count }} products</div>
                         </td>
                         <td>
                             {% if option.is_active %}

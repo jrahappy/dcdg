@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import inlineformset_factory
-from .models import Quote, QuoteItem, Order, OrderItem, Invoice, InvoiceItem, Payment
+from .models import Quote, QuoteItem, Order, OrderItem, Invoice, InvoiceItem, Payment, InvoiceShipment, ShipmentItem
 from customer.models import Customer
 from product.models import Product
 
@@ -413,3 +413,210 @@ class PaymentForm(forms.ModelForm):
         if commit:
             instance.save()
         return instance
+
+
+class InvoiceShipmentForm(forms.ModelForm):
+    class Meta:
+        model = InvoiceShipment
+        fields = [
+            'supplier', 'carrier', 'tracking_number', 'tracking_url',
+            'service_type', 'status', 'package_count', 'total_weight',
+            'shipping_cost', 'insurance_amount', 'ship_date',
+            'estimated_delivery', 'actual_delivery', 'delivered_to',
+            'delivery_signature', 'delivery_notes', 'ship_to_name',
+            'ship_to_company', 'ship_to_address_line1', 'ship_to_address_line2',
+            'ship_to_city', 'ship_to_state', 'ship_to_postal_code',
+            'ship_to_country', 'ship_to_phone', 'ship_to_email',
+            'internal_notes'
+        ]
+        widgets = {
+            'supplier': forms.Select(attrs={
+                'class': 'select select-bordered w-full'
+            }),
+            'carrier': forms.Select(attrs={
+                'class': 'select select-bordered w-full'
+            }),
+            'tracking_number': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full',
+                'placeholder': 'Enter tracking number'
+            }),
+            'tracking_url': forms.URLInput(attrs={
+                'class': 'input input-bordered w-full',
+                'placeholder': 'https://tracking.carrier.com/...'
+            }),
+            'service_type': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full',
+                'placeholder': 'e.g., Ground, 2-Day Air'
+            }),
+            'status': forms.Select(attrs={
+                'class': 'select select-bordered w-full'
+            }),
+            'package_count': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-full',
+                'min': '1'
+            }),
+            'total_weight': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-full',
+                'step': '0.01',
+                'placeholder': 'Weight in pounds'
+            }),
+            'shipping_cost': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-full',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'insurance_amount': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-full',
+                'step': '0.01',
+                'min': '0'
+            }),
+            'ship_date': forms.DateTimeInput(attrs={
+                'class': 'input input-bordered w-full',
+                'type': 'datetime-local'
+            }),
+            'estimated_delivery': forms.DateTimeInput(attrs={
+                'class': 'input input-bordered w-full',
+                'type': 'datetime-local'
+            }),
+            'actual_delivery': forms.DateTimeInput(attrs={
+                'class': 'input input-bordered w-full',
+                'type': 'datetime-local'
+            }),
+            'delivered_to': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full',
+                'placeholder': 'Name of person who received'
+            }),
+            'delivery_signature': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered w-full',
+                'rows': 2,
+                'placeholder': 'Signature data or confirmation code'
+            }),
+            'delivery_notes': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered w-full',
+                'rows': 3,
+                'placeholder': 'Delivery instructions or notes'
+            }),
+            'ship_to_name': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full'
+            }),
+            'ship_to_company': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full'
+            }),
+            'ship_to_address_line1': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full'
+            }),
+            'ship_to_address_line2': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full'
+            }),
+            'ship_to_city': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full'
+            }),
+            'ship_to_state': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full'
+            }),
+            'ship_to_postal_code': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full'
+            }),
+            'ship_to_country': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full',
+                'maxlength': '2'
+            }),
+            'ship_to_phone': forms.TextInput(attrs={
+                'class': 'input input-bordered w-full'
+            }),
+            'ship_to_email': forms.EmailInput(attrs={
+                'class': 'input input-bordered w-full'
+            }),
+            'internal_notes': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered w-full',
+                'rows': 3,
+                'placeholder': 'Internal notes about this shipment'
+            }),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        invoice = kwargs.pop('invoice', None)
+        super().__init__(*args, **kwargs)
+        
+        # Make shipping address fields optional since we auto-populate them
+        shipping_fields = [
+            'ship_to_name', 'ship_to_company', 'ship_to_address_line1', 
+            'ship_to_address_line2', 'ship_to_city', 'ship_to_state', 
+            'ship_to_postal_code', 'ship_to_country', 'ship_to_phone', 'ship_to_email'
+        ]
+        for field in shipping_fields:
+            self.fields[field].required = False
+        
+        # If this is a new shipment and we have an invoice, pre-populate address
+        if not self.instance.pk and invoice:
+            if invoice.shipping_same_as_billing or not invoice.shipping_address_line1:
+                # Use billing address
+                self.initial['ship_to_name'] = f"{invoice.first_name} {invoice.last_name}".strip()
+                self.initial['ship_to_company'] = invoice.customer.company if invoice.customer else ''
+                self.initial['ship_to_address_line1'] = invoice.billing_address_line1
+                self.initial['ship_to_address_line2'] = invoice.billing_address_line2
+                self.initial['ship_to_city'] = invoice.billing_city
+                self.initial['ship_to_state'] = invoice.billing_state
+                self.initial['ship_to_postal_code'] = invoice.billing_postal_code
+                self.initial['ship_to_country'] = invoice.billing_country or 'US'
+            else:
+                # Use shipping address
+                self.initial['ship_to_name'] = f"{invoice.first_name} {invoice.last_name}".strip()
+                self.initial['ship_to_company'] = invoice.customer.company if invoice.customer else ''
+                self.initial['ship_to_address_line1'] = invoice.shipping_address_line1
+                self.initial['ship_to_address_line2'] = invoice.shipping_address_line2
+                self.initial['ship_to_city'] = invoice.shipping_city
+                self.initial['ship_to_state'] = invoice.shipping_state
+                self.initial['ship_to_postal_code'] = invoice.shipping_postal_code
+                self.initial['ship_to_country'] = invoice.shipping_country or 'US'
+            
+            self.initial['ship_to_phone'] = invoice.phone
+            self.initial['ship_to_email'] = invoice.email
+            
+        # Set default ship date to today
+        if not self.instance.pk and not self.initial.get('ship_date'):
+            from django.utils import timezone
+            self.initial['ship_date'] = timezone.now()
+
+
+class ShipmentItemForm(forms.ModelForm):
+    class Meta:
+        model = ShipmentItem
+        fields = ['invoice_item', 'quantity_shipped', 'serial_numbers', 'notes']
+        widgets = {
+            'invoice_item': forms.Select(attrs={
+                'class': 'select select-bordered w-full'
+            }),
+            'quantity_shipped': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-full',
+                'step': '0.01',
+                'min': '0.01'
+            }),
+            'serial_numbers': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered w-full',
+                'rows': 2,
+                'placeholder': 'Enter serial numbers (JSON format)'
+            }),
+            'notes': forms.Textarea(attrs={
+                'class': 'textarea textarea-bordered w-full',
+                'rows': 2,
+                'placeholder': 'Notes about this item'
+            }),
+        }
+    
+    def __init__(self, *args, **kwargs):
+        shipment = kwargs.pop('shipment', None)
+        super().__init__(*args, **kwargs)
+        
+        # Filter invoice items to only show items from this shipment's invoice
+        if shipment and shipment.invoice:
+            self.fields['invoice_item'].queryset = shipment.invoice.items.all()
+
+
+ShipmentItemFormSet = inlineformset_factory(
+    InvoiceShipment, ShipmentItem,
+    form=ShipmentItemForm,
+    extra=1,
+    can_delete=True,
+    fields=['invoice_item', 'quantity_shipped', 'serial_numbers', 'notes']
+)

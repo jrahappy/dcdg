@@ -11,91 +11,27 @@
     
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    
     <!-- Include jQuery (required for Summernote) -->
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-    
     <!-- Include Summernote CSS/JS -->
     <link href="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/summernote@0.8.18/dist/summernote-lite.min.js"></script>
     
-    
-    <!-- HTMX -->
-    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
-    
-    <!-- Alpine.js for reactive components -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    
-    <!-- DaisyUI (if not already included via Tailwind) -->
-    <link href="https://cdn.jsdelivr.net/npm/daisyui@4.4.2/dist/full.min.css" rel="stylesheet" type="text/css" />
     {% vite_hmr_client %}
+    {% vite_asset 'static/js/main.js' %}
     
     {% block extra_head %}{% endblock %}
 </head>
-<body class="bg-base-100" x-data="{ mobileMenu: false }" @htmx:after-swap="window.scrollTo(0, 0)">
-    {% block navbar %}
-    <div class="navbar bg-base-100 shadow-lg">
-        <div class="navbar-start">
-            <!-- Mobile menu -->
-            <div class="dropdown">
-                <label tabindex="0" class="btn btn-ghost lg:hidden">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h8m-8 6h16" />
-                    </svg>
-                </label>
-                <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
-                    <li><a href="/">Home</a></li>
-                    <li><a href="/blog/">Blog</a></li>
-                </ul>
-            </div>
-            <a href="/" class="btn btn-ghost normal-case text-xl">Dental Support Organization</a>
-        </div>
-        
-        <!-- Desktop menu -->
-        <div class="navbar-center hidden lg:flex">
-            <ul class="menu menu-horizontal px-1">
-                <li><a href="/">Home</a></li>
-                <li><a href="/blog/">Blog</a></li>
-            </ul>
-        </div>
-        
-        <div class="navbar-end">
-            {% if user.is_authenticated %}
-                <a href="{% url 'dashboard:home' %}" class="btn btn-sm btn-primary">Go to Dashboard</a>
-            {% else %}
-                <a href="{% url 'account_login' %}" class="btn btn-sm btn-ghost">Login</a>
-                <a href="{% url 'account_signup' %}" class="btn btn-sm btn-primary ml-2">Sign Up</a>
-            {% endif %}
-        </div>
-    </div>
-    {% endblock %}
+<body class="bg-base-100">
+    {% block navbar %}{% endblock %}
     
     {% block main %}
     <main class="container mx-auto py-6 px-4">
-        {% if messages %}
-            <div id="messages_container_root" class="mb-4 space-y-2">
-                {% for message in messages %}
-                    <div class="alert {% if message.tags == 'error' %}alert-error{% elif message.tags == 'warning' %}alert-warning{% elif message.tags == 'success' %}alert-success{% else %}alert-info{% endif %} shadow-lg"
-                         x-data="{ show: true }"
-                         x-init="setTimeout(() => show = false, 5000)"
-                         x-show="show"
-                         x-transition:leave="transition ease-in duration-200"
-                         x-transition:leave-start="opacity-100"
-                         x-transition:leave-end="opacity-0">
-                        <div>
-                            <span>{{ message }}</span>
-                        </div>
-                        <div class="flex-none">
-                            <button @click="show = false" class="btn btn-sm btn-ghost">✕</button>
-                        </div>
-                    </div>
-                {% endfor %}
-            </div>
-        {% endif %}
-        
-        {% block content %}
-        {% endblock %}
+        {% block content %}{% endblock %}
     </main>
     {% endblock %}
+    {% block footer %}{% endblock %}
+    {% block scripts %}{% endblock %}
+
 </body>
 </html>

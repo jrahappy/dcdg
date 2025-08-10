@@ -1,167 +1,345 @@
 {% extends 'customer_portal/base.html' %}
 
-{% block title %}Dashboard{% endblock %}
+{% block account_page_title %}Dashboard{% endblock %}
 
-{% block content %}
+{% block account_content %}
+<!-- Breadcrumb -->
+<div class="breadcrumbs text-sm mb-6">
+    <ul>
+        <li><a href="{% url 'customer_portal:dashboard' %}">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+        </a></li>
+        <li>Dashboard</li>
+    </ul>
+</div>
+
+<!-- Welcome Header -->
 <div class="mb-8">
-    <h1 class="text-2xl font-bold text-gray-900">Welcome back, {{ user.first_name }}!</h1>
-    <p class="mt-1 text-sm text-gray-600">Manage your account, orders, and addresses from your personal dashboard.</p>
+    <h1 class="text-3xl font-bold text-gray-900">
+        Welcome back, {{ customer.first_name|default:request.user.username }}!
+    </h1>
+    <p class="mt-2 text-sm text-gray-600">Here's an overview of your account activity</p>
 </div>
 
-<!-- Statistics Cards -->
-<div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-    <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-        <dt class="truncate text-sm font-medium text-gray-500">Total Orders</dt>
-        <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ total_orders }}</dd>
+<!-- Profile Completion Alert -->
+{% if profile_completion < 100 %}
+<div class="alert alert-warning mb-6">
+    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+    </svg>
+    <div>
+        <h3 class="font-bold">Complete Your Profile</h3>
+        <div class="text-xs">Your profile is {{ profile_completion }}% complete. 
+            {% if not customer.phone %}<a href="{% url 'customer_portal:profile_edit' %}" class="link">Add phone number</a>{% endif %}
+            {% if not customer.company_name %}<a href="{% url 'customer_portal:company_info_edit' %}" class="link">Add company info</a>{% endif %}
+            {% if address_count == 0 %}<a href="{% url 'customer_portal:address_create' %}" class="link">Add an address</a>{% endif %}
+        </div>
     </div>
-    <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-        <dt class="truncate text-sm font-medium text-gray-500">Saved Addresses</dt>
-        <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ saved_addresses.count }}</dd>
+    <div>
+        <div class="radial-progress text-warning" style="--value:{{ profile_completion }};">{{ profile_completion }}%</div>
     </div>
-    <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-        <dt class="truncate text-sm font-medium text-gray-500">Member Since</dt>
-        <dd class="mt-1 text-3xl font-semibold tracking-tight text-gray-900">{{ user.date_joined|date:"Y" }}</dd>
+</div>
+{% endif %}
+
+<!-- Key Metrics -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <!-- Total Orders -->
+    <div class="stats shadow">
+        <div class="stat">
+            <div class="stat-figure text-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                </svg>
+            </div>
+            <div class="stat-title">Total Orders</div>
+            <div class="stat-value text-primary">{{ total_orders }}</div>
+            <div class="stat-desc">{{ recent_order_count }} in last 30 days</div>
+        </div>
     </div>
-    <div class="overflow-hidden rounded-lg bg-white px-4 py-5 shadow sm:p-6">
-        <dt class="truncate text-sm font-medium text-gray-500">Account Status</dt>
-        <dd class="mt-1 text-3xl font-semibold tracking-tight text-green-600">Active</dd>
+
+    <!-- Total Spent -->
+    <div class="stats shadow">
+        <div class="stat">
+            <div class="stat-figure text-secondary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+            </div>
+            <div class="stat-title">Total Spent</div>
+            <div class="stat-value text-secondary">${{ total_spent|floatformat:2 }}</div>
+            <div class="stat-desc">Lifetime value</div>
+        </div>
+    </div>
+
+    <!-- Active Shipments -->
+    <div class="stats shadow">
+        <div class="stat">
+            <div class="stat-figure text-info">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                </svg>
+            </div>
+            <div class="stat-title">Active Shipments</div>
+            <div class="stat-value text-info">{{ active_shipments }}</div>
+            <div class="stat-desc">In transit</div>
+        </div>
+    </div>
+
+    <!-- Saved Addresses -->
+    <div class="stats shadow">
+        <div class="stat">
+            <div class="stat-figure text-success">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+            </div>
+            <div class="stat-title">Addresses</div>
+            <div class="stat-value text-success">{{ address_count }}</div>
+            <div class="stat-desc">Saved locations</div>
+        </div>
     </div>
 </div>
 
-<!-- Recent Orders -->
-<div class="mt-8">
-    <div class="sm:flex sm:items-center">
-        <div class="sm:flex-auto">
-            <h2 class="text-xl font-semibold text-gray-900">Recent Orders</h2>
-            <p class="mt-2 text-sm text-gray-700">Your latest orders from our shop.</p>
-        </div>
-        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-            <a href="{% url 'customer_portal:order_list' %}" class="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-                View all orders
-            </a>
-        </div>
-    </div>
-    
-    {% if recent_orders %}
-    <div class="mt-6 overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-        <table class="min-w-full divide-y divide-gray-300">
-            <thead class="bg-gray-50">
-                <tr>
-                    <th scope="col" class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Order #</th>
-                    <th scope="col" class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Date</th>
-                    <th scope="col" class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Status</th>
-                    <th scope="col" class="px-6 py-3 text-left text-sm font-semibold text-gray-900">Total</th>
-                    <th scope="col" class="relative px-6 py-3">
-                        <span class="sr-only">View</span>
-                    </th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-200 bg-white">
-                {% for order in recent_orders %}
-                <tr>
-                    <td class="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                        {{ order.order_number }}
-                    </td>
-                    <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                        {{ order.order_date|date:"M d, Y" }}
-                    </td>
-                    <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium
-                            {% if order.status == 'pending' %}bg-yellow-100 text-yellow-800
-                            {% elif order.status == 'processing' %}bg-blue-100 text-blue-800
-                            {% elif order.status == 'shipped' %}bg-purple-100 text-purple-800
-                            {% elif order.status == 'delivered' %}bg-green-100 text-green-800
-                            {% elif order.status == 'cancelled' %}bg-red-100 text-red-800
-                            {% else %}bg-gray-100 text-gray-800{% endif %}">
-                            {{ order.get_status_display }}
-                        </span>
-                    </td>
-                    <td class="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                        ${{ order.total_amount|floatformat:2 }}
-                    </td>
-                    <td class="relative whitespace-nowrap py-4 pl-3 pr-6 text-right text-sm font-medium">
-                        <a href="{% url 'customer_portal:order_detail' order.pk %}" class="text-indigo-600 hover:text-indigo-900">
-                            View<span class="sr-only">, {{ order.order_number }}</span>
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% else %}
-    <div class="mt-6 text-center py-12 bg-white rounded-lg shadow">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-        </svg>
-        <h3 class="mt-2 text-sm font-medium text-gray-900">No orders yet</h3>
-        <p class="mt-1 text-sm text-gray-500">Start shopping to see your orders here.</p>
-        <div class="mt-6">
-            <a href="{% url 'shop:product_list' %}" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-                <i class="fas fa-shopping-cart -ml-0.5 mr-1.5 h-5 w-5"></i>
-                Start Shopping
-            </a>
+<!-- Order Status Overview -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <!-- Order Status Breakdown -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title mb-4">Order Status</h2>
+            
+            <div class="space-y-4">
+                <!-- Pending Orders -->
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="badge badge-warning badge-lg mr-3"></div>
+                        <span>Pending</span>
+                    </div>
+                    <span class="font-bold">{{ pending_orders }}</span>
+                </div>
+                
+                <!-- Completed Orders -->
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="badge badge-success badge-lg mr-3"></div>
+                        <span>Completed</span>
+                    </div>
+                    <span class="font-bold">{{ completed_orders }}</span>
+                </div>
+                
+                <!-- Processing Orders -->
+                <div class="flex justify-between items-center">
+                    <div class="flex items-center">
+                        <div class="badge badge-info badge-lg mr-3"></div>
+                        <span>Processing</span>
+                    </div>
+                    <span class="font-bold">{{ total_orders|add:"-"|add:pending_orders|add:"-"|add:completed_orders }}</span>
+                </div>
+            </div>
+            
+            <div class="card-actions justify-end mt-4">
+                <a href="{% url 'customer_portal:order_list' %}" class="btn btn-primary btn-sm">View All Orders</a>
+            </div>
         </div>
     </div>
-    {% endif %}
-</div>
 
-<!-- Saved Addresses -->
-<div class="mt-8">
-    <div class="sm:flex sm:items-center">
-        <div class="sm:flex-auto">
-            <h2 class="text-xl font-semibold text-gray-900">Saved Addresses</h2>
-            <p class="mt-2 text-sm text-gray-700">Your saved shipping and billing addresses.</p>
-        </div>
-        <div class="mt-4 sm:ml-16 sm:mt-0 sm:flex-none">
-            <a href="{% url 'customer_portal:address_create' %}" class="block rounded-md bg-indigo-600 px-3 py-2 text-center text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-                Add address
-            </a>
-        </div>
-    </div>
-    
-    {% if saved_addresses %}
-    <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {% for address in saved_addresses %}
-        <div class="relative rounded-lg border border-gray-300 bg-white px-6 py-5 shadow-sm hover:border-gray-400">
-            {% if address.is_default %}
-            <span class="absolute -top-2 -right-2 inline-flex items-center rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-medium text-green-800">
-                Default
-            </span>
-            {% endif %}
-            <h3 class="text-sm font-medium text-gray-900">
-                {{ address.label|default:address.get_address_type_display }}
-            </h3>
-            <address class="mt-3 text-sm not-italic text-gray-500">
-                {{ address.recipient_name }}<br>
-                {{ address.address_line1 }}<br>
-                {% if address.address_line2 %}{{ address.address_line2 }}<br>{% endif %}
-                {{ address.city }}, {{ address.state }} {{ address.postal_code }}<br>
-                {% if address.phone %}Phone: {{ address.phone }}{% endif %}
-            </address>
-            <div class="mt-4">
-                <a href="{% url 'customer_portal:address_update' address.pk %}" class="text-sm font-medium text-indigo-600 hover:text-indigo-500">
-                    Edit
+    <!-- Quick Actions -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title mb-4">Quick Actions</h2>
+            
+            <div class="grid grid-cols-1 gap-2">
+                <a href="{% url 'shop:product_list' %}" class="btn btn-outline btn-sm justify-start">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    Shop Now
+                </a>
+                
+                <a href="{% url 'customer_portal:profile' %}" class="btn btn-outline btn-sm justify-start">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                    View Profile
+                </a>
+                
+                <a href="{% url 'customer_portal:address_create' %}" class="btn btn-outline btn-sm justify-start">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Add New Address
+                </a>
+                
+                <a href="{% url 'customer_portal:company_info' %}" class="btn btn-outline btn-sm justify-start">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                    </svg>
+                    Company Info
                 </a>
             </div>
         </div>
-        {% endfor %}
     </div>
-    {% else %}
-    <div class="mt-6 text-center py-12 bg-white rounded-lg shadow">
-        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-        </svg>
-        <h3 class="mt-2 text-sm font-medium text-gray-900">No addresses saved</h3>
-        <p class="mt-1 text-sm text-gray-500">Save your addresses for faster checkout.</p>
-        <div class="mt-6">
-            <a href="{% url 'customer_portal:address_create' %}" class="inline-flex items-center rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-indigo-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
-                <i class="fas fa-plus -ml-0.5 mr-1.5 h-5 w-5"></i>
-                Add Address
-            </a>
+
+    <!-- Notifications Summary -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title mb-4">
+                Notifications
+                {% if unread_notifications > 0 %}
+                <div class="badge badge-error">{{ unread_notifications }}</div>
+                {% endif %}
+            </h2>
+            
+            {% if unread_notifications > 0 %}
+            <div class="alert alert-info">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>You have {{ unread_notifications }} unread notification{{ unread_notifications|pluralize }}</span>
+            </div>
+            {% else %}
+            <p class="text-gray-500">No new notifications</p>
+            {% endif %}
+            
+            <div class="card-actions justify-end mt-4">
+                <a href="{% url 'customer_portal:notification_list' %}" class="btn btn-primary btn-sm">View Notifications</a>
+            </div>
         </div>
     </div>
-    {% endif %}
+</div>
+
+<!-- Recent Orders Table -->
+<div class="card bg-base-100 shadow-xl mb-8">
+    <div class="card-body">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="card-title">Recent Orders</h2>
+            <a href="{% url 'customer_portal:order_list' %}" class="btn btn-ghost btn-sm">
+                View All
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </a>
+        </div>
+        
+        {% if recent_orders %}
+        <div class="overflow-x-auto">
+            <table class="table table-zebra">
+                <thead>
+                    <tr>
+                        <th>Order #</th>
+                        <th>Date</th>
+                        <th>Items</th>
+                        <th>Total</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in recent_orders %}
+                    <tr>
+                        <td class="font-medium">#{{ order.invoice_number }}</td>
+                        <td>{{ order.created_at|date:"M d, Y" }}</td>
+                        <td>{{ order.items.count }} item{{ order.items.count|pluralize }}</td>
+                        <td class="font-semibold">${{ order.total_amount|floatformat:2 }}</td>
+                        <td>
+                            <div class="badge 
+                                {% if order.status == 'pending' %}badge-warning
+                                {% elif order.status == 'processing' %}badge-info
+                                {% elif order.status == 'paid' %}badge-success
+                                {% elif order.status == 'shipped' %}badge-primary
+                                {% elif order.status == 'cancelled' %}badge-error
+                                {% else %}badge-ghost{% endif %}">
+                                {{ order.get_status_display|default:order.status }}
+                            </div>
+                        </td>
+                        <td>
+                            <a href="{% url 'customer_portal:order_detail' order.pk %}" class="btn btn-ghost btn-xs">
+                                View Details
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-8">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" />
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No orders yet</h3>
+            <p class="mt-1 text-sm text-gray-500">Start shopping to see your orders here.</p>
+            <div class="mt-6">
+                <a href="{% url 'shop:product_list' %}" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    Start Shopping
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Saved Addresses -->
+<div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="card-title">Saved Addresses</h2>
+            <a href="{% url 'customer_portal:address_list' %}" class="btn btn-ghost btn-sm">
+                Manage
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </a>
+        </div>
+        
+        {% if saved_addresses %}
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {% for address in saved_addresses %}
+            <div class="card bg-gray-50">
+                <div class="card-body p-4">
+                    <h3 class="font-semibold flex items-center justify-between">
+                        {{ address.label|default:address.get_address_type_display }}
+                        {% if address.is_default %}
+                        <span class="badge badge-success badge-sm">Default</span>
+                        {% endif %}
+                    </h3>
+                    <p class="text-sm text-gray-600 mt-2">
+                        {{ address.recipient_name }}<br>
+                        {{ address.address_line1 }}<br>
+                        {% if address.address_line2 %}{{ address.address_line2 }}<br>{% endif %}
+                        {{ address.city }}, {{ address.state }} {{ address.postal_code }}
+                    </p>
+                    <div class="card-actions justify-end mt-2">
+                        <a href="{% url 'customer_portal:address_update' address.pk %}" class="link link-primary text-sm">Edit</a>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-8">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No addresses saved</h3>
+            <p class="mt-1 text-sm text-gray-500">Save your addresses for faster checkout.</p>
+            <div class="mt-6">
+                <a href="{% url 'customer_portal:address_create' %}" class="btn btn-primary">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                    </svg>
+                    Add Your First Address
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </div>
 </div>
 {% endblock %}

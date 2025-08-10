@@ -9,14 +9,22 @@ from django.db.models import Q
 from django.utils import timezone
 
 from customer.models import Customer, CustomerAddress
-from sales.models import Invoice
-from .forms import ProfileForm, AddressForm
+from sales.models import Invoice, InvoiceShipment
+from .forms import ProfileForm, AddressForm, CompanyInfoForm
 from .models import Notification
+
+
+def test_view(request):
+    """Test view to debug template inheritance"""
+    return render(request, "customer_portal/test.html")
 
 
 @login_required
 def dashboard(request):
     """Customer dashboard overview"""
+    from django.db.models import Sum, Count, Avg, Q
+    from datetime import datetime, timedelta
+    
     # Get or create customer profile
     customer, created = Customer.objects.get_or_create(
         user=request.user,
@@ -24,26 +32,74 @@ def dashboard(request):
             "email": request.user.email,
             "first_name": request.user.first_name,
             "last_name": request.user.last_name,
+            "company_category": "customer",
         },
     )
 
+    # Get all user's orders
+    all_orders = Invoice.objects.filter(
+        Q(user=request.user) | Q(customer=customer)
+    )
+    
     # Get recent orders
-    recent_orders = Invoice.objects.filter(
-        user=request.user, is_shop_order=True
-    ).order_by("-created_at")[:5]
-
+    recent_orders = all_orders.order_by("-created_at")[:5]
+    
+    # Calculate statistics
+    total_orders = all_orders.count()
+    pending_orders = all_orders.filter(status="pending").count()
+    completed_orders = all_orders.filter(status="paid").count()
+    
+    # Calculate total spent
+    total_spent = all_orders.filter(status="paid").aggregate(
+        total=Sum("total_amount")
+    )["total"] or 0
+    
+    # Get orders from last 30 days
+    thirty_days_ago = datetime.now() - timedelta(days=30)
+    recent_order_count = all_orders.filter(
+        created_at__gte=thirty_days_ago
+    ).count()
+    
     # Get saved addresses
     saved_addresses = CustomerAddress.objects.filter(
         Q(user=request.user) | Q(customer=customer)
-    ).filter(is_active=True)[:3]
+    ).filter(is_active=True)
+    
+    # Get active shipments
+    active_shipments = InvoiceShipment.objects.filter(
+        invoice__in=all_orders,
+        status__in=["pending", "shipped"]
+    ).count()
+    
+    # Get unread notifications
+    unread_notifications = Notification.objects.filter(
+        user=request.user, is_read=False
+    ).count()
+    
+    # Check profile completion
+    profile_completion = 0
+    if customer.first_name and customer.last_name:
+        profile_completion += 25
+    if customer.phone:
+        profile_completion += 25
+    if customer.company_name:
+        profile_completion += 25
+    if saved_addresses.exists():
+        profile_completion += 25
 
     context = {
         "customer": customer,
         "recent_orders": recent_orders,
-        "saved_addresses": saved_addresses,
-        "total_orders": Invoice.objects.filter(
-            user=request.user, is_shop_order=True
-        ).count(),
+        "saved_addresses": saved_addresses[:3],
+        "total_orders": total_orders,
+        "pending_orders": pending_orders,
+        "completed_orders": completed_orders,
+        "total_spent": total_spent,
+        "recent_order_count": recent_order_count,
+        "active_shipments": active_shipments,
+        "unread_notifications": unread_notifications,
+        "profile_completion": profile_completion,
+        "address_count": saved_addresses.count(),
     }
 
     return render(request, "customer_portal/dashboard.html", context)
@@ -52,18 +108,38 @@ def dashboard(request):
 @login_required
 def order_list(request):
     """List all orders for the logged-in customer"""
+    from django.db.models import Sum, Count
+    from datetime import datetime, timedelta
+    
     customer = Customer.objects.filter(user=request.user).first()
     # Get all orders for the user
     # order_queryset = Invoice.objects.filter(user=request.user).order_by("-created_at")
     order_queryset = (
-        Invoice.objects.filter(Q(customer=customer) | Q(user=request.user)).order_by(
-            "-created_at"
-        )
+        Invoice.objects.filter(Q(customer=customer) | Q(user=request.user))
+        .prefetch_related('shipments', 'items')
+        .order_by("-created_at")
         # if customer
         # else Invoice.objects.filter(user=request.user, is_shop_order=True).order_by(
         #     "-created_at"
         # )
     )
+    
+    # Calculate statistics
+    total_orders = order_queryset.count()
+    total_spent = order_queryset.filter(status="paid").aggregate(
+        total=Sum("total_amount")
+    )["total"] or 0
+    
+    # Status counts
+    pending_count = order_queryset.filter(status="pending").count()
+    processing_count = order_queryset.filter(status="processing").count()
+    paid_count = order_queryset.filter(status="paid").count()
+    shipped_count = order_queryset.filter(status="shipped").count()
+    cancelled_count = order_queryset.filter(status="cancelled").count()
+    
+    # Recent orders (last 30 days)
+    thirty_days_ago = datetime.now() - timedelta(days=30)
+    recent_count = order_queryset.filter(created_at__gte=thirty_days_ago).count()
 
     # Pagination
     paginator = Paginator(order_queryset, 10)
@@ -76,6 +152,14 @@ def order_list(request):
         "page_obj": orders,
         "is_paginated": orders.has_other_pages(),
         "paginator": paginator,
+        "total_orders": total_orders,
+        "total_spent": total_spent,
+        "pending_count": pending_count,
+        "processing_count": processing_count,
+        "paid_count": paid_count,
+        "shipped_count": shipped_count,
+        "cancelled_count": cancelled_count,
+        "recent_count": recent_count,
     }
 
     return render(request, "customer_portal/order_list.html", context)
@@ -86,29 +170,127 @@ def order_detail(request, pk):
     """Order detail view for customers"""
     # Only allow viewing own orders
     order = get_object_or_404(Invoice, pk=pk)
+    tracking_info = InvoiceShipment.objects.filter(invoice=order).prefetch_related('items')
     # order = get_object_or_404(Invoice, pk=pk, user=request.user, is_shop_order=True)
 
-    return render(request, "customer_portal/order_detail.html", {"order": order})
+    return render(
+        request,
+        "customer_portal/order_detail.html",
+        {"order": order, "tracking_info": tracking_info},
+    )
 
 
 @login_required
-def profile_view(request):
-    """View and edit customer profile"""
+def company_info(request):
+    """View company information (read-only)"""
     customer, created = Customer.objects.get_or_create(
         user=request.user,
         defaults={
             "email": request.user.email,
             "first_name": request.user.first_name,
             "last_name": request.user.last_name,
+            "company_category": "customer",  # Always set to customer for portal users
+        },
+    )
+
+    return render(
+        request,
+        "customer_portal/company_info.html",
+        {
+            "customer": customer,
+        },
+    )
+
+
+@login_required
+def company_info_edit(request):
+    """Edit company information"""
+    customer, created = Customer.objects.get_or_create(
+        user=request.user,
+        defaults={
+            "email": request.user.email,
+            "first_name": request.user.first_name,
+            "last_name": request.user.last_name,
+            "company_category": "customer",  # Always set to customer for portal users
+        },
+    )
+
+    if request.method == "POST":
+        form = CompanyInfoForm(request.POST, instance=customer)
+        if form.is_valid():
+            customer = form.save(commit=False)
+            customer.company_category = "customer"  # Ensure it stays as customer
+            customer.save()
+            messages.success(request, "Company information updated successfully!")
+            return redirect("customer_portal:company_info")
+    else:
+        form = CompanyInfoForm(instance=customer)
+
+    return render(
+        request,
+        "customer_portal/company_info_edit.html",
+        {
+            "form": form,
+            "customer": customer,
+        },
+    )
+
+
+@login_required
+def profile_view(request):
+    """View customer profile (read-only)"""
+    customer, created = Customer.objects.get_or_create(
+        user=request.user,
+        defaults={
+            "email": request.user.email,
+            "first_name": request.user.first_name,
+            "last_name": request.user.last_name,
+            "company_category": "customer",  # Always set to customer for portal users
         },
     )
 
     # Get the default address
     default_address = CustomerAddress.objects.filter(
-        customer=customer, 
-        is_default=True, 
-        is_active=True
+        customer=customer, is_default=True, is_active=True
     ).first()
+
+    # Get all addresses for this customer
+    addresses = CustomerAddress.objects.filter(
+        customer=customer, is_active=True
+    ).order_by('-is_default', 'label')
+
+    # Get recent notifications
+    recent_notifications = Notification.objects.filter(user=request.user)[:5]
+
+    unread_notification_count = Notification.objects.filter(
+        user=request.user, is_read=False
+    ).count()
+
+    return render(
+        request,
+        "customer_portal/profile.html",
+        {
+            "customer": customer,
+            "default_address": default_address,
+            "addresses": addresses,
+            "recent_notifications": recent_notifications,
+            "unread_notification_count": unread_notification_count,
+        },
+    )
+
+
+@login_required
+def profile_edit(request):
+    """Edit customer profile"""
+    customer, created = Customer.objects.get_or_create(
+        user=request.user,
+        defaults={
+            "email": request.user.email,
+            "first_name": request.user.first_name,
+            "last_name": request.user.last_name,
+            "company_category": "customer",  # Always set to customer for portal users
+        },
+    )
 
     if request.method == "POST":
         form = ProfileForm(request.POST, instance=customer)
@@ -124,24 +306,13 @@ def profile_view(request):
     else:
         form = ProfileForm(instance=customer)
 
-    # Get recent notifications
-    recent_notifications = Notification.objects.filter(
-        user=request.user
-    )[:5]
-    
-    unread_notification_count = Notification.objects.filter(
-        user=request.user,
-        is_read=False
-    ).count()
-    
     return render(
-        request, "customer_portal/profile.html", {
-            "form": form, 
+        request,
+        "customer_portal/profile_edit.html",
+        {
+            "form": form,
             "customer": customer,
-            "default_address": default_address,
-            "recent_notifications": recent_notifications,
-            "unread_notification_count": unread_notification_count
-        }
+        },
     )
 
 
@@ -161,22 +332,34 @@ def address_list(request):
         customer = Customer.objects.create(
             user=request.user,
             email=request.user.email,
-            first_name=request.user.first_name or '',
-            last_name=request.user.last_name or '',
-            company_category='customer',
-            is_active=True
+            first_name=request.user.first_name or "",
+            last_name=request.user.last_name or "",
+            company_category="customer",
+            is_active=True,
         )
 
     # Get all addresses for this user (either directly linked to user or through customer)
-    addresses = CustomerAddress.objects.filter(
-        Q(user=request.user) | Q(customer=customer)
-    ).filter(is_active=True).distinct()
+    addresses = (
+        CustomerAddress.objects.filter(Q(user=request.user) | Q(customer=customer))
+        .filter(is_active=True)
+        .distinct()
+    )
+    
+    # Calculate address type counts
+    shipping_count = addresses.filter(address_type="shipping").count()
+    billing_count = addresses.filter(address_type="billing").count()
+    both_count = addresses.filter(address_type="both").count()
 
     return render(
-        request, "customer_portal/address_list.html", {
+        request,
+        "customer_portal/address_list.html",
+        {
             "addresses": addresses,
-            "object_list": addresses  # For template compatibility
-        }
+            "object_list": addresses,  # For template compatibility
+            "shipping_count": shipping_count,
+            "billing_count": billing_count,
+            "both_count": both_count,
+        },
     )
 
 
@@ -199,10 +382,10 @@ def address_create(request):
                 customer = Customer.objects.create(
                     user=user,
                     email=user.email,
-                    first_name=user.first_name or '',
-                    last_name=user.last_name or '',
-                    company_category='customer',
-                    is_active=True
+                    first_name=user.first_name or "",
+                    last_name=user.last_name or "",
+                    company_category="customer",
+                    is_active=True,
                 )
                 address.customer = customer
             address.save()
@@ -323,109 +506,100 @@ def change_password(request):
 def notification_list(request):
     """List all notifications for the user"""
     notifications = Notification.objects.filter(user=request.user)
-    
+
     # Filter by read status
-    filter_status = request.GET.get('status', 'all')
-    if filter_status == 'unread':
+    filter_status = request.GET.get("status", "all")
+    if filter_status == "unread":
         notifications = notifications.filter(is_read=False)
-    elif filter_status == 'read':
+    elif filter_status == "read":
         notifications = notifications.filter(is_read=True)
-    
+
     # Filter by type
-    filter_type = request.GET.get('type')
-    if filter_type and filter_type != 'all':
+    filter_type = request.GET.get("type")
+    if filter_type and filter_type != "all":
         notifications = notifications.filter(notification_type=filter_type)
-    
+
     # Pagination
     paginator = Paginator(notifications, 20)
-    page_number = request.GET.get('page')
+    page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
-    
+
     # Get unread count
     unread_count = Notification.objects.filter(user=request.user, is_read=False).count()
-    
+
     context = {
-        'notifications': page_obj,
-        'page_obj': page_obj,
-        'is_paginated': page_obj.has_other_pages(),
-        'unread_count': unread_count,
-        'filter_status': filter_status,
-        'filter_type': filter_type,
-        'notification_types': Notification.NOTIFICATION_TYPES,
+        "notifications": page_obj,
+        "page_obj": page_obj,
+        "is_paginated": page_obj.has_other_pages(),
+        "unread_count": unread_count,
+        "filter_status": filter_status,
+        "filter_type": filter_type,
+        "notification_types": Notification.NOTIFICATION_TYPES,
     }
-    
-    return render(request, 'customer_portal/notification_list.html', context)
+
+    return render(request, "customer_portal/notification_list.html", context)
 
 
 @login_required
 def notification_detail(request, pk):
     """View a single notification and mark it as read"""
     notification = get_object_or_404(Notification, user=request.user, pk=pk)
-    
+
     # Mark as read
     notification.mark_as_read()
-    
+
     # If notification has a link, redirect to it
     if notification.link:
         return redirect(notification.link)
-    
-    return render(request, 'customer_portal/notification_detail.html', {
-        'notification': notification
-    })
+
+    return render(
+        request,
+        "customer_portal/notification_detail.html",
+        {"notification": notification},
+    )
 
 
 @login_required
 def mark_notification_read(request, pk):
     """Mark a notification as read via AJAX"""
-    if request.method == 'POST':
+    if request.method == "POST":
         notification = get_object_or_404(Notification, user=request.user, pk=pk)
         notification.mark_as_read()
-        
+
         # Get updated unread count
         unread_count = Notification.objects.filter(
-            user=request.user, 
-            is_read=False
+            user=request.user, is_read=False
         ).count()
-        
-        return JsonResponse({
-            'success': True,
-            'unread_count': unread_count
-        })
-    
-    return JsonResponse({'success': False}, status=400)
+
+        return JsonResponse({"success": True, "unread_count": unread_count})
+
+    return JsonResponse({"success": False}, status=400)
 
 
 @login_required
 def mark_all_notifications_read(request):
     """Mark all notifications as read"""
-    if request.method == 'POST':
-        Notification.objects.filter(
-            user=request.user,
-            is_read=False
-        ).update(
-            is_read=True,
-            read_at=timezone.now()
+    if request.method == "POST":
+        Notification.objects.filter(user=request.user, is_read=False).update(
+            is_read=True, read_at=timezone.now()
         )
-        
-        messages.success(request, 'All notifications marked as read.')
-        
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'success': True})
-        
-        return redirect('customer_portal:notification_list')
-    
-    return JsonResponse({'success': False}, status=400)
+
+        messages.success(request, "All notifications marked as read.")
+
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest":
+            return JsonResponse({"success": True})
+
+        return redirect("customer_portal:notification_list")
+
+    return JsonResponse({"success": False}, status=400)
 
 
 @login_required
 def get_notification_count(request):
     """Get unread notification count via AJAX"""
-    unread_count = Notification.objects.filter(
-        user=request.user,
-        is_read=False
-    ).count()
-    
-    return JsonResponse({'unread_count': unread_count})
+    unread_count = Notification.objects.filter(user=request.user, is_read=False).count()
+
+    return JsonResponse({"unread_count": unread_count})
 
 
 # Organization features removed - only for admin/staff use

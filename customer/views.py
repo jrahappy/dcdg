@@ -7,6 +7,7 @@ from django.views.generic import ListView, CreateView, UpdateView, DeleteView, D
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.db.models import Q
 from django.http import JsonResponse, HttpResponseForbidden
+from django.core.paginator import Paginator
 from .models import Customer, CustomerAddress, CustomerContact, CustomerNote, CustomerDocument, Organization
 from .forms import CustomerAddressForm, CustomerForm, CustomerContactForm, CustomerNoteForm, CustomerDocumentForm
 
@@ -29,100 +30,116 @@ class StaffRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
         return self.request.user.is_staff
 
 
-class AddressListView(LoginRequiredMixin, ListView):
-    model = CustomerAddress
-    template_name = 'customer/address_list.html'
-    context_object_name = 'addresses'
-    paginate_by = 10
+@login_required
+def address_list(request):
+    """List all addresses for the logged-in user"""
+    # Get or create customer profile for the logged-in user
+    customer, created = Customer.objects.get_or_create(
+        user=request.user,
+        defaults={
+            'email': request.user.email,
+            'first_name': request.user.first_name or 'First',
+            'last_name': request.user.last_name or 'Last'
+        }
+    )
     
-    def get_queryset(self):
-        # Get or create customer profile for the logged-in user
-        customer, created = Customer.objects.get_or_create(
-            user=self.request.user,
-            defaults={
-                'email': self.request.user.email,
-                'first_name': self.request.user.first_name or 'First',
-                'last_name': self.request.user.last_name or 'Last'
-            }
-        )
-        # Return only active addresses for this customer
-        return CustomerAddress.objects.filter(
-            customer=customer,
-            is_active=True
-        ).order_by('-is_default', '-created_at')
+    # Get only active addresses for this customer
+    addresses = CustomerAddress.objects.filter(
+        customer=customer,
+        is_active=True
+    ).order_by('-is_default', '-created_at')
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        customer = Customer.objects.get(user=self.request.user)
-        context['customer'] = customer
-        
-        # Group addresses by type for display
-        addresses = self.get_queryset()
-        context['billing_addresses'] = addresses.filter(
-            Q(address_type='billing') | Q(address_type='both')
-        )
-        context['shipping_addresses'] = addresses.filter(
-            Q(address_type='shipping') | Q(address_type='both')
-        )
-        return context
+    # Pagination
+    paginator = Paginator(addresses, 10)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    # Group addresses by type for display
+    billing_addresses = addresses.filter(
+        Q(address_type='billing') | Q(address_type='both')
+    )
+    shipping_addresses = addresses.filter(
+        Q(address_type='shipping') | Q(address_type='both')
+    )
+    
+    context = {
+        'addresses': page_obj,
+        'page_obj': page_obj,
+        'customer': customer,
+        'billing_addresses': billing_addresses,
+        'shipping_addresses': shipping_addresses,
+    }
+    
+    return render(request, 'customer/address_list.html', context)
 
 
-class AddressCreateView(LoginRequiredMixin, CreateView):
-    model = CustomerAddress
-    form_class = CustomerAddressForm
-    template_name = 'customer/address_form.html'
-    success_url = reverse_lazy('customer:address_list')
+@login_required
+def address_create(request):
+    """Create a new address for the logged-in user"""
+    customer = Customer.objects.get(user=request.user)
     
-    def form_valid(self, form):
-        customer = Customer.objects.get(user=self.request.user)
-        form.instance.customer = customer
-        messages.success(self.request, 'Address added successfully!')
-        return super().form_valid(form)
+    if request.method == 'POST':
+        form = CustomerAddressForm(request.POST)
+        if form.is_valid():
+            address = form.save(commit=False)
+            address.customer = customer
+            address.save()
+            messages.success(request, 'Address added successfully!')
+            return redirect('customer:address_list')
+    else:
+        form = CustomerAddressForm()
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Add New Address'
-        context['button_text'] = 'Add Address'
-        return context
+    context = {
+        'form': form,
+        'title': 'Add New Address',
+        'button_text': 'Add Address',
+    }
+    
+    return render(request, 'customer/address_form.html', context)
 
 
-class AddressUpdateView(LoginRequiredMixin, UpdateView):
-    model = CustomerAddress
-    form_class = CustomerAddressForm
-    template_name = 'customer/address_form.html'
-    success_url = reverse_lazy('customer:address_list')
+@login_required
+def address_update(request, pk):
+    """Update an existing address for the logged-in user"""
+    customer = Customer.objects.get(user=request.user)
+    address = get_object_or_404(CustomerAddress, pk=pk, customer=customer, is_active=True)
     
-    def get_queryset(self):
-        customer = Customer.objects.get(user=self.request.user)
-        return CustomerAddress.objects.filter(customer=customer, is_active=True)
+    if request.method == 'POST':
+        form = CustomerAddressForm(request.POST, instance=address)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Address updated successfully!')
+            return redirect('customer:address_list')
+    else:
+        form = CustomerAddressForm(instance=address)
     
-    def form_valid(self, form):
-        messages.success(self.request, 'Address updated successfully!')
-        return super().form_valid(form)
+    context = {
+        'form': form,
+        'title': 'Edit Address',
+        'button_text': 'Update Address',
+    }
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = 'Edit Address'
-        context['button_text'] = 'Update Address'
-        return context
+    return render(request, 'customer/address_form.html', context)
 
 
-class AddressDeleteView(LoginRequiredMixin, DeleteView):
-    model = CustomerAddress
-    template_name = 'customer/address_confirm_delete.html'
-    success_url = reverse_lazy('customer:address_list')
+@login_required
+def address_delete(request, pk):
+    """Delete an address (soft delete) for the logged-in user"""
+    customer = Customer.objects.get(user=request.user)
+    address = get_object_or_404(CustomerAddress, pk=pk, customer=customer, is_active=True)
     
-    def get_queryset(self):
-        customer = Customer.objects.get(user=self.request.user)
-        return CustomerAddress.objects.filter(customer=customer, is_active=True)
-    
-    def delete(self, request, *args, **kwargs):
-        # Instead of actually deleting, we'll soft delete by setting is_active to False
-        self.object = self.get_object()
-        self.object.is_active = False
-        self.object.save()
+    if request.method == 'POST':
+        # Soft delete by setting is_active to False
+        address.is_active = False
+        address.save()
         messages.success(request, 'Address removed successfully!')
-        return redirect(self.success_url)
+        return redirect('customer:address_list')
+    
+    context = {
+        'address': address,
+    }
+    
+    return render(request, 'customer/address_confirm_delete.html', context)
 
 
 @login_required
@@ -139,369 +156,398 @@ def set_default_address(request, pk):
     return redirect('customer:address_list')
 
 
-class CustomerAddressCreateView(LoginRequiredMixin, CreateView):
+@login_required
+def customer_address_create(request, customer_pk):
     """Create a new address for a specific customer"""
-    model = CustomerAddress
-    form_class = CustomerAddressForm
-    template_name = 'customer/customer_address_form.html'
+    customer = get_object_or_404(Customer, pk=customer_pk)
     
-    def dispatch(self, request, *args, **kwargs):
-        self.customer = get_object_or_404(Customer, pk=kwargs['customer_pk'])
-        return super().dispatch(request, *args, **kwargs)
+    if request.method == 'POST':
+        form = CustomerAddressForm(request.POST)
+        if form.is_valid():
+            address = form.save(commit=False)
+            address.customer = customer
+            address.save()
+            messages.success(request, 'Address added successfully!')
+            return redirect('customer:customer_detail', pk=customer.pk)
+    else:
+        form = CustomerAddressForm()
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['customer'] = self.customer
-        return context
+    context = {
+        'form': form,
+        'customer': customer,
+    }
     
-    def form_valid(self, form):
-        form.instance.customer = self.customer
-        messages.success(self.request, 'Address added successfully!')
-        return super().form_valid(form)
-    
-    def get_success_url(self):
-        return reverse('customer:customer_detail', kwargs={'pk': self.customer.pk}) + '?tab=addresses'
+    return render(request, 'customer/customer_address_form.html', context)
 
 
-# Customer views
-class CustomerListView(StaffRequiredMixin, ListView):
-    model = Customer
-    template_name = 'customer/customer_list_daisyui.html'  # Use DaisyUI template
-    context_object_name = 'customers'
+# Customer views - converted from class-based to function-based
+@staff_member_required
+def customer_list(request):
+    """List all customers"""
+    queryset = Customer.objects.filter(is_active=True)
     
-    def get_paginate_by(self, queryset):
-        # Dynamic pagination based on user selection
-        rows = self.request.GET.get('rows', '20')
-        try:
-            paginate_by = int(rows)
-            if paginate_by not in [10, 20, 50, 100]:
-                paginate_by = 20
-        except (ValueError, TypeError):
+    # Search functionality
+    search_query = request.GET.get('search', '')
+    if search_query:
+        queryset = queryset.filter(
+            Q(first_name__icontains=search_query) |
+            Q(last_name__icontains=search_query) |
+            Q(email__icontains=search_query) |
+            Q(company_name__icontains=search_query) |
+            Q(phone__icontains=search_query)
+        )
+    
+    # Filter by company category
+    category = request.GET.get('category', '')
+    if category:
+        queryset = queryset.filter(company_category=category)
+    
+    queryset = queryset.order_by('-date_joined')
+    
+    # Dynamic pagination based on user selection
+    rows = request.GET.get('rows', '20')
+    try:
+        paginate_by = int(rows)
+        if paginate_by not in [10, 20, 50, 100]:
             paginate_by = 20
-        return paginate_by
+    except (ValueError, TypeError):
+        paginate_by = 20
     
-    def get_queryset(self):
-        queryset = Customer.objects.filter(is_active=True)
-        
-        # Search functionality
-        search_query = self.request.GET.get('search')
-        if search_query:
-            queryset = queryset.filter(
-                Q(first_name__icontains=search_query) |
-                Q(last_name__icontains=search_query) |
-                Q(email__icontains=search_query) |
-                Q(company_name__icontains=search_query) |
-                Q(phone__icontains=search_query)
-            )
-        
-        # Filter by company category
-        category = self.request.GET.get('category')
-        if category:
-            queryset = queryset.filter(company_category=category)
-        
-        return queryset.order_by('-date_joined')
+    paginator = Paginator(queryset, paginate_by)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['categories'] = Customer.company_category_choices
-        context['selected_category'] = self.request.GET.get('category', '')
-        context['search_query'] = self.request.GET.get('search', '')
-        context['rows_per_page'] = self.get_paginate_by(None)
-        return context
-
-
-class CustomerDetailView(StaffRequiredMixin, DetailView):
-    model = Customer
-    template_name = 'customer/customer_detail.html'
-    context_object_name = 'customer'
+    context = {
+        'customers': page_obj,
+        'page_obj': page_obj,
+        'categories': Customer.company_category_choices,
+        'selected_category': category,
+        'search_query': search_query,
+        'rows_per_page': paginate_by,
+    }
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        customer = self.object
-        
-        # Get related data
-        context['contacts'] = customer.contacts.all()
-        context['recent_notes'] = customer.notes.all()[:5]
-        context['documents'] = customer.documents.all()
-        context['addresses'] = customer.addresses.filter(is_active=True)
-        
-        return context
+    return render(request, 'customer/customer_list_daisyui.html', context)
 
 
-class CustomerCreateView(StaffRequiredMixin, CreateView):
-    """Step 1: Create customer basic information"""
-    model = Customer
-    form_class = CustomerForm
-    template_name = 'customer/customer_create_step1.html'
+@staff_member_required
+def customer_detail(request, pk):
+    """Display customer details"""
+    customer = get_object_or_404(Customer, pk=pk)
     
-    def get_success_url(self):
-        # Redirect to step 2 (add address)
-        return reverse('customer:customer_create_step2', kwargs={'customer_pk': self.object.pk})
+    context = {
+        'customer': customer,
+        'contacts': customer.contacts.all(),
+        'recent_notes': customer.notes.all()[:5],
+        'documents': customer.documents.all(),
+        'addresses': customer.addresses.filter(is_active=True),
+    }
     
-    def form_valid(self, form):
-        messages.success(self.request, 'Customer created successfully! Now add their address.')
-        return super().form_valid(form)
+    return render(request, 'customer/customer_detail.html', context)
 
 
-class CustomerCreateStep2View(StaffRequiredMixin, CreateView):
+@staff_member_required
+def customer_create(request):
+    """Create a new customer"""
+    if request.method == 'POST':
+        form = CustomerForm(request.POST)
+        if form.is_valid():
+            customer = form.save()
+            messages.success(request, 'Customer created successfully! Now add their address.')
+            # Redirect to step 2 (add address)
+            return redirect('customer:customer_create_step2', customer_pk=customer.pk)
+    else:
+        form = CustomerForm()
+    
+    context = {
+        'form': form,
+    }
+    
+    return render(request, 'customer/customer_create_step1.html', context)
+
+
+@staff_member_required
+def customer_create_step2(request, customer_pk):
     """Step 2: Add customer address"""
-    model = CustomerAddress
-    form_class = CustomerAddressForm
-    template_name = 'customer/customer_create_step2.html'
+    customer = get_object_or_404(Customer, pk=customer_pk)
     
-    def dispatch(self, request, *args, **kwargs):
-        self.customer = get_object_or_404(Customer, pk=kwargs['customer_pk'])
-        return super().dispatch(request, *args, **kwargs)
+    if request.method == 'POST':
+        form = CustomerAddressForm(request.POST)
+        if form.is_valid():
+            address = form.save(commit=False)
+            address.customer = customer
+            address.save()
+            messages.success(request, 'Customer address added successfully!')
+            return redirect('customer:customer_detail', pk=customer.pk)
+    else:
+        form = CustomerAddressForm()
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['customer'] = self.customer
-        context['step'] = 2
-        return context
+    context = {
+        'form': form,
+        'customer': customer,
+        'step': 2,
+    }
     
-    def form_valid(self, form):
-        form.instance.customer = self.customer
-        messages.success(self.request, 'Customer address added successfully!')
-        return super().form_valid(form)
-    
-    def get_success_url(self):
-        return reverse('customer:customer_detail', kwargs={'pk': self.customer.pk})
+    return render(request, 'customer/customer_create_step2.html', context)
 
 
-class CustomerUpdateView(StaffRequiredMixin, UpdateView):
-    model = Customer
-    form_class = CustomerForm
-    template_name = 'customer/customer_form.html'
+@staff_member_required
+def customer_update(request, pk):
+    """Update an existing customer"""
+    customer = get_object_or_404(Customer, pk=pk)
     
-    def get_success_url(self):
-        return reverse('customer:customer_detail', kwargs={'pk': self.object.pk})
+    if request.method == 'POST':
+        form = CustomerForm(request.POST, instance=customer)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Customer updated successfully!')
+            return redirect('customer:customer_detail', pk=customer.pk)
+    else:
+        form = CustomerForm(instance=customer)
     
-    def form_valid(self, form):
-        messages.success(self.request, 'Customer updated successfully!')
-        return super().form_valid(form)
+    context = {
+        'form': form,
+        'customer': customer,
+    }
+    
+    return render(request, 'customer/customer_form.html', context)
 
 
-class CustomerDeleteView(StaffRequiredMixin, DeleteView):
-    model = Customer
-    template_name = 'customer/customer_confirm_delete.html'
-    success_url = reverse_lazy('customer:customer_list')
+@staff_member_required
+def customer_delete(request, pk):
+    """Delete a customer (soft delete)"""
+    customer = get_object_or_404(Customer, pk=pk)
     
-    def delete(self, request, *args, **kwargs):
+    if request.method == 'POST':
         # Soft delete
-        self.object = self.get_object()
-        self.object.is_active = False
-        self.object.save()
+        customer.is_active = False
+        customer.save()
         messages.success(request, 'Customer deleted successfully!')
-        return redirect(self.success_url)
+        return redirect('customer:customer_list')
+    
+    context = {
+        'customer': customer,
+    }
+    
+    return render(request, 'customer/customer_confirm_delete.html', context)
 
 
 # CustomerContact views
-class ContactListView(LoginRequiredMixin, ListView):
-    model = CustomerContact
-    template_name = 'customer/contact_list.html'
-    context_object_name = 'contacts'
-    paginate_by = 20
+@login_required
+def contact_list(request, customer_pk):
+    """List all contacts for a customer"""
+    customer = get_object_or_404(Customer, pk=customer_pk)
+    contacts = CustomerContact.objects.filter(customer=customer)
     
-    def get_queryset(self):
-        self.customer = get_object_or_404(Customer, pk=self.kwargs['customer_pk'])
-        return CustomerContact.objects.filter(customer=self.customer)
+    # Pagination
+    paginator = Paginator(contacts, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['customer'] = self.customer
-        return context
+    context = {
+        'contacts': page_obj,
+        'page_obj': page_obj,
+        'customer': customer,
+    }
+    
+    return render(request, 'customer/contact_list.html', context)
 
 
-class ContactCreateView(LoginRequiredMixin, CreateView):
-    model = CustomerContact
-    form_class = CustomerContactForm
-    template_name = 'customer/contact_form.html'
+@login_required
+def contact_create(request, customer_pk):
+    """Create a new contact for a customer"""
+    customer = get_object_or_404(Customer, pk=customer_pk)
     
-    def dispatch(self, request, *args, **kwargs):
-        self.customer = get_object_or_404(Customer, pk=self.kwargs['customer_pk'])
-        return super().dispatch(request, *args, **kwargs)
+    if request.method == 'POST':
+        form = CustomerContactForm(request.POST)
+        if form.is_valid():
+            contact = form.save(commit=False)
+            contact.customer = customer
+            contact.save()
+            messages.success(request, 'Contact added successfully!')
+            return redirect('customer:customer_detail', pk=customer.pk)
+    else:
+        form = CustomerContactForm()
     
-    def form_valid(self, form):
-        form.instance.customer = self.customer
-        messages.success(self.request, 'Contact added successfully!')
-        return super().form_valid(form)
+    context = {
+        'form': form,
+        'customer': customer,
+        'title': f'Add Contact for {customer}',
+    }
     
-    def get_success_url(self):
-        return reverse('customer:customer_detail', kwargs={'pk': self.customer.pk})
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['customer'] = self.customer
-        context['title'] = f'Add Contact for {self.customer}'
-        return context
+    return render(request, 'customer/contact_form.html', context)
 
 
-class ContactUpdateView(LoginRequiredMixin, UpdateView):
-    model = CustomerContact
-    form_class = CustomerContactForm
-    template_name = 'customer/contact_form.html'
+@login_required
+def contact_update(request, customer_pk, pk):
+    """Update an existing contact for a customer"""
+    customer = get_object_or_404(Customer, pk=customer_pk)
+    contact = get_object_or_404(CustomerContact, pk=pk, customer=customer)
     
-    def get_queryset(self):
-        self.customer = get_object_or_404(Customer, pk=self.kwargs['customer_pk'])
-        return CustomerContact.objects.filter(customer=self.customer)
+    if request.method == 'POST':
+        form = CustomerContactForm(request.POST, instance=contact)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Contact updated successfully!')
+            return redirect('customer:customer_detail', pk=customer.pk)
+    else:
+        form = CustomerContactForm(instance=contact)
     
-    def form_valid(self, form):
-        messages.success(self.request, 'Contact updated successfully!')
-        return super().form_valid(form)
+    context = {
+        'form': form,
+        'customer': customer,
+        'title': f'Edit Contact for {customer}',
+    }
     
-    def get_success_url(self):
-        return reverse('customer:customer_detail', kwargs={'pk': self.customer.pk})
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['customer'] = self.customer
-        context['title'] = f'Edit Contact for {self.customer}'
-        return context
+    return render(request, 'customer/contact_form.html', context)
 
 
-class ContactDeleteView(LoginRequiredMixin, DeleteView):
-    model = CustomerContact
-    template_name = 'customer/contact_confirm_delete.html'
+@login_required
+def contact_delete(request, customer_pk, pk):
+    """Delete a contact for a customer"""
+    customer = get_object_or_404(Customer, pk=customer_pk)
+    contact = get_object_or_404(CustomerContact, pk=pk, customer=customer)
     
-    def get_queryset(self):
-        self.customer = get_object_or_404(Customer, pk=self.kwargs['customer_pk'])
-        return CustomerContact.objects.filter(customer=self.customer)
-    
-    def get_success_url(self):
-        return reverse('customer:customer_detail', kwargs={'pk': self.customer.pk})
-    
-    def delete(self, request, *args, **kwargs):
+    if request.method == 'POST':
+        contact.delete()
         messages.success(request, 'Contact deleted successfully!')
-        return super().delete(request, *args, **kwargs)
+        return redirect('customer:customer_detail', pk=customer.pk)
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['customer'] = self.customer
-        return context
+    context = {
+        'contact': contact,
+        'customer': customer,
+    }
+    
+    return render(request, 'customer/contact_confirm_delete.html', context)
 
 
 # CustomerNote views
-class NoteCreateView(LoginRequiredMixin, CreateView):
-    model = CustomerNote
-    form_class = CustomerNoteForm
-    template_name = 'customer/note_form.html'
+@login_required
+def note_create(request, customer_pk):
+    """Create a new note for a customer"""
+    customer = get_object_or_404(Customer, pk=customer_pk)
     
-    def dispatch(self, request, *args, **kwargs):
-        self.customer = get_object_or_404(Customer, pk=self.kwargs['customer_pk'])
-        return super().dispatch(request, *args, **kwargs)
+    if request.method == 'POST':
+        form = CustomerNoteForm(request.POST)
+        if form.is_valid():
+            note = form.save(commit=False)
+            note.customer = customer
+            note.save()
+            messages.success(request, 'Note added successfully!')
+            return redirect('customer:customer_detail', pk=customer.pk)
+    else:
+        form = CustomerNoteForm()
     
-    def form_valid(self, form):
-        form.instance.customer = self.customer
-        messages.success(self.request, 'Note added successfully!')
-        return super().form_valid(form)
+    context = {
+        'form': form,
+        'customer': customer,
+        'title': f'Add Note for {customer}',
+    }
     
-    def get_success_url(self):
-        return reverse('customer:customer_detail', kwargs={'pk': self.customer.pk})
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['customer'] = self.customer
-        context['title'] = f'Add Note for {self.customer}'
-        return context
+    return render(request, 'customer/note_form.html', context)
 
 
-class NoteListView(LoginRequiredMixin, ListView):
-    model = CustomerNote
-    template_name = 'customer/note_list.html'
-    context_object_name = 'notes'
-    paginate_by = 20
+@login_required
+def note_list(request, customer_pk):
+    """List all notes for a customer"""
+    customer = get_object_or_404(Customer, pk=customer_pk)
+    notes = CustomerNote.objects.filter(customer=customer)
     
-    def get_queryset(self):
-        self.customer = get_object_or_404(Customer, pk=self.kwargs['customer_pk'])
-        return CustomerNote.objects.filter(customer=self.customer)
+    # Pagination
+    paginator = Paginator(notes, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['customer'] = self.customer
-        return context
+    context = {
+        'notes': page_obj,
+        'page_obj': page_obj,
+        'customer': customer,
+    }
+    
+    return render(request, 'customer/note_list.html', context)
 
 
-class NoteDeleteView(LoginRequiredMixin, DeleteView):
-    model = CustomerNote
-    template_name = 'customer/note_confirm_delete.html'
+@login_required
+def note_delete(request, customer_pk, pk):
+    """Delete a note for a customer"""
+    customer = get_object_or_404(Customer, pk=customer_pk)
+    note = get_object_or_404(CustomerNote, pk=pk, customer=customer)
     
-    def get_queryset(self):
-        self.customer = get_object_or_404(Customer, pk=self.kwargs['customer_pk'])
-        return CustomerNote.objects.filter(customer=self.customer)
-    
-    def get_success_url(self):
-        return reverse('customer:customer_detail', kwargs={'pk': self.customer.pk})
-    
-    def delete(self, request, *args, **kwargs):
+    if request.method == 'POST':
+        note.delete()
         messages.success(request, 'Note deleted successfully!')
-        return super().delete(request, *args, **kwargs)
+        return redirect('customer:customer_detail', pk=customer.pk)
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['customer'] = self.customer
-        return context
+    context = {
+        'note': note,
+        'customer': customer,
+    }
+    
+    return render(request, 'customer/note_confirm_delete.html', context)
 
 
 # CustomerDocument views
-class DocumentCreateView(LoginRequiredMixin, CreateView):
-    model = CustomerDocument
-    form_class = CustomerDocumentForm
-    template_name = 'customer/document_form.html'
+@login_required
+def document_create(request, customer_pk):
+    """Upload a new document for a customer"""
+    customer = get_object_or_404(Customer, pk=customer_pk)
     
-    def dispatch(self, request, *args, **kwargs):
-        self.customer = get_object_or_404(Customer, pk=self.kwargs['customer_pk'])
-        return super().dispatch(request, *args, **kwargs)
+    if request.method == 'POST':
+        form = CustomerDocumentForm(request.POST, request.FILES)
+        if form.is_valid():
+            document = form.save(commit=False)
+            document.customer = customer
+            document.save()
+            messages.success(request, 'Document uploaded successfully!')
+            return redirect('customer:customer_detail', pk=customer.pk)
+    else:
+        form = CustomerDocumentForm()
     
-    def form_valid(self, form):
-        form.instance.customer = self.customer
-        messages.success(self.request, 'Document uploaded successfully!')
-        return super().form_valid(form)
+    context = {
+        'form': form,
+        'customer': customer,
+        'title': f'Upload Document for {customer}',
+    }
     
-    def get_success_url(self):
-        return reverse('customer:customer_detail', kwargs={'pk': self.customer.pk})
-    
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['customer'] = self.customer
-        context['title'] = f'Upload Document for {self.customer}'
-        return context
+    return render(request, 'customer/document_form.html', context)
 
 
-class DocumentListView(LoginRequiredMixin, ListView):
-    model = CustomerDocument
-    template_name = 'customer/document_list.html'
-    context_object_name = 'documents'
-    paginate_by = 20
+@login_required
+def document_list(request, customer_pk):
+    """List all documents for a customer"""
+    customer = get_object_or_404(Customer, pk=customer_pk)
+    documents = CustomerDocument.objects.filter(customer=customer)
     
-    def get_queryset(self):
-        self.customer = get_object_or_404(Customer, pk=self.kwargs['customer_pk'])
-        return CustomerDocument.objects.filter(customer=self.customer)
+    # Pagination
+    paginator = Paginator(documents, 20)
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['customer'] = self.customer
-        return context
+    context = {
+        'documents': page_obj,
+        'page_obj': page_obj,
+        'customer': customer,
+    }
+    
+    return render(request, 'customer/document_list.html', context)
 
 
-class DocumentDeleteView(LoginRequiredMixin, DeleteView):
-    model = CustomerDocument
-    template_name = 'customer/document_confirm_delete.html'
+@login_required
+def document_delete(request, customer_pk, pk):
+    """Delete a document for a customer"""
+    customer = get_object_or_404(Customer, pk=customer_pk)
+    document = get_object_or_404(CustomerDocument, pk=pk, customer=customer)
     
-    def get_queryset(self):
-        self.customer = get_object_or_404(Customer, pk=self.kwargs['customer_pk'])
-        return CustomerDocument.objects.filter(customer=self.customer)
-    
-    def get_success_url(self):
-        return reverse('customer:customer_detail', kwargs={'pk': self.customer.pk})
-    
-    def delete(self, request, *args, **kwargs):
+    if request.method == 'POST':
+        document.delete()
         messages.success(request, 'Document deleted successfully!')
-        return super().delete(request, *args, **kwargs)
+        return redirect('customer:customer_detail', pk=customer.pk)
     
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['customer'] = self.customer
-        return context
+    context = {
+        'document': document,
+        'customer': customer,
+    }
+    
+    return render(request, 'customer/document_confirm_delete.html', context)
 
 
 # AJAX views for quick actions

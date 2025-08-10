@@ -13,7 +13,13 @@ import json
 
 @staff_member_required
 def product_list(request):
-    products = Product.objects.prefetch_related('images').all()
+    # Optimize query with select_related for ForeignKeys and prefetch_related for reverse relations
+    products = Product.objects.select_related(
+        'category',  # ForeignKey to Category
+        'supplier',  # ForeignKey to Supplier
+    ).prefetch_related(
+        'images',  # Reverse relation to ProductImage
+    ).all()
     form = ProductSearchForm(request.GET)
 
     # Apply filters
@@ -73,7 +79,19 @@ def product_list(request):
 
 @staff_member_required
 def product_detail(request, pk):
-    product = get_object_or_404(Product, pk=pk)
+    # Optimize query with select_related and prefetch_related
+    product = get_object_or_404(
+        Product.objects.select_related(
+            'category',
+            'supplier',
+            'created_by'
+        ).prefetch_related(
+            'documents',
+            'images',
+            'inventory_items'
+        ),
+        pk=pk
+    )
 
     # Increment view count
     product.views_count += 1
@@ -546,7 +564,11 @@ def inventory_delete(request, pk):
 def option_list(request):
     """List all product option names"""
     options = ProductOptionName.objects.all().annotate(
-        item_count=Count('items')
+        item_count=Count('items'),
+        product_count=Count('product_options', distinct=True)
+    ).prefetch_related(
+        'items',  # Prefetch related option items
+        'product_options'  # Prefetch related product options
     ).order_by('name')
     
     # Search functionality
@@ -583,7 +605,15 @@ def option_list(request):
 @staff_member_required
 def option_detail(request, pk):
     """View option details with its items"""
-    option = get_object_or_404(ProductOptionName, pk=pk)
+    # Optimize query with prefetch_related
+    option = get_object_or_404(
+        ProductOptionName.objects.prefetch_related(
+            'items',  # Prefetch option items
+            'product_options',  # Prefetch product options using this option
+            'product_options__product'  # Prefetch products for each option
+        ),
+        pk=pk
+    )
     items = option.items.all().order_by('ordering', 'value')
     
     context = {
@@ -801,7 +831,15 @@ def option_item_delete(request, pk):
 @staff_member_required
 def category_list(request):
     """List all product categories"""
-    categories = Category.objects.filter(parent__isnull=True).order_by('order', 'name')
+    # Optimize with annotations and prefetch_related
+    categories = Category.objects.filter(parent__isnull=True).annotate(
+        direct_product_count=Count('products', distinct=True)
+    ).prefetch_related(
+        'children',  # Prefetch child categories
+        'children__children',  # Prefetch grandchildren for nested display
+        'children__children__children',  # Prefetch great-grandchildren
+        'products',  # Prefetch products
+    ).order_by('order', 'name')
     
     # Search functionality
     search_query = request.GET.get('search', '')
@@ -809,17 +847,50 @@ def category_list(request):
         categories = Category.objects.filter(
             Q(name__icontains=search_query) |
             Q(description__icontains=search_query)
+        ).annotate(
+            direct_product_count=Count('products', distinct=True)
+        ).prefetch_related(
+            'children',
+            'children__children',
+            'children__children__children',
+            'products',
         ).order_by('order', 'name')
     
-    # Get all categories for tree view
-    all_categories = Category.objects.all().order_by('order', 'name').prefetch_related('children', 'products')
+    # Get all categories for tree view with optimized query
+    all_categories = Category.objects.all().annotate(
+        direct_product_count=Count('products', distinct=True)
+    ).prefetch_related(
+        'children',
+        'children__children',
+        'children__children__children',
+        'products',
+    ).order_by('order', 'name')
     
-    # Add product count to each category
+    # Calculate total product count including descendants (using already fetched data)
+    def calculate_total_products(category, all_cats_dict, processed=None):
+        """Calculate total products including all descendants"""
+        if processed is None:
+            processed = set()
+        if category.id in processed:
+            return 0
+        processed.add(category.id)
+        
+        # Use annotated count if available, otherwise count prefetched products
+        total = getattr(category, 'direct_product_count', category.products.count())
+        
+        # Use prefetched children instead of get_descendants()
+        for child in category.children.all():
+            # Get the child from our annotated queryset if possible
+            annotated_child = all_cats_dict.get(child.id, child)
+            total += calculate_total_products(annotated_child, all_cats_dict, processed)
+        return total
+    
+    # Create a dictionary for quick lookup
+    all_cats_dict = {cat.id: cat for cat in all_categories}
+    
+    # Add total product count to each category
     for category in all_categories:
-        category.product_count = category.products.count()
-        # Count products in children too
-        for child in category.get_descendants():
-            category.product_count += child.products.count()
+        category.product_count = calculate_total_products(category, all_cats_dict)
     
     context = {
         'categories': categories,
@@ -874,12 +945,26 @@ def category_create(request):
 @staff_member_required
 def category_detail(request, pk):
     """View category details"""
-    category = get_object_or_404(Category, pk=pk)
+    # Optimize query with select_related and prefetch_related
+    category = get_object_or_404(
+        Category.objects.select_related(
+            'parent'  # For breadcrumb navigation
+        ).prefetch_related(
+            'products',  # Prefetch products in this category
+            'products__category',  # Prefetch product categories
+            'products__supplier',  # Prefetch product suppliers
+            'children',  # Prefetch subcategories
+        ).annotate(
+            product_count=Count('products', distinct=True),
+            subcategory_count=Count('children', distinct=True)
+        ),
+        pk=pk
+    )
     
-    # Get products in this category
+    # Get products in this category (already prefetched)
     products = category.products.all()
     
-    # Get subcategories
+    # Get subcategories (already prefetched)
     subcategories = category.children.all()
     
     # Get ancestors for breadcrumb

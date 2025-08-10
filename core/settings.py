@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.humanize",
     # Third party apps
     "django_extensions",
     "debug_toolbar",
@@ -55,6 +56,7 @@ INSTALLED_APPS = [
     "django_vite",
     "django_summernote",
     "channels",
+    "widget_tweaks",
     # Local apps
     "dogfoot",
     "core",
@@ -105,6 +107,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "shop.context_processors.shop_context",
             ],
         },
     },
@@ -224,8 +227,9 @@ ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]  # R
 # Other settings
 ACCOUNT_USERNAME_MIN_LENGTH = 4
 ACCOUNT_UNIQUE_EMAIL = True  # Ensure email uniqueness
-LOGIN_REDIRECT_URL = "/shop/"
-ACCOUNT_LOGOUT_REDIRECT_URL = "/"
+LOGIN_REDIRECT_URL = "/shop/"  # Redirect to shop after login
+LOGOUT_REDIRECT_URL = "/shop/"  # Django's built-in logout redirect to shop
+ACCOUNT_LOGOUT_REDIRECT_URL = "/shop/"  # django-allauth logout redirect to shop
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = False  # Don't auto-login on email confirm
 ACCOUNT_LOGIN_ON_PASSWORD_RESET = False  # Don't auto-login on password reset
 ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = LOGIN_REDIRECT_URL

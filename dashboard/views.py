@@ -6,8 +6,8 @@ from django.db.models import Count, Q
 from django.core.paginator import Paginator
 from django.http import JsonResponse
 from django.contrib.auth import get_user_model
-from customer.models import Customer
-from customer.forms import CustomerForm
+from customer.models import Customer, CustomerAddress
+from customer.forms import CustomerForm, CustomerAddressForm
 from blog.models import Post
 from blog.forms import PostForm
 from email_campaign.models import EmailCampaign, TargetGroup
@@ -74,7 +74,8 @@ def dashboard_home(request):
 
 @staff_member_required
 def customer_list(request):
-    customers = Customer.objects.all().order_by('-date_joined')
+    # Exclude suppliers from the customer list
+    customers = Customer.objects.exclude(company_category='supplier').order_by('-date_joined')
     
     # Search functionality
     search_query = request.GET.get('search', '')
@@ -246,18 +247,43 @@ def customer_edit(request, pk):
     customer = get_object_or_404(Customer, pk=pk)
     
     if request.method == 'POST':
-        form = CustomerForm(request.POST, instance=customer)
-        if form.is_valid():
-            form.save()
-            messages.success(request, 'Customer updated successfully!')
-            return redirect('dashboard:customer_detail', pk=customer.pk)
+        # Handle address form if submitted
+        if 'add_address' in request.POST:
+            address_form = CustomerAddressForm(request.POST)
+            if address_form.is_valid():
+                address = address_form.save(commit=False)
+                address.customer = customer
+                # If this is set as default, unset other defaults
+                if address.is_default:
+                    customer.addresses.filter(is_default=True).update(is_default=False)
+                address.save()
+                messages.success(request, 'Address added successfully!')
+                return redirect('dashboard:customer_edit', pk=customer.pk)
+            else:
+                # If address form has errors, don't process customer form
+                form = CustomerForm(instance=customer)
+        else:
+            # Handle customer form submission
+            form = CustomerForm(request.POST, instance=customer)
+            address_form = CustomerAddressForm()
+            
+            if form.is_valid():
+                form.save()
+                messages.success(request, 'Customer updated successfully!')
+                return redirect('dashboard:customer_detail', pk=customer.pk)
     else:
         form = CustomerForm(instance=customer)
+        address_form = CustomerAddressForm()
+    
+    # Get existing addresses
+    addresses = customer.addresses.filter(is_active=True).order_by('-is_default', '-created_at')
     
     return render(request, 'dashboard/customer_form_daisyui.html', {
         'form': form, 
         'action': 'Edit',
-        'customer': customer
+        'customer': customer,
+        'address_form': address_form,
+        'addresses': addresses
     })
 
 

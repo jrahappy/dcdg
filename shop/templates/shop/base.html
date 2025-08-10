@@ -1,345 +1,81 @@
 {% load static %}
+{% load django_vite %}
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Shop{% endblock %} - DCDG Dental Shop</title>
+    <title>{% block page_title %}Shop{% endblock %} - DCDG Dental Shop</title>
+    {% vite_hmr_client %}
+    {% vite_asset 'static/js/main.js' %}
     
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    {% block extra_head %}{% endblock %}
     
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    
-    <!-- Alpine.js for interactivity -->
-    <script defer src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    
-    {% block extra_css %}{% endblock %}
-</head>
-<body class="bg-white">
-    <!-- Navigation -->
-    <nav class="bg-white" x-data="{ mobileMenuOpen: false, cartOpen: false, loadCartItems() { fetch('{% url "shop:cart" %}?format=json', { headers: { 'X-Requested-With': 'XMLHttpRequest', } }).then(response => response.json()).then(data => { document.getElementById('cart-items-container').innerHTML = data.html; document.getElementById('cart-subtotal').textContent = `$${data.subtotal.toFixed(2)}`; }); } }" x-init="$watch('cartOpen', value => { if (value) { loadCartItems(); } })">
-        <div class="border-b border-gray-200">
-            <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-                <div class="flex h-16 justify-between">
-                    <!-- Logo and Primary Nav -->
-                    <div class="flex">
-                        <div class="flex flex-shrink-0 items-center">
-                            <a href="{% url 'shop:product_list' %}" class="text-2xl font-bold text-gray-900">
-                                DCDG Shop
-                            </a>
-                        </div>
-                        <div class="hidden sm:ml-8 sm:flex sm:space-x-8">
-                            <a href="{% url 'shop:product_list' %}" class="inline-flex items-center border-b-2 {% if request.resolver_match.url_name == 'product_list' %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} px-1 pt-1 text-sm font-medium">
-                                Products
-                            </a>
-                            <a href="{% url 'shop:order_tracking' %}" class="inline-flex items-center border-b-2 {% if request.resolver_match.url_name == 'order_tracking' %}border-indigo-500 text-gray-900{% else %}border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700{% endif %} px-1 pt-1 text-sm font-medium">
-                                Track Order
-                            </a>
-                        </div>
-                    </div>
-
-                    <!-- Search -->
-                    <div class="hidden flex-1 items-center justify-center px-2 lg:ml-6 lg:flex lg:justify-end">
-                        <div class="w-full max-w-lg lg:max-w-xs">
-                            <form method="get" action="{% url 'shop:product_list' %}">
-                                <label for="search" class="sr-only">Search</label>
-                                <div class="relative">
-                                    <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                        <svg class="h-5 w-5 text-gray-400" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
-                                            <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" clip-rule="evenodd" />
-                                        </svg>
-                                    </div>
-                                    <input id="search" name="search" value="{{ request.GET.search }}" class="block w-full rounded-md border-0 bg-gray-100 py-1.5 pl-10 pr-3 text-gray-900 placeholder:text-gray-400 focus:bg-white focus:outline-none focus:ring-2 focus:ring-inset focus:ring-indigo-500 sm:text-sm sm:leading-6" placeholder="Search products" type="search">
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- Right side buttons -->
-                    <div class="flex items-center">
-                        <!-- Account -->
-                        <div class="hidden lg:ml-8 lg:flex lg:items-center">
-                            {% if user.is_authenticated %}
-                            <div class="flex items-center space-x-4">
-                                <a href="{% url 'customer_portal:dashboard' %}" class="text-sm font-medium text-gray-700 hover:text-gray-800">My Account</a>
-                                {% if user.is_staff %}
-                                <a href="{% url 'dashboard:home' %}" class="text-sm font-medium text-gray-700 hover:text-gray-800">Admin</a>
-                                {% endif %}
-                            </div>
-                            {% else %}
-                            <a href="{% url 'account_login' %}" class="text-sm font-medium text-gray-700 hover:text-gray-800">Sign in</a>
-                            {% endif %}
-                        </div>
-
-                        <!-- Cart -->
-                        <div class="ml-4 flow-root lg:ml-8">
-                            <button @click="cartOpen = !cartOpen" class="group -m-2 flex items-center p-2">
-                                <svg class="h-6 w-6 flex-shrink-0 text-gray-400 group-hover:text-gray-500" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                                </svg>
-                                <span class="ml-2 text-sm font-medium text-gray-700 group-hover:text-gray-800">
-                                    <span id="cart-count">{{ cart.total_items|default:0 }}</span>
-                                </span>
-                                <span class="sr-only">items in cart, view bag</span>
-                            </button>
-                        </div>
-
-                        <!-- Mobile menu button -->
-                        <div class="flex lg:hidden">
-                            <button @click="mobileMenuOpen = !mobileMenuOpen" type="button" class="-m-2.5 ml-2 inline-flex items-center justify-center rounded-md p-2.5 text-gray-700">
-                                <span class="sr-only">Open main menu</span>
-                                <svg x-show="!mobileMenuOpen" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-                                </svg>
-                                <svg x-show="mobileMenuOpen" x-cloak class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Mobile menu -->
-        <div x-show="mobileMenuOpen" x-cloak class="lg:hidden" role="dialog" aria-modal="true">
-            <div class="space-y-1 pb-3 pt-2">
-                <a href="{% url 'shop:product_list' %}" class="block border-l-4 {% if request.resolver_match.url_name == 'product_list' %}border-indigo-500 bg-indigo-50 text-indigo-700{% else %}border-transparent text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800{% endif %} py-2 pl-3 pr-4 text-base font-medium">Products</a>
-                <a href="{% url 'shop:order_tracking' %}" class="block border-l-4 {% if request.resolver_match.url_name == 'order_tracking' %}border-indigo-500 bg-indigo-50 text-indigo-700{% else %}border-transparent text-gray-600 hover:border-gray-300 hover:bg-gray-50 hover:text-gray-800{% endif %} py-2 pl-3 pr-4 text-base font-medium">Track Order</a>
-            </div>
-            <div class="border-t border-gray-200 pb-3 pt-4">
-                <div class="mt-3 space-y-1">
-                    {% if user.is_authenticated %}
-                    <a href="{% url 'dashboard:home' %}" class="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800">Dashboard</a>
-                    {% else %}
-                    <a href="{% url 'account_login' %}" class="block px-4 py-2 text-base font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-800">Sign in</a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-
-        <!-- Cart Slide-over -->
-        <div x-show="cartOpen" x-cloak class="relative z-50" aria-labelledby="slide-over-title" role="dialog" aria-modal="true">
-            <div x-show="cartOpen" x-transition:enter="ease-in-out duration-500" x-transition:enter-start="opacity-0" x-transition:enter-end="opacity-100" x-transition:leave="ease-in-out duration-500" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0" class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity"></div>
-
-            <div class="fixed inset-0 overflow-hidden">
-                <div class="absolute inset-0 overflow-hidden">
-                    <div class="pointer-events-none fixed inset-y-0 right-0 flex max-w-full pl-10">
-                        <div x-show="cartOpen" x-transition:enter="transform transition ease-in-out duration-500 sm:duration-700" x-transition:enter-start="translate-x-full" x-transition:enter-end="translate-x-0" x-transition:leave="transform transition ease-in-out duration-500 sm:duration-700" x-transition:leave-start="translate-x-0" x-transition:leave-end="translate-x-full" class="pointer-events-auto w-screen max-w-md">
-                            <div class="flex h-full flex-col overflow-y-scroll bg-white shadow-xl">
-                                <div class="flex-1 overflow-y-auto px-4 py-6 sm:px-6">
-                                    <div class="flex items-start justify-between">
-                                        <h2 class="text-lg font-medium text-gray-900" id="slide-over-title">Shopping cart</h2>
-                                        <div class="ml-3 flex h-7 items-center">
-                                            <button @click="cartOpen = false" type="button" class="-m-2 p-2 text-gray-400 hover:text-gray-500">
-                                                <span class="sr-only">Close panel</span>
-                                                <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-                                                </svg>
-                                            </button>
-                                        </div>
-                                    </div>
-
-                                    <div class="mt-8">
-                                        <div class="flow-root">
-                                            <div id="cart-items-container">
-                                                <!-- Cart items will be loaded here via AJAX -->
-                                                <p class="text-gray-500 text-center py-8">Loading cart...</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="border-t border-gray-200 px-4 py-6 sm:px-6">
-                                    <div class="flex justify-between text-base font-medium text-gray-900">
-                                        <p>Subtotal</p>
-                                        <p id="cart-subtotal">$0.00</p>
-                                    </div>
-                                    <p class="mt-0.5 text-sm text-gray-500">Shipping and taxes calculated at checkout.</p>
-                                    <div class="mt-6">
-                                        <a href="{% url 'shop:checkout' %}" class="flex items-center justify-center rounded-md border border-transparent bg-indigo-600 px-6 py-3 text-base font-medium text-white shadow-sm hover:bg-indigo-700">Checkout</a>
-                                    </div>
-                                    <div class="mt-6 flex justify-center text-center text-sm text-gray-500">
-                                        <p>
-                                            or
-                                            <button @click="cartOpen = false" type="button" class="font-medium text-indigo-600 hover:text-indigo-500">
-                                                Continue Shopping
-                                                <span aria-hidden="true"> &rarr;</span>
-                                            </button>
-                                        </p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Main Content -->
-    <main>
-        {% block content %}{% endblock %}
-    </main>
-
-    <!-- Footer -->
-    <footer class="bg-white mt-24">
-        <div class="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-            <div class="xl:grid xl:grid-cols-3 xl:gap-8">
-                <div class="space-y-8 xl:col-span-1">
-                    <p class="text-2xl font-bold text-gray-900">DCDG Shop</p>
-                    <p class="text-sm text-gray-500">Professional dental supplies and equipment.</p>
-                    <div class="flex space-x-6">
-                        <a href="#" class="text-gray-400 hover:text-gray-500">
-                            <span class="sr-only">Facebook</span>
-                            <i class="fab fa-facebook"></i>
-                        </a>
-                        <a href="#" class="text-gray-400 hover:text-gray-500">
-                            <span class="sr-only">Twitter</span>
-                            <i class="fab fa-twitter"></i>
-                        </a>
-                        <a href="#" class="text-gray-400 hover:text-gray-500">
-                            <span class="sr-only">Instagram</span>
-                            <i class="fab fa-instagram"></i>
-                        </a>
-                    </div>
-                </div>
-                <div class="mt-12 grid grid-cols-2 gap-8 xl:col-span-2 xl:mt-0">
-                    <div class="md:grid md:grid-cols-2 md:gap-8">
-                        <div>
-                            <h3 class="text-sm font-semibold leading-6 text-gray-900">Shop</h3>
-                            <ul role="list" class="mt-6 space-y-4">
-                                <li>
-                                    <a href="{% url 'shop:product_list' %}" class="text-sm leading-6 text-gray-600 hover:text-gray-900">All Products</a>
-                                </li>
-                                <li>
-                                    <a href="{% url 'shop:product_list' %}?sort=-created_at" class="text-sm leading-6 text-gray-600 hover:text-gray-900">New Arrivals</a>
-                                </li>
-                            </ul>
-                        </div>
-                        <div class="mt-10 md:mt-0">
-                            <h3 class="text-sm font-semibold leading-6 text-gray-900">Customer Service</h3>
-                            <ul role="list" class="mt-6 space-y-4">
-                                <li>
-                                    <a href="{% url 'shop:order_tracking' %}" class="text-sm leading-6 text-gray-600 hover:text-gray-900">Track Order</a>
-                                </li>
-                                <li>
-                                    <a href="#" class="text-sm leading-6 text-gray-600 hover:text-gray-900">Contact Us</a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="md:grid md:grid-cols-2 md:gap-8">
-                        <div>
-                            <h3 class="text-sm font-semibold leading-6 text-gray-900">Company</h3>
-                            <ul role="list" class="mt-6 space-y-4">
-                                <li>
-                                    <a href="#" class="text-sm leading-6 text-gray-600 hover:text-gray-900">About</a>
-                                </li>
-                                <li>
-                                    <a href="#" class="text-sm leading-6 text-gray-600 hover:text-gray-900">Blog</a>
-                                </li>
-                            </ul>
-                        </div>
-                        <div class="mt-10 md:mt-0">
-                            <h3 class="text-sm font-semibold leading-6 text-gray-900">Legal</h3>
-                            <ul role="list" class="mt-6 space-y-4">
-                                <li>
-                                    <a href="#" class="text-sm leading-6 text-gray-600 hover:text-gray-900">Privacy</a>
-                                </li>
-                                <li>
-                                    <a href="#" class="text-sm leading-6 text-gray-600 hover:text-gray-900">Terms</a>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="mt-12 border-t border-gray-200 pt-8">
-                <p class="text-xs text-gray-500 xl:text-center">&copy; 2024 DCDG Shop. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
-
-    <!-- Global JavaScript -->
     <script>
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
-
-        function showNotification(message, type = 'success') {
-            const notification = document.createElement('div');
-            notification.className = `fixed top-20 right-4 px-6 py-3 rounded-md text-white z-50 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
-            notification.innerHTML = `
-                <div class="flex items-center">
-                    <svg class="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                        ${type === 'success' ? 
-                            '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>' :
-                            '<path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"></path>'
-                        }
-                    </svg>
-                    <span>${message}</span>
-                </div>
-            `;
-            document.body.appendChild(notification);
+    // Define shopApp before Alpine.js loads
+    window.shopApp = function() {
+        return {
+            cartCount: 0,
+            cartSubtotal: 0,
+            cartItemsHtml: '',
             
-            setTimeout(() => {
-                notification.remove();
-            }, 3000);
-        }
-
-        // Cart management functions
-        function updateCartItem(itemId, quantity) {
-            fetch(`/shop/cart/update/${itemId}/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': getCookie('csrftoken'),
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: `quantity=${quantity}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Reload cart items if in slide-over
-                    if (typeof loadCartItems === 'function') {
-                        loadCartItems();
+            init() {
+                console.log('Alpine shopApp initialized');
+                console.log('Initial cartCount:', this.cartCount);
+                this.loadCartSummary();
+            },
+            
+            loadCartSummary() {
+                fetch('/cart/?format=json', {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Cart data loaded:', data);
+                    const newCount = data.total_items || 0;
+                    console.log('Setting cartCount from', this.cartCount, 'to', newCount);
+                    this.cartCount = newCount;
+                    this.cartSubtotal = data.subtotal ? data.subtotal.toFixed(2) : '0.00';
+                    this.cartItemsHtml = data.preview_html || '<p class="text-center py-4 text-base-content/60">Your cart is empty</p>';
+                    console.log('Cart count is now:', this.cartCount);
+                    console.log('Alpine component data:', this);
+                })
+                .catch(error => {
+                    console.error('Error loading cart:', error);
+                });
+            },
+            
+            addToCart(productId, quantity = 1) {
+                fetch(`/cart/add/${productId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: `quantity=${quantity}`
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Add to cart response:', data);
+                    if (data.success) {
+                        console.log('Item added successfully, reloading cart summary...');
+                        this.loadCartSummary();
+                        this.showNotification(data.message || 'Added to cart', 'success');
                     } else {
-                        // Reload page if on cart page
-                        location.reload();
+                        this.showNotification(data.error || 'Failed to add to cart', 'error');
                     }
-                    // Update cart counter
-                    const cartCount = document.getElementById('cart-count');
-                    if (cartCount) {
-                        cartCount.textContent = data.cart_total_items;
-                    }
-                    showNotification(data.message, 'success');
-                } else {
-                    showNotification(data.error || 'Failed to update cart', 'error');
-                }
-            })
-            .catch(error => {
-                console.error('Error updating cart:', error);
-                showNotification('An error occurred while updating the cart', 'error');
-            });
-        }
-
-        function removeFromCart(itemId) {
-            if (confirm('Are you sure you want to remove this item from your cart?')) {
-                fetch(`/shop/cart/remove/${itemId}/`, {
+                })
+                .catch(error => {
+                    this.showNotification('An error occurred', 'error');
+                });
+            },
+            
+            removeFromCart(itemId) {
+                fetch(`/cart/remove/${itemId}/`, {
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': getCookie('csrftoken'),
@@ -349,53 +85,284 @@
                 .then(response => response.json())
                 .then(data => {
                     if (data.success) {
-                        // Reload cart items if in slide-over
-                        if (typeof loadCartItems === 'function') {
-                            loadCartItems();
-                        } else {
-                            // Reload page if on cart page
-                            location.reload();
+                        this.loadCartSummary();
+                        this.showNotification(data.message || 'Item removed from cart', 'success');
+                        // Reload the page if we're on the cart page
+                        if (window.location.pathname === '/cart/') {
+                            window.location.reload();
                         }
-                        // Update cart counter
-                        const cartCount = document.getElementById('cart-count');
-                        if (cartCount) {
-                            cartCount.textContent = data.cart_total_items;
-                        }
-                        showNotification(data.message, 'success');
                     } else {
-                        showNotification(data.error || 'Failed to remove item', 'error');
+                        this.showNotification(data.error || 'Failed to remove item', 'error');
                     }
                 })
                 .catch(error => {
-                    console.error('Error removing item:', error);
-                    showNotification('An error occurred while removing the item', 'error');
+                    this.showNotification('An error occurred', 'error');
                 });
+            },
+            
+            showNotification(message, type = 'info') {
+                const alertClass = type === 'success' ? 'alert-success' : type === 'error' ? 'alert-error' : 'alert-info';
+                const notification = document.createElement('div');
+                notification.className = `alert ${alertClass} fixed top-20 right-4 z-50 max-w-sm shadow-lg`;
+                notification.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                        ${type === 'success' ? 
+                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />' : 
+                        type === 'error' ?
+                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />' :
+                            '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />'
+                        }
+                    </svg>
+                    <span>${message}</span>
+                `;
+                document.body.appendChild(notification);
+                
+                setTimeout(() => {
+                    notification.style.opacity = '0';
+                    notification.style.transition = 'opacity 0.3s';
+                    setTimeout(() => notification.remove(), 300);
+                }, 3000);
             }
         }
-
-        function loadCartItems() {
-            fetch('/shop/cart/?format=json', {
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                const container = document.getElementById('cart-items-container');
-                if (container) {
-                    container.innerHTML = data.html;
-                }
-                const subtotal = document.getElementById('cart-subtotal');
-                if (subtotal) {
-                    subtotal.textContent = `$${data.subtotal.toFixed(2)}`;
-                }
-            })
-            .catch(error => {
-                console.error('Error loading cart items:', error);
-            });
-        }
+    }
     </script>
     
-    {% block extra_js %}{% endblock %}
+    <!-- Alpine.js -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+    <script>
+    // Register Alpine component when Alpine is ready
+    document.addEventListener('alpine:init', () => {
+        console.log('Alpine is initializing, registering shopApp');
+        Alpine.data('shopApp', window.shopApp);
+    });
+    </script>
+</head>
+<body class="bg-base-100" x-data="shopApp" x-init="init()">
+    {% include 'shop/navbar.html' %}
+    
+    <div class="min-h-screen bg-base-200">
+    <!-- Main Content with Sidebar -->
+    <main class="flex-1">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <div class="grid grid-cols-1 lg:grid-cols-4 gap-8">
+                <!-- Left Sidebar -->
+                <aside class="lg:col-span-1">
+                    <div class="sticky top-24">
+                        <!-- Categories -->
+                        <div class="card bg-base-100 shadow-sm mb-6">
+                            <div class="card-body">
+                                <h3 class="card-title text-base">Categories</h3>
+                                <ul class="menu menu-sm">
+                                    <li><a href="{% url 'shop:product_list' %}" class="{% if not request.GET.category %}active{% endif %}">All Products</a></li>
+                                    {% for category in categories %}
+                                    <li><a href="{% url 'shop:product_list' %}?category={{ category.id }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="{% if request.GET.category == category.id|stringformat:'s' %}active{% endif %}">{{ category.name }}</a></li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Price Filter -->
+                        <div class="card bg-base-100 shadow-sm mb-6">
+                            <div class="card-body">
+                                <h3 class="card-title text-base">Price Range</h3>
+                                <div class="form-control">
+                                    <label class="label cursor-pointer">
+                                        <span class="label-text">Under $50</span>
+                                        <input type="radio" name="price-range" class="radio radio-sm" />
+                                    </label>
+                                    <label class="label cursor-pointer">
+                                        <span class="label-text">$50 - $100</span>
+                                        <input type="radio" name="price-range" class="radio radio-sm" />
+                                    </label>
+                                    <label class="label cursor-pointer">
+                                        <span class="label-text">$100 - $200</span>
+                                        <input type="radio" name="price-range" class="radio radio-sm" />
+                                    </label>
+                                    <label class="label cursor-pointer">
+                                        <span class="label-text">Over $200</span>
+                                        <input type="radio" name="price-range" class="radio radio-sm" />
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Quick Links -->
+                        <div class="card bg-base-100 shadow-sm">
+                            <div class="card-body">
+                                <h3 class="card-title text-base">Quick Links</h3>
+                                <ul class="menu menu-sm">
+                                    <li><a href="{% url 'shop:product_list' %}?sort=-created_at">New Arrivals</a></li>
+                                    <li><a href="{% url 'shop:product_list' %}?sort=price">Best Deals</a></li>
+                                    <li><a href="{% url 'shop:order_tracking' %}">Track Order</a></li>
+                                    {% if user.is_authenticated %}
+                                    <li><a href="{% url 'customer_portal:order_list' %}">My Orders</a></li>
+                                    <li><a href="{% url 'customer_portal:dashboard' %}">My Account</a></li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Main Content Area -->
+                <div class="lg:col-span-3">
+                    {% block content %}{% endblock %}
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer p-10 bg-base-100 text-base-content border-t border-base-300 mt-20">
+        <div class="max-w-7xl mx-auto w-full grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+                <span class="footer-title">Shop</span>
+                <a href="{% url 'shop:product_list' %}" class="link link-hover">All Products</a>
+                <a href="{% url 'shop:product_list' %}?sort=-created_at" class="link link-hover">New Arrivals</a>
+                <a href="{% url 'shop:product_list' %}?sort=price" class="link link-hover">Best Deals</a>
+            </div>
+            <div>
+                <span class="footer-title">Customer Service</span>
+                <a href="{% url 'shop:order_tracking' %}" class="link link-hover">Track Order</a>
+                <a href="{% url 'customer_portal:dashboard' %}" class="link link-hover">My Account</a>
+                <a href="#" class="link link-hover">Contact Us</a>
+                <a href="#" class="link link-hover">FAQs</a>
+            </div>
+            <div>
+                <span class="footer-title">Company</span>
+                <a href="#" class="link link-hover">About Us</a>
+                <a href="#" class="link link-hover">Careers</a>
+                <a href="#" class="link link-hover">Press</a>
+                <a href="/blog/" class="link link-hover">Blog</a>
+            </div>
+            <div>
+                <span class="footer-title">Legal</span>
+                <a href="#" class="link link-hover">Terms of Service</a>
+                <a href="#" class="link link-hover">Privacy Policy</a>
+                <a href="#" class="link link-hover">Cookie Policy</a>
+            </div>
+        </div>
+    </footer>
+    
+    <div class="footer footer-center p-4 bg-base-300 text-base-content">
+        <div class="max-w-7xl mx-auto">
+            <p>© 2024 DCDG Shop - Professional Dental Supplies. All rights reserved.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+// Helper function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Global functions that delegate to Alpine component
+function addToCart(productId, quantity = 1) {
+    // Get the Alpine component instance
+    const rootElement = document.querySelector('[x-data]');
+    if (rootElement && rootElement._x_dataStack) {
+        console.log('Calling Alpine addToCart via global function');
+        Alpine.$data(rootElement).addToCart(productId, quantity);
+    } else {
+        console.error('Could not find Alpine component');
+        // Fallback: direct API call
+        fetch(`/cart/add/${productId}/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `quantity=${quantity}`
+        })
+        .then(response => response.json())
+        .then(data => {
+            console.log('Add to cart response (fallback):', data);
+            if (data.success) {
+                // Try to reload cart summary if possible
+                window.location.reload();
+            }
+        });
+    }
+}
+
+function removeFromCart(itemId) {
+    console.log('Removing item:', itemId);
+    
+    // Direct API call since Alpine might not be accessible from onclick
+    fetch(`/cart/remove/${itemId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/x-www-form-urlencoded',
+        }
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Response data:', data);
+        if (data.success) {
+            // Show notification if Alpine is available
+            const shopAppElement = document.querySelector('[x-data*="shopApp"]');
+            if (shopAppElement && shopAppElement.__x && shopAppElement.__x.$data) {
+                shopAppElement.__x.$data.loadCartSummary();
+                shopAppElement.__x.$data.showNotification(data.message || 'Item removed from cart', 'success');
+            }
+            // Reload the page if we're on the cart page
+            if (window.location.pathname.includes('/cart/')) {
+                window.location.reload();
+            }
+        } else {
+            alert(data.error || 'Failed to remove item');
+        }
+    })
+    .catch(error => {
+        console.error('Error removing item:', error);
+        alert('An error occurred while removing the item: ' + error.message);
+    });
+}
+
+function updateCartItem(itemId, quantity) {
+    fetch(`/cart/update/${itemId}/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: `quantity=${quantity}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.reload();
+        } else {
+            alert(data.error || 'Failed to update quantity');
+        }
+    })
+    .catch(error => {
+        alert('An error occurred');
+    });
+}
+</script>
+
+    {% block scripts %}
+        <script src="https://cdn.jsdelivr.net/npm/@tailwindplus/elements@1" type="module"></script>
+    {% endblock %}
 </body>
 </html>

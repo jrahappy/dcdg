@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.http import JsonResponse
-from django.db.models import Q
+from django.db import models
+from django.db.models import Q, Sum
 from django.utils import timezone
 from django.core.paginator import Paginator
 from datetime import timedelta
@@ -18,7 +19,11 @@ def get_cart(request):
     if not request.session.session_key:
         request.session.create()
 
-    cart, created = Cart.objects.get_or_create(
+    cart, created = Cart.objects.prefetch_related(
+        'items',  # Prefetch cart items
+        'items__product',  # Prefetch products for each cart item
+        'items__product__images',  # Prefetch product images for gallery
+    ).get_or_create(
         session_key=request.session.session_key,
         defaults={"user": request.user if request.user.is_authenticated else None},
     )
@@ -27,7 +32,13 @@ def get_cart(request):
 
 def product_list(request):
     """Display products for shopping"""
-    queryset = Product.objects.filter(status="active").select_related("category").prefetch_related("images")
+    # Optimize query with select_related for ForeignKeys and prefetch_related for reverse ForeignKeys
+    queryset = Product.objects.filter(status="active").select_related(
+        "category",  # ForeignKey to Category
+        "supplier",  # ForeignKey to Supplier (if needed)
+    ).prefetch_related(
+        "images",  # Prefetch related ProductImage objects
+    )
 
     # Search
     search = request.GET.get("search")
@@ -65,9 +76,14 @@ def product_list(request):
     page_number = request.GET.get("page")
     products = paginator.get_page(page_number)
 
+    # Optimize categories query - prefetch children if needed for nested navigation
+    categories = Category.objects.filter(
+        parent__isnull=True, is_active=True
+    ).prefetch_related("children")
+    
     context = {
         "products": products,
-        "categories": Category.objects.filter(parent__isnull=True, is_active=True),
+        "categories": categories,
         "cart": get_cart(request),
         "page_obj": products,
         "is_paginated": products.has_other_pages(),
@@ -78,29 +94,47 @@ def product_list(request):
 
 def product_detail(request, pk):
     """Display single product detail"""
-    product = get_object_or_404(Product, pk=pk, status="active")
+    # Optimize product query with related data
+    product = get_object_or_404(
+        Product.objects.select_related(
+            "category",
+            "supplier"
+        ).prefetch_related(
+            "images",
+            "documents"
+        ),
+        pk=pk, 
+        status="active"
+    )
 
     # Get product options with their items
     from product.models import ProductOption, ProductOptionItem
 
+    # Optimize product options query
     product_options = ProductOption.objects.filter(
         product=product, is_active=True
-    ).select_related("option_name")
+    ).select_related("option_name").prefetch_related(
+        "option_name__items"  # Prefetch related option items
+    )
 
     # Build options data structure with items
     options_data = []
     for option in product_options:
-        items = ProductOptionItem.objects.filter(
-            option_name=option.option_name, is_active=True
-        ).order_by("ordering", "value")
+        # Use prefetched items instead of separate query
+        items = [item for item in option.option_name.items.all() if item.is_active]
+        items.sort(key=lambda x: (x.ordering, x.value))
 
         options_data.append(
             {"option": option, "name": option.option_name.name, "items": items}
         )
 
-    # Get related products from same category
+    # Get related products from same category - optimize with select_related
     related_products = Product.objects.filter(
         category=product.category, status="active"
+    ).select_related(
+        "category"
+    ).prefetch_related(
+        "images"
     ).exclude(pk=product.pk)[:4]
 
     context = {
@@ -108,6 +142,7 @@ def product_detail(request, pk):
         "related_products": related_products,
         "cart": get_cart(request),
         "product_options": options_data,
+        "documents": product.documents.filter(is_public=True),
     }
 
     return render(request, "shop/product_detail.html", context)
@@ -125,12 +160,44 @@ def cart_view(request):
         from django.template.loader import render_to_string
 
         cart_items_html = render_to_string("shop/cart_items.html", {"cart": cart})
+        
+        # Generate preview HTML for cart dropdown
+        preview_html = ""
+        if cart.items.exists():
+            preview_html = '<div class="space-y-2">'
+            for item in cart.items.all()[:3]:  # Show first 3 items
+                # Get image URL
+                image_html = '<div class="w-12 h-12 bg-base-300 rounded flex-shrink-0 overflow-hidden">'
+                if item.product.main_image:
+                    image_html = f'<div class="w-12 h-12 rounded flex-shrink-0 overflow-hidden"><img src="{item.product.main_image.url}" alt="" class="w-full h-full object-cover"></div>'
+                elif item.product.images.exists():
+                    first_image = item.product.images.first()
+                    image_html = f'<div class="w-12 h-12 rounded flex-shrink-0 overflow-hidden"><img src="{first_image.image.url}" alt="" class="w-full h-full object-cover"></div>'
+                else:
+                    image_html += '</div>'
+                    
+                preview_html += f'''
+                <div class="flex items-center gap-3 p-2 hover:bg-base-200 rounded">
+                    {image_html}
+                    <div class="flex-1 min-w-0">
+                        <p class="text-sm font-medium truncate">{item.product.name}</p>
+                        <p class="text-xs text-base-content/60">Qty: {item.quantity} × ${item.product.price}</p>
+                    </div>
+                    <span class="text-sm font-semibold">${item.line_total}</span>
+                </div>
+                '''
+            if cart.items.count() > 3:
+                preview_html += f'<p class="text-center text-sm text-base-content/60">... and {cart.items.count() - 3} more items</p>'
+            preview_html += '</div>'
+        else:
+            preview_html = '<p class="text-center py-4 text-base-content/60">Your cart is empty</p>'
 
         return JsonResponse(
             {
                 "html": cart_items_html,
                 "subtotal": float(cart.subtotal),
                 "total_items": cart.total_items,
+                "preview_html": preview_html,
             }
         )
 
@@ -195,13 +262,20 @@ def add_to_cart(request, pk):
             unit_price=product.price,
             selected_options=selected_options,
         )
+    
+    # Refresh cart from database to get updated items
+    cart.refresh_from_db()
+    
+    # Alternatively, we can calculate directly from the database
+    total_items = cart.items.aggregate(total=models.Sum('quantity'))['total'] or 0
+    subtotal = sum(item.line_total for item in cart.items.all())
 
     return JsonResponse(
         {
             "success": True,
             "message": f"{product.name} added to cart",
-            "cart_total_items": cart.total_items,
-            "cart_subtotal": float(cart.subtotal),
+            "cart_total_items": total_items,
+            "cart_subtotal": float(subtotal),
         }
     )
 
@@ -295,43 +369,77 @@ def checkout(request):
 
     elif request.method == "POST":
         if not cart.items.exists():
-            return JsonResponse({"error": "Cart is empty"}, status=400)
+            messages.error(request, "Your cart is empty")
+            return redirect("shop:cart")
 
         try:
+            # Check if we're using a saved address
+            saved_address_id = request.POST.get("saved_address")
+            if saved_address_id and request.user.is_authenticated:
+                from customer.models import CustomerAddress
+                try:
+                    address = CustomerAddress.objects.get(
+                        pk=saved_address_id, 
+                        user=request.user, 
+                        is_active=True
+                    )
+                    # Use saved address data
+                    first_name, last_name = address.recipient_name.split(' ', 1) if ' ' in address.recipient_name else (address.recipient_name, '')
+                    billing_address_line1 = address.address_line1
+                    billing_address_line2 = address.address_line2 or ""
+                    billing_city = address.city
+                    billing_state = address.state
+                    billing_postal_code = address.postal_code
+                    phone = address.phone or request.POST.get("phone", "")
+                except CustomerAddress.DoesNotExist:
+                    # Fallback to form data
+                    first_name = request.POST.get("first_name")
+                    last_name = request.POST.get("last_name")
+                    billing_address_line1 = request.POST.get("address")
+                    billing_address_line2 = request.POST.get("apartment", "")
+                    billing_city = request.POST.get("city")
+                    billing_state = request.POST.get("state")
+                    billing_postal_code = request.POST.get("postal-code")
+                    phone = request.POST.get("phone", "")
+            else:
+                # Use form data
+                first_name = request.POST.get("first_name")
+                last_name = request.POST.get("last_name")
+                billing_address_line1 = request.POST.get("address")
+                billing_address_line2 = request.POST.get("apartment", "")
+                billing_city = request.POST.get("city")
+                billing_state = request.POST.get("state")
+                billing_postal_code = request.POST.get("postal-code")
+                phone = request.POST.get("phone", "")
+
             # Create invoice (shop order)
             invoice = Invoice.objects.create(
                 user=request.user if request.user.is_authenticated else None,
                 is_shop_order=True,
                 email=request.POST.get("email"),
-                first_name=request.POST.get("first_name"),
-                last_name=request.POST.get("last_name"),
-                phone=request.POST.get("phone", ""),
-                billing_address_line1=request.POST.get("billing_address_line1"),
-                billing_address_line2=request.POST.get("billing_address_line2", ""),
-                billing_city=request.POST.get("billing_city"),
-                billing_state=request.POST.get("billing_state"),
-                billing_postal_code=request.POST.get("billing_postal_code"),
-                billing_country=request.POST.get("billing_country", "US"),
-                shipping_same_as_billing=request.POST.get("shipping_same_as_billing")
-                == "on",
+                first_name=first_name,
+                last_name=last_name,
+                phone=phone,
+                billing_address_line1=billing_address_line1,
+                billing_address_line2=billing_address_line2,
+                billing_city=billing_city,
+                billing_state=billing_state,
+                billing_postal_code=billing_postal_code,
+                billing_country="US",
+                shipping_same_as_billing=True,  # For now, always use billing as shipping
                 notes=request.POST.get("notes", ""),
                 invoice_date=timezone.now().date(),
                 due_date=timezone.now().date() + timedelta(days=30),
                 status="sent",  # Shop orders start as sent
             )
 
-            # If shipping address is different
-            if not invoice.shipping_same_as_billing:
-                invoice.shipping_address_line1 = request.POST.get(
-                    "shipping_address_line1"
-                )
-                invoice.shipping_address_line2 = request.POST.get(
-                    "shipping_address_line2", ""
-                )
-                invoice.shipping_city = request.POST.get("shipping_city")
-                invoice.shipping_state = request.POST.get("shipping_state")
-                invoice.shipping_postal_code = request.POST.get("shipping_postal_code")
-                invoice.shipping_country = request.POST.get("shipping_country", "US")
+            # Copy billing to shipping since we're using same address
+            invoice.shipping_address_line1 = billing_address_line1
+            invoice.shipping_address_line2 = billing_address_line2
+            invoice.shipping_city = billing_city
+            invoice.shipping_state = billing_state
+            invoice.shipping_postal_code = billing_postal_code
+            invoice.shipping_country = "US"
 
             # Add shipping cost
             shipping_rate_id = request.POST.get("shipping_rate")
@@ -383,14 +491,11 @@ def checkout(request):
             if not request.user.is_authenticated:
                 request.session["last_order_tracking"] = str(invoice.tracking_code)
 
-            return JsonResponse(
-                {
-                    "success": True,
-                    "order_number": invoice.invoice_number,
-                    "tracking_code": str(invoice.tracking_code),
-                    "redirect_url": f"/shop/order/success/{invoice.tracking_code}/",
-                }
-            )
+            # Add success message
+            messages.success(request, f"Order #{invoice.invoice_number} has been placed successfully!")
+            
+            # Redirect to order success page
+            return redirect("shop:order_success", tracking_code=invoice.tracking_code)
         except Exception as e:
             # Log the error for debugging
             import traceback
@@ -398,19 +503,18 @@ def checkout(request):
             print(f"Checkout error: {str(e)}")
             print(traceback.format_exc())
 
-            return JsonResponse(
-                {
-                    "success": False,
-                    "error": f"An error occurred during checkout: {str(e)}",
-                },
-                status=500,
-            )
+            messages.error(request, f"An error occurred during checkout. Please try again.")
+            return redirect("shop:checkout")
 
 
 def order_success(request, tracking_code):
     """Order success page"""
     try:
-        order = Invoice.objects.get(tracking_code=tracking_code, is_shop_order=True)
+        order = Invoice.objects.prefetch_related(
+            'items',
+            'items__product',
+            'items__product__images',
+        ).get(tracking_code=tracking_code, is_shop_order=True)
     except Invoice.DoesNotExist:
         order = None
 

@@ -3,21 +3,7 @@
 {% block title %}Dashboard - {{ block.super }}{% endblock %}
 
 {% block extra_head %}
-    <!-- Additional Tailwind CSS configuration for dashboard -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        'gmail-blue': '#1a73e8',
-                        'gmail-red': '#d33b27',
-                        'gmail-hover': '#fce8e6',
-                    }
-                }
-            }
-        }
-    </script>
+  
 {% endblock %}
 
 {% block navbar %}{% endblock %}
@@ -575,47 +561,6 @@ document.body.addEventListener('htmx:beforeRequest', function(evt) {
 });
 </script>
 
-<style>
-/* Custom styles for Gmail-like appearance */
-.menu li > a.active {
-    background-color: hsl(var(--er) / 0.1);
-    color: hsl(var(--er));
-    font-weight: 600;
-}
 
-.menu li > a.active::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    background-color: hsl(var(--er));
-    border-radius: 0 3px 3px 0;
-}
-
-/* Smooth transitions */
-.menu li > a {
-    transition: all 0.2s ease;
-}
-
-/* Sidebar scrollbar styling */
-aside nav::-webkit-scrollbar {
-    width: 8px;
-}
-
-aside nav::-webkit-scrollbar-track {
-    background: transparent;
-}
-
-aside nav::-webkit-scrollbar-thumb {
-    background: hsl(var(--bc) / 0.2);
-    border-radius: 4px;
-}
-
-aside nav::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--bc) / 0.3);
-}
-</style>
 {% endblock %}
 {% endblock %}

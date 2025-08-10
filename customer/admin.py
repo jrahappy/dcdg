@@ -61,14 +61,20 @@ class CustomerDocumentInline(admin.TabularInline):
     readonly_fields = ['uploaded_at']
 
 
+class CustomerAddressInline(admin.TabularInline):
+    model = CustomerAddress
+    extra = 1
+    fields = ['address_type', 'label', 'recipient_name', 'address_line1', 'city', 'state', 'postal_code', 'is_default', 'is_active']
+
+
 @admin.register(Customer)
 class CustomerAdmin(admin.ModelAdmin):
-    list_display = ['get_full_name', 'email', 'company_name', 'company_category', 'phone', 'city', 'is_active', 'date_joined']
-    list_filter = ['is_active', 'company_category', 'date_joined', 'country', 'state']
+    list_display = ['get_full_name', 'email', 'company_name', 'company_category', 'phone', 'is_active', 'date_joined']
+    list_filter = ['is_active', 'company_category', 'date_joined']
     search_fields = ['first_name', 'last_name', 'email', 'company_name', 'phone']
     readonly_fields = ['date_joined']
     ordering = ['-date_joined']
-    inlines = [CustomerContactInline, CustomerNoteInline, CustomerDocumentInline]
+    inlines = [CustomerAddressInline, CustomerContactInline, CustomerNoteInline, CustomerDocumentInline]
     
     fieldsets = (
         ('Basic Information', {
@@ -76,9 +82,6 @@ class CustomerAdmin(admin.ModelAdmin):
         }),
         ('Contact Details', {
             'fields': ('phone',)
-        }),
-        ('Address', {
-            'fields': ('address_line1', 'address_line2', 'city', 'state', 'postal_code', 'country')
         }),
         ('Additional Information', {
             'fields': ('is_active', 'internal_notes', 'date_joined')

@@ -121,12 +121,6 @@ class Customer(models.Model):
         message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.",
     )
     phone = models.CharField(validators=[phone_regex], max_length=17, blank=True)
-    address_line1 = models.CharField(max_length=255, blank=True)
-    address_line2 = models.CharField(max_length=255, blank=True)
-    city = models.CharField(max_length=100, blank=True)
-    state = models.CharField(max_length=100, blank=True)
-    postal_code = models.CharField(max_length=20, blank=True)
-    country = models.CharField(max_length=100, blank=True)
     date_joined = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
     internal_notes = models.TextField(blank=True)
@@ -145,16 +139,29 @@ class Customer(models.Model):
         return f"{self.first_name} {self.last_name}"
 
     @property
-    def full_address(self):
-        address_parts = [
-            self.address_line1,
-            self.address_line2,
-            self.city,
-            self.state,
-            self.postal_code,
-            self.country,
-        ]
-        return ", ".join(part for part in address_parts if part)
+    def get_default_address(self):
+        """Get the default address for this customer"""
+        return self.addresses.filter(is_default=True, is_active=True).first()
+    
+    @property
+    def get_billing_address(self):
+        """Get the default billing address"""
+        from django.db.models import Q
+        return self.addresses.filter(
+            Q(address_type='billing') | Q(address_type='both'),
+            is_default=True,
+            is_active=True
+        ).first()
+    
+    @property
+    def get_shipping_address(self):
+        """Get the default shipping address"""
+        from django.db.models import Q
+        return self.addresses.filter(
+            Q(address_type='shipping') | Q(address_type='both'),
+            is_default=True,
+            is_active=True
+        ).first()
     
     @property
     def display_name(self):

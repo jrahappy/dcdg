@@ -50,6 +50,27 @@ urlpatterns = [
     path('invoices/<int:invoice_pk>/payments/add/', views.PaymentCreateView.as_view(), name='payment_add'),
     path('payments/<int:pk>/', views.PaymentDetailView.as_view(), name='payment_detail'),
     
+    # Shipment URLs
+    path('shipments/', views.ShipmentListView.as_view(), name='shipment_list'),
+    path('shipments/<int:pk>/', views.ShipmentDetailView.as_view(), name='shipment_detail'),
+    path('shipments/<int:pk>/update/', views.ShipmentEditStep1View.as_view(), name='shipment_update'),
+    path('shipments/<int:pk>/delete/', views.ShipmentDeleteView.as_view(), name='shipment_delete'),
+    # 2-Step Shipment Creation
+    path('invoices/<int:invoice_pk>/shipments/add/', views.ShipmentCreateStep1View.as_view(), name='shipment_add'),
+    path('invoices/<int:invoice_pk>/shipments/create/step1/', views.ShipmentCreateStep1View.as_view(), name='shipment_create_step1'),
+    path('invoices/<int:invoice_pk>/shipments/create/step2/', views.ShipmentCreateStep2View.as_view(), name='shipment_create_step2'),
+    # 2-Step Shipment Editing
+    path('shipments/<int:pk>/edit/step1/', views.ShipmentEditStep1View.as_view(), name='shipment_edit_step1'),
+    path('shipments/<int:pk>/edit/step2/', views.ShipmentEditStep2View.as_view(), name='shipment_edit_step2'),
+    # Legacy single-step shipment update/creation (if needed)
+    path('shipments/<int:pk>/update-single/', views.ShipmentUpdateView.as_view(), name='shipment_update_single'),
+    path('invoices/<int:invoice_pk>/shipments/add-single/', views.ShipmentCreateView.as_view(), name='shipment_add_single'),
+    
+    # Shipment Item URLs
+    path('shipments/<int:shipment_pk>/items/add/', views.ShipmentItemCreateView.as_view(), name='shipment_item_add'),
+    path('shipment-items/<int:pk>/update/', views.ShipmentItemUpdateView.as_view(), name='shipment_item_update'),
+    path('shipment-items/<int:pk>/delete/', views.ShipmentItemDeleteView.as_view(), name='shipment_item_delete'),
+    
     # API URLs
     path('api/inventory/available/<int:product_id>/', views.AvailableInventoryAPIView.as_view(), name='api_available_inventory'),
 ]
