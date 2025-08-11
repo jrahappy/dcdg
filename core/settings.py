@@ -34,6 +34,24 @@ ALLOWED_HOSTS = (
     os.getenv("ALLOWED_HOSTS", "").split(",") if os.getenv("ALLOWED_HOSTS") else []
 )
 
+# CSRF settings for production
+CSRF_TRUSTED_ORIGINS = []
+if os.getenv("CSRF_TRUSTED_ORIGINS"):
+    CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS").split(",")
+    # Ensure URLs have proper scheme
+    CSRF_TRUSTED_ORIGINS = [
+        origin if origin.startswith(('http://', 'https://')) else f'https://{origin}'
+        for origin in CSRF_TRUSTED_ORIGINS
+    ]
+
+# Additional security settings for production
+if not DEBUG:
+    # Force HTTPS for CSRF cookies in production
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_SECURE = True
+    # Ensure CSRF cookie is accessible by JavaScript
+    CSRF_COOKIE_HTTPONLY = False
+
 
 # Application definition
 
