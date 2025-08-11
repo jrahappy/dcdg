@@ -144,7 +144,10 @@
       "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py makemigrations customer --dry-run)",
       "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py migrate customer --fake)",
       "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py makemigrations sales -n change_tax_rate_decimal_places)",
-      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py makemigrations sales -n fix_tax_and_discount_decimal_places)"
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py makemigrations sales -n fix_tax_and_discount_decimal_places)",
+      "Bash(git rm:*)",
+      "Bash(git push:*)",
+      "Bash(git reset:*)"
     ],
     "deny": []
   }
