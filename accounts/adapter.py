@@ -28,6 +28,10 @@ class NoEmailVerificationAdapter(DefaultAccountAdapter):
         user = request.user
         
         if user.is_authenticated:
+            # Check if user is staff/admin FIRST (they should go to admin dashboard)
+            if user.is_staff or user.is_superuser:
+                return reverse('dashboard:home')  # Redirect to /home/
+            
             # Check if user is a factory user
             try:
                 from factory.models import FactoryUser
@@ -45,10 +49,6 @@ class NoEmailVerificationAdapter(DefaultAccountAdapter):
                     return '/'  # Redirect customers to shop homepage
             except (Customer.DoesNotExist, AttributeError):
                 pass
-            
-            # Check if user is staff/admin
-            if user.is_staff or user.is_superuser:
-                return reverse('dashboard:home')
         
         # Default redirect (fallback to shop homepage)
         return '/'

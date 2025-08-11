@@ -215,54 +215,77 @@
                         </div>
                     </div>
                 </div>
-                    
-                <!-- SEO Settings -->
-                <div class="card bg-base-100 shadow-xl">
+                
+                <!-- Product Integration -->
+                <div class="card bg-gradient-to-br from-info/10 to-primary/10 shadow-xl">
                     <div class="card-body">
-                        <h2 class="card-title mb-4">SEO Settings</h2>
+                        <div class="flex items-center gap-2 mb-4">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                            </svg>
+                            <h2 class="card-title">Product Integration</h2>
+                            <div class="badge badge-info badge-outline badge-sm ml-auto">Optional</div>
+                        </div>
+                        
+                        <p class="text-sm text-base-content/70 mb-4">
+                            Link products to showcase with this article
+                        </p>
                         
                         <div class="space-y-4">
+                            <!-- Product Category -->
                             <div class="form-control">
                                 <label class="label">
-                                    <span class="label-text">Meta Title</span>
-                                    <span class="label-text-alt">SEO title (leave empty to use post title)</span>
+                                    <span class="label-text">Product Category</span>
                                 </label>
-                                {{ form.meta_title }}
-                                {% if form.meta_title.errors %}
+                                {{ form.product_category }}
+                                {% if form.product_category.help_text %}
                                     <label class="label">
-                                        <span class="label-text-alt text-error">{{ form.meta_title.errors.0 }}</span>
+                                        <span class="label-text-alt">{{ form.product_category.help_text }}</span>
+                                    </label>
+                                {% endif %}
+                                {% if form.product_category.errors %}
+                                    <label class="label">
+                                        <span class="label-text-alt text-error">{{ form.product_category.errors.0 }}</span>
                                     </label>
                                 {% endif %}
                             </div>
                             
+                            <!-- Related Products -->
                             <div class="form-control">
                                 <label class="label">
-                                    <span class="label-text">Meta Description</span>
-                                    <span class="label-text-alt">SEO description (leave empty to use excerpt)</span>
+                                    <span class="label-text">Related Products</span>
+                                    <span class="label-text-alt">
+                                        <kbd class="kbd kbd-xs">Ctrl</kbd>+Click
+                                    </span>
                                 </label>
-                                {{ form.meta_description }}
-                                {% if form.meta_description.errors %}
+                                {{ form.related_products }}
+                                {% if form.related_products.help_text %}
                                     <label class="label">
-                                        <span class="label-text-alt text-error">{{ form.meta_description.errors.0 }}</span>
+                                        <span class="label-text-alt">{{ form.related_products.help_text }}</span>
                                     </label>
                                 {% endif %}
-                            </div>
-                            
-                            <div class="form-control">
-                                <label class="label">
-                                    <span class="label-text">Meta Keywords</span>
-                                    <span class="label-text-alt">Comma-separated keywords for SEO</span>
-                                </label>
-                                {{ form.meta_keywords }}
-                                {% if form.meta_keywords.errors %}
+                                {% if form.related_products.errors %}
                                     <label class="label">
-                                        <span class="label-text-alt text-error">{{ form.meta_keywords.errors.0 }}</span>
+                                        <span class="label-text-alt text-error">{{ form.related_products.errors.0 }}</span>
                                     </label>
+                                {% endif %}
+                                
+                                <!-- Show selected products if editing -->
+                                {% if post and post.related_products.exists %}
+                                <div class="mt-2">
+                                    <p class="text-xs text-base-content/60 mb-1">Currently selected:</p>
+                                    <div class="flex flex-wrap gap-1">
+                                        {% for product in post.related_products.all %}
+                                            <span class="badge badge-info badge-sm">{{ product.name }}</span>
+                                        {% endfor %}
+                                    </div>
+                                </div>
                                 {% endif %}
                             </div>
                         </div>
                     </div>
                 </div>
+                    
             </div>
         </div>
             
@@ -298,6 +321,23 @@
     
     select:not(.select) {
         @apply select select-bordered w-full;
+    }
+    
+    select[multiple]:not(.select) {
+        @apply select select-bordered w-full;
+        min-height: 240px !important;
+        height: 240px !important;
+    }
+    
+    /* Specifically target the multi-select fields */
+    #id_related_products {
+        min-height: 240px !important;
+        height: 240px !important;
+    }
+    
+    #id_tags {
+        min-height: 150px !important;
+        height: 150px !important;
     }
     
     textarea:not(.textarea):not(.note-editable) {

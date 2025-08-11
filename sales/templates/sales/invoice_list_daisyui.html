@@ -37,7 +37,7 @@
         <div class="stats shadow">
             <div class="stat">
                 <div class="stat-title">Revenue This Month</div>
-                <div class="stat-value text-success text-lg">${{ total_revenue|default:"0"|floatformat:0 }}</div>
+                <div class="stat-value text-success">${{ total_revenue|default:"0"|floatformat:0 }}</div>
                 <div class="stat-desc">Current month</div>
             </div>
         </div>
@@ -104,7 +104,7 @@
                         <th>Due Date</th>
                         <th>Amount</th>
                         <th>Status</th>
-                        <th>Payment</th>
+                        <th>Shipping</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
@@ -147,88 +147,53 @@
                         <td>
                             {% if invoice.status == 'paid' %}
                                 <div class="badge badge-success">Paid</div>
+                            {% elif invoice.status == 'partial' %}
+                                <div class="badge badge-warning">Partial</div>
                             {% elif invoice.status == 'sent' %}
                                 <div class="badge badge-info">Sent</div>
+                            {% elif invoice.status == 'viewed' %}
+                                <div class="badge badge-secondary">Viewed</div>
                             {% elif invoice.status == 'draft' %}
-                                <div class="badge badge-warning">Draft</div>
+                                <div class="badge badge-ghost">Draft</div>
+                            {% elif invoice.status == 'unsent' %}
+                                <div class="badge badge-ghost">Unsent</div>
                             {% elif invoice.status == 'overdue' %}
                                 <div class="badge badge-error">Overdue</div>
                             {% elif invoice.status == 'cancelled' %}
-                                <div class="badge badge-ghost">Cancelled</div>
+                                <div class="badge badge-neutral">Cancelled</div>
+                            {% elif invoice.status == 'refunded' %}
+                                <div class="badge badge-secondary">Refunded</div>
+                            {% elif invoice.status == 'overpaid' %}
+                                <div class="badge badge-info">Overpaid</div>
                             {% else %}
                                 <div class="badge">{{ invoice.get_status_display }}</div>
                             {% endif %}
                         </td>
                         <td>
-                            {% if invoice.payment_status == 'paid' %}
-                                <div class="badge badge-success badge-sm">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                                    </svg>
-                                    Paid
-                                </div>
-                            {% elif invoice.payment_status == 'partial' %}
+                            {% if invoice.shipping_status == 'delivered' %}
+                                <div class="badge badge-success badge-sm">Delivered</div>
+                            {% elif invoice.shipping_status == 'shipped' %}
+                                <div class="badge badge-info badge-sm">Shipped</div>
+                            {% elif invoice.shipping_status == 'partially_shipped' %}
                                 <div class="badge badge-warning badge-sm">Partial</div>
+                            {% elif invoice.shipping_status == 'preparing' %}
+                                <div class="badge badge-secondary badge-sm">Preparing</div>
+                            {% elif invoice.shipping_status == 'returned' %}
+                                <div class="badge badge-error badge-sm">Returned</div>
+                            {% elif invoice.shipping_status == 'cancelled' %}
+                                <div class="badge badge-ghost badge-sm">Cancelled</div>
                             {% else %}
                                 <div class="badge badge-ghost badge-sm">Pending</div>
                             {% endif %}
                         </td>
                         <td>
-                            <div class="dropdown dropdown-end">
-                                <label tabindex="0" class="btn btn-ghost btn-xs">
-                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                                    </svg>
-                                </label>
-                                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
-                                    <li><a href="{% url 'sales:invoice_detail' invoice.id %}">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                                        </svg>
-                                        View
-                                    </a></li>
-                                    <li><a href="{% url 'sales:invoice_pdf' invoice.id %}" target="_blank">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                                        </svg>
-                                        Download PDF
-                                    </a></li>
-                                    {% if invoice.status == 'draft' %}
-                                    <li><a href="{% url 'sales:invoice_update' invoice.id %}">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                        </svg>
-                                        Edit
-                                    </a></li>
-                                    {% endif %}
-                                    {% if invoice.status != 'paid' and invoice.status != 'cancelled' %}
-                                    <li><a href="{% url 'sales:payment_add' invoice.id %}">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                                        </svg>
-                                        Record Payment
-                                    </a></li>
-                                    {% endif %}
-                                    <div class="divider my-0"></div>
-                                    {# Duplicate functionality not yet implemented
-                                    <li><a href="#" onclick="alert('Duplicate feature coming soon'); return false;">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                                        </svg>
-                                        Duplicate
-                                    </a></li>
-                                    #}
-                                    {% if invoice.status == 'draft' %}
-                                    <li><a href="{% url 'sales:invoice_delete' invoice.id %}" class="text-error">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                                        </svg>
-                                        Delete
-                                    </a></li>
-                                    {% endif %}
-                                </ul>
-                            </div>
+                            <a href="{% url 'sales:invoice_detail' invoice.id %}" class="btn btn-primary btn-xs">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                </svg>
+                                View
+                            </a>
                         </td>
                     </tr>
                     <!-- Accordion Row (Invoice Items) -->

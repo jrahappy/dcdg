@@ -1,0 +1,183 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}Edit Shipment - Step 1{% endblock %}
+
+{% block dashboard_content %}
+<div class="space-y-6">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </a></li>
+            <li><a href="{% url 'sales:invoice_list' %}">Invoices</a></li>
+            <li><a href="{% url 'sales:invoice_detail' invoice.pk %}">Invoice #{{ invoice.invoice_number }}</a></li>
+            <li><a href="{% url 'sales:shipment_detail' shipment.pk %}">{{ shipment.shipment_number }}</a></li>
+            <li>Edit - Step 1</li>
+        </ul>
+    </div>
+
+    <!-- Header with Progress Steps -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <h1 class="text-2xl font-bold">Edit Shipment {{ shipment.shipment_number }}</h1>
+                
+                <!-- Progress Steps -->
+                <ul class="steps">
+                    <li class="step step-primary">Shipment Details</li>
+                    <li class="step">Update Items</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Invoice Summary -->
+    <div class="card bg-base-200">
+        <div class="card-body">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <p class="text-sm text-base-content/60">Customer</p>
+                    <p class="font-semibold">{{ invoice.customer.get_full_name }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-base-content/60">Invoice Date</p>
+                    <p class="font-semibold">{{ invoice.invoice_date|date:"M d, Y" }}</p>
+                </div>
+                <div>
+                    <p class="text-sm text-base-content/60">Total Amount</p>
+                    <p class="font-semibold">${{ invoice.total_amount|floatformat:2 }}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shipment Form -->
+    <form method="post">
+        {% csrf_token %}
+        
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Shipment Information</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Supplier -->
+                    {% if form.supplier %}
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Supplier</span>
+                        </label>
+                        {{ form.supplier }}
+                        {% if form.supplier.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.supplier.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Carrier -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Carrier <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.carrier }}
+                        {% if form.carrier.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.carrier.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Service Type -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Service Type</span>
+                        </label>
+                        {{ form.service_type }}
+                        {% if form.service_type.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.service_type.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Status -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Status <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.status.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Tracking Number -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Tracking Number</span>
+                        </label>
+                        {{ form.tracking_number }}
+                        {% if form.tracking_number.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.tracking_number.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Tracking URL -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Tracking URL</span>
+                        </label>
+                        {{ form.tracking_url }}
+                        {% if form.tracking_url.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.tracking_url.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+
+                    <!-- Internal Notes -->
+                    <div class="form-control md:col-span-2">
+                        <label class="label">
+                            <span class="label-text">Internal Notes</span>
+                        </label>
+                        {{ form.internal_notes }}
+                        {% if form.internal_notes.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.internal_notes.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- Action Buttons -->
+        <div class="flex justify-between">
+            <a href="{% url 'sales:shipment_detail' shipment.pk %}" class="btn btn-ghost">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Cancel
+            </a>
+            <button type="submit" class="btn btn-primary">
+                Next: Update Items
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+            </button>
+        </div>
+    </form>
+</div>
+
+
+{% endblock %}

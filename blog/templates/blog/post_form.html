@@ -21,6 +21,23 @@
     .note-btn:hover {
         background-color: hsl(var(--b3));
     }
+    
+    /* Enhanced select styling */
+    select[multiple] {
+        min-height: 240px;
+        height: 240px;
+    }
+    
+    /* Product selection preview */
+    .product-preview {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.25rem 0.5rem;
+        background: hsl(var(--b2));
+        border-radius: 0.25rem;
+        margin-top: 0.25rem;
+    }
 </style>
 {% endblock %}
 
@@ -110,6 +127,106 @@
             </div>
         </div>
         
+        <!-- Product Related Fields -->
+        <div class="card bg-gradient-to-br from-base-200 to-base-300 shadow-lg">
+            <div class="card-body">
+                <div class="flex items-center gap-3 mb-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+                    </svg>
+                    <h3 class="card-title text-lg">Product Integration</h3>
+                    <div class="badge badge-info badge-outline ml-auto">Optional</div>
+                </div>
+                
+                <p class="text-sm text-base-content/70 mb-4">
+                    Link your article to products to create a seamless content-to-commerce experience for your readers.
+                </p>
+                
+                <div class="space-y-6">
+                    <!-- Product Category Selection -->
+                    <div>
+                        <label for="{{ form.product_category.id_for_label }}" class="label">
+                            <span class="label-text font-medium">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" />
+                                </svg>
+                                {{ form.product_category.label }}
+                            </span>
+                        </label>
+                        {{ form.product_category }}
+                        {% if form.product_category.help_text %}
+                            <label class="label">
+                                <span class="label-text-alt text-base-content/60">{{ form.product_category.help_text }}</span>
+                            </label>
+                        {% endif %}
+                        {% if form.product_category.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.product_category.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Related Products Selection -->
+                    <div>
+                        <label for="{{ form.related_products.id_for_label }}" class="label">
+                            <span class="label-text font-medium">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 inline mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                                </svg>
+                                {{ form.related_products.label }}
+                            </span>
+                            <span class="label-text-alt">
+                                <kbd class="kbd kbd-xs">Ctrl</kbd> + Click to select multiple
+                            </span>
+                        </label>
+                        {{ form.related_products }}
+                        {% if form.related_products.help_text %}
+                            <label class="label">
+                                <span class="label-text-alt text-base-content/60">{{ form.related_products.help_text }}</span>
+                            </label>
+                        {% endif %}
+                        {% if form.related_products.errors %}
+                            <label class="label">
+                                <span class="label-text-alt text-error">{{ form.related_products.errors.0 }}</span>
+                            </label>
+                        {% endif %}
+                        
+                        <!-- Selected Products Preview -->
+                        {% if form.instance.pk and form.instance.related_products.exists %}
+                        <div class="mt-3">
+                            <div class="text-xs text-base-content/60 mb-2">Currently selected products:</div>
+                            <div class="flex flex-wrap gap-2">
+                                {% for product in form.instance.related_products.all %}
+                                    <div class="badge badge-lg badge-info gap-2">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                                        </svg>
+                                        {{ product.name }}
+                                    </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Help Text -->
+                    <div class="alert alert-info">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                        </svg>
+                        <div class="text-sm">
+                            <p class="font-semibold">Tips for Product Integration:</p>
+                            <ul class="list-disc list-inside mt-1 space-y-1">
+                                <li>Select products that are directly related to your article content</li>
+                                <li>Products will be displayed at the end of your article</li>
+                                <li>Readers can click through to view and purchase products</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
         <div>
             <label for="{{ form.featured_image.id_for_label }}" class="block text-sm font-medium text-gray-700">
                 Featured Image
@@ -170,4 +287,108 @@
         </div>
     </form>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Enhanced product selection feedback
+    const productSelect = document.getElementById('id_related_products');
+    const categorySelect = document.getElementById('id_product_category');
+    
+    if (productSelect) {
+        // Show count of selected products
+        const updateProductCount = () => {
+            const selectedCount = productSelect.selectedOptions.length;
+            const label = productSelect.previousElementSibling;
+            if (label && label.querySelector('.label-text')) {
+                const countBadge = label.querySelector('.badge') || document.createElement('span');
+                if (selectedCount > 0) {
+                    countBadge.className = 'badge badge-sm badge-info ml-2';
+                    countBadge.textContent = selectedCount + ' selected';
+                    if (!label.querySelector('.badge')) {
+                        label.querySelector('.label-text').appendChild(countBadge);
+                    }
+                } else if (label.querySelector('.badge')) {
+                    label.querySelector('.badge').remove();
+                }
+            }
+        };
+        
+        productSelect.addEventListener('change', updateProductCount);
+        updateProductCount();
+    }
+    
+    // Auto-filter products by selected category
+    if (categorySelect && productSelect) {
+        const allOptions = Array.from(productSelect.options);
+        
+        categorySelect.addEventListener('change', function() {
+            const selectedCategory = this.value;
+            
+            if (!selectedCategory) {
+                // Show all products if no category selected
+                allOptions.forEach(option => {
+                    option.style.display = '';
+                });
+            } else {
+                // Filter products based on category (this would need backend support for proper filtering)
+                // For now, just show a helpful message
+                const helpText = document.createElement('div');
+                helpText.className = 'text-xs text-info mt-2';
+                helpText.textContent = 'Tip: Select products that match your chosen category for better content relevance.';
+                if (!this.parentElement.querySelector('.text-info')) {
+                    this.parentElement.appendChild(helpText);
+                }
+            }
+        });
+    }
+    
+    // Image preview for featured image
+    const imageInput = document.getElementById('id_featured_image');
+    if (imageInput) {
+        imageInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    let preview = document.getElementById('image-preview');
+                    if (!preview) {
+                        preview = document.createElement('img');
+                        preview.id = 'image-preview';
+                        preview.className = 'mt-2 h-32 w-auto rounded shadow-md';
+                        imageInput.parentElement.appendChild(preview);
+                    }
+                    preview.src = e.target.result;
+                };
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+    }
+    
+    // Auto-save draft indicator
+    let saveTimeout;
+    const formInputs = document.querySelectorAll('input, textarea, select');
+    
+    formInputs.forEach(input => {
+        input.addEventListener('input', function() {
+            clearTimeout(saveTimeout);
+            const indicator = document.getElementById('save-indicator') || createSaveIndicator();
+            indicator.textContent = 'Changes pending...';
+            indicator.className = 'text-sm text-warning';
+            
+            saveTimeout = setTimeout(() => {
+                indicator.textContent = 'Changes will be saved when you submit';
+                indicator.className = 'text-sm text-base-content/60';
+            }, 2000);
+        });
+    });
+    
+    function createSaveIndicator() {
+        const indicator = document.createElement('div');
+        indicator.id = 'save-indicator';
+        indicator.className = 'text-sm text-base-content/60';
+        const form = document.querySelector('form');
+        form.insertBefore(indicator, form.firstChild);
+        return indicator;
+    }
+});
+</script>
 {% endblock %}

@@ -56,14 +56,26 @@
                 Send Invoice
             </button>
             {% endif %}
-            {% if invoice.balance_due > 0 %}
-            <a href="{% url 'sales:payment_add' invoice_pk=invoice.pk %}" class="btn btn-success btn-sm">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Record Payment
-            </a>
+            {% if invoice.shipping_status != 'shipped' %}
+            <form method="post" action="{% url 'sales:invoice_mark_shipped' invoice.pk %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-info btn-sm">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                    </svg>
+                    Mark as Shipped
+                </button>
+            </form>
             {% endif %}
+            <form method="post" action="{% url 'sales:invoice_recalculate' invoice.pk %}" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-outline btn-warning btn-sm" title="Recalculate invoice totals, payments, and status">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Recalculate
+                </button>
+            </form>
             <button onclick="window.print()" class="btn btn-ghost btn-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -245,6 +257,96 @@
                 </div>
             </div>
 
+            <!-- Payment History -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <div class="flex items-center justify-between">
+                        <h2 class="card-title">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            Payment History
+                        </h2>
+                        <a href="{% url 'sales:payment_add' invoice_pk=invoice.pk %}" class="btn btn-primary btn-xs">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Record Payment
+                        </a>
+                    </div>
+                    {% if payments %}
+                    <div class="space-y-3 mt-4">
+                        {% for payment in payments %}
+                        <div class="border-l-4 {% if payment.status == 'completed' %}border-success{% elif payment.status == 'pending' %}border-warning{% else %}border-base-300{% endif %} pl-4 py-2">
+                            <div class="flex justify-between items-start">
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <div class="font-semibold">${{ payment.amount|floatformat:2 }}</div>
+                                        {% if payment.payment_number %}
+                                        <div class="badge badge-primary badge-sm">{{ payment.payment_number }}</div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="text-sm text-base-content/60">{{ payment.payment_date|date:"F d, Y" }}</div>
+                                    <div class="text-xs text-base-content/50 mt-1">
+                                        Method: {{ payment.get_payment_method_display }}
+                                        {% if payment.reference_number %}
+                                        <br>Ref: {{ payment.reference_number }}
+                                        {% endif %}
+                                        {% if payment.notes %}
+                                        <br>Note: {{ payment.notes|truncatechars:50 }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <div class="flex items-start gap-2">
+                                    {% if payment.status == 'completed' %}
+                                        <div class="badge badge-success badge-sm">Completed</div>
+                                    {% elif payment.status == 'pending' %}
+                                        <div class="badge badge-warning badge-sm">Pending</div>
+                                    {% elif payment.status == 'processing' %}
+                                        <div class="badge badge-info badge-sm">Processing</div>
+                                    {% elif payment.status == 'failed' %}
+                                        <div class="badge badge-error badge-sm">Failed</div>
+                                    {% elif payment.status == 'refunded' %}
+                                        <div class="badge badge-secondary badge-sm">Refunded</div>
+                                    {% else %}
+                                        <div class="badge badge-ghost badge-sm">{{ payment.get_status_display }}</div>
+                                    {% endif %}
+                                    
+                                    <!-- Dropdown menu for payment actions -->
+                                    <div class="dropdown dropdown-end">
+                                        <label tabindex="0" class="btn btn-ghost btn-xs">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                            </svg>
+                                        </label>
+                                        <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 z-50">
+                                            <li>
+                                                <a href="{% url 'sales:payment_detail' pk=payment.pk %}">
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                                    </svg>
+                                                    View Details
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                        <p class="text-base-content/60">No payments recorded yet</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
             {% if invoice.notes %}
             <!-- Notes -->
             <div class="card bg-base-100 shadow-xl">
@@ -303,6 +405,12 @@
                             <span>${{ invoice.tax_amount|floatformat:2 }}</span>
                         </div>
                         {% endif %}
+                        {% if invoice.shipping_cost > 0 %}
+                        <div class="flex justify-between text-sm">
+                            <span class="text-base-content/60">Shipping</span>
+                            <span>${{ invoice.shipping_cost|floatformat:2 }}</span>
+                        </div>
+                        {% endif %}
                         <div class="divider"></div>
                         <div class="flex justify-between">
                             <span class="font-semibold">Total</span>
@@ -323,79 +431,6 @@
                 </div>
             </div>
 
-            <!-- Payment History -->
-            <div class="card bg-base-100 shadow-xl">
-                <div class="card-body">
-                    <div class="flex items-center justify-between">
-                        <h2 class="card-title">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                            Payment History
-                        </h2>
-                        {% if invoice.balance_due > 0 %}
-                        <a href="{% url 'sales:payment_add' invoice_pk=invoice.pk %}" class="btn btn-ghost btn-xs">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                            </svg>
-                            Add
-                        </a>
-                        {% endif %}
-                    </div>
-                    {% if payments %}
-                    <div class="space-y-3 mt-4">
-                        {% for payment in payments %}
-                        <div class="border-l-4 {% if payment.status == 'completed' %}border-success{% elif payment.status == 'pending' %}border-warning{% else %}border-base-300{% endif %} pl-4 py-2">
-                            <div class="flex justify-between items-start">
-                                <div>
-                                    <div class="font-semibold">${{ payment.amount|floatformat:2 }}</div>
-                                    <div class="text-sm text-base-content/60">{{ payment.payment_date|date:"F d, Y" }}</div>
-                                    <div class="text-xs text-base-content/50 mt-1">
-                                        Method: {{ payment.get_payment_method_display }}
-                                        {% if payment.reference_number %}
-                                        <br>Ref: {{ payment.reference_number }}
-                                        {% endif %}
-                                        {% if payment.notes %}
-                                        <br>Note: {{ payment.notes|truncatechars:50 }}
-                                        {% endif %}
-                                    </div>
-                                </div>
-                                {% if payment.status == 'completed' %}
-                                    <div class="badge badge-success badge-sm">Completed</div>
-                                {% elif payment.status == 'pending' %}
-                                    <div class="badge badge-warning badge-sm">Pending</div>
-                                {% elif payment.status == 'processing' %}
-                                    <div class="badge badge-info badge-sm">Processing</div>
-                                {% elif payment.status == 'failed' %}
-                                    <div class="badge badge-error badge-sm">Failed</div>
-                                {% elif payment.status == 'refunded' %}
-                                    <div class="badge badge-secondary badge-sm">Refunded</div>
-                                {% else %}
-                                    <div class="badge badge-ghost badge-sm">{{ payment.get_status_display }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        {% endfor %}
-                    </div>
-                    {% else %}
-                    <div class="text-center py-8">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-16 w-16 mx-auto text-base-content/20 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                        </svg>
-                        <p class="text-base-content/60">No payments recorded yet</p>
-                        {% if invoice.balance_due > 0 %}
-                        <a href="{% url 'sales:payment_add' invoice_pk=invoice.pk %}" class="btn btn-success btn-sm mt-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                            </svg>
-                            Record First Payment
-                        </a>
-                        {% endif %}
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-
             <!-- Shipping Information -->
             <div class="card bg-base-100 shadow-xl">
                 <div class="card-body">
@@ -404,13 +439,13 @@
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                             </svg>
-                            Shipping Information
+                            Shipping 
                         </h2>
                         <a href="{% url 'sales:shipment_add' invoice.pk %}" class="btn btn-primary btn-xs">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
                             </svg>
-                            Add Shipment
+                            Create Shipment
                         </a>
                     </div>
                     {% if shipments %}
@@ -563,12 +598,6 @@
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
                         </svg>
                         <p class="text-base-content/60">No shipments created yet</p>
-                        <a href="{% url 'sales:shipment_add' invoice.pk %}" class="btn btn-primary btn-sm mt-4">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                            </svg>
-                            Create First Shipment
-                        </a>
                     </div>
                     {% endif %}
                 </div>

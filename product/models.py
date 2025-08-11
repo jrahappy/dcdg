@@ -18,6 +18,7 @@ class Category(models.Model):
     icon = models.CharField(
         max_length=50, blank=True, help_text="Icon class name (e.g., fas fa-tooth)"
     )
+    cover_image = models.ImageField(upload_to="category_covers/", blank=True, null=True)
     is_active = models.BooleanField(default=True)
     order = models.IntegerField(default=0, help_text="Display order")
     created_at = models.DateTimeField(auto_now_add=True)

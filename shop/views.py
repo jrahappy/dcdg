@@ -68,25 +68,84 @@ def product_list(request):
 
     # Sort
     sort = request.GET.get("sort", "-created_at")
-    if sort in ["price", "-price", "name", "-name", "-created_at"]:
-        queryset = queryset.order_by(sort)
-
-    # Pagination
-    paginator = Paginator(queryset, 12)
-    page_number = request.GET.get("page")
-    products = paginator.get_page(page_number)
+    
+    # Check if we should group by category
+    group_by_category = request.GET.get("group_by_category", "false") == "true"
+    
+    if group_by_category:
+        # Group products by category
+        from itertools import groupby
+        from operator import attrgetter
+        
+        # Sort by category order first, then by product name (or selected sort)
+        if sort in ["price", "-price", "name", "-name", "-created_at"]:
+            queryset = queryset.order_by("category__order", "category__name", sort)
+        else:
+            # Default: order by category order, then by product name
+            queryset = queryset.order_by("category__order", "category__name", "name")
+        
+        # Group products by category (only active categories)
+        products_by_category = []
+        for category, group in groupby(queryset, key=attrgetter('category')):
+            if category and category.is_active:  # Only include products with active categories
+                products_list = list(group)
+                products_by_category.append({
+                    'category': category,
+                    'products': products_list
+                })
+        
+        # Pagination for grouped view (paginate categories, not individual products)
+        paginator = Paginator(products_by_category, 3)  # Show 3 categories per page
+        page_number = request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
+        
+        products = None  # Not used in grouped view
+    else:
+        # Regular pagination for non-grouped view
+        # Always apply category order first, then the selected sort
+        if sort in ["price", "-price", "name", "-name", "-created_at"]:
+            queryset = queryset.order_by("category__order", "category__name", sort)
+        else:
+            # Default: order by category order, then by product name
+            queryset = queryset.order_by("category__order", "category__name", "name")
+        
+        paginator = Paginator(queryset, 32)
+        page_number = request.GET.get("page")
+        products = paginator.get_page(page_number)
+        page_obj = products
+        products_by_category = None
 
     # Optimize categories query - prefetch children if needed for nested navigation
+    # Filter by is_active and sort by order field
     categories = Category.objects.filter(
         parent__isnull=True, is_active=True
-    ).prefetch_related("children")
+    ).prefetch_related("children").order_by("order", "name")
+    
+    # Get related blog posts if a category is selected
+    related_posts = None
+    current_category = None
+    if category_id:
+        try:
+            current_category = Category.objects.get(pk=category_id, is_active=True)
+            # Get blog posts related to this product category
+            from blog.models import Post
+            related_posts = Post.objects.filter(
+                product_category=current_category,
+                status='published'
+            ).select_related('author', 'category').order_by('-published_date')[:3]
+        except Category.DoesNotExist:
+            pass
     
     context = {
         "products": products,
+        "products_by_category": products_by_category if group_by_category else None,
         "categories": categories,
         "cart": get_cart(request),
-        "page_obj": products,
-        "is_paginated": products.has_other_pages(),
+        "page_obj": page_obj,
+        "is_paginated": page_obj.has_other_pages(),
+        "group_by_category": group_by_category,
+        "related_posts": related_posts,
+        "current_category": current_category,
     }
 
     return render(request, "shop/product_list.html", context)
@@ -140,7 +199,7 @@ def product_detail(request, pk):
     # Get categories for sidebar - same as product_list view
     categories = Category.objects.filter(
         parent__isnull=True, is_active=True
-    ).prefetch_related("children")
+    ).prefetch_related("children").order_by("order", "name")
     
     context = {
         "product": product,
@@ -210,7 +269,7 @@ def cart_view(request):
     # Get categories for sidebar
     categories = Category.objects.filter(
         parent__isnull=True, is_active=True
-    ).prefetch_related("children")
+    ).prefetch_related("children").order_by("order", "name")
     
     return render(request, "shop/cart.html", {
         "cart": cart,
@@ -432,8 +491,25 @@ def checkout(request):
                 billing_postal_code = request.POST.get("postal-code")
                 phone = request.POST.get("phone", "")
 
+            # Get or create customer for authenticated users
+            customer = None
+            if request.user.is_authenticated:
+                from customer.models import Customer
+                try:
+                    customer = request.user.customer
+                except Customer.DoesNotExist:
+                    # Create customer record for authenticated user if it doesn't exist
+                    customer = Customer.objects.create(
+                        user=request.user,
+                        email=request.user.email,
+                        first_name=first_name,
+                        last_name=last_name,
+                        phone=phone,
+                    )
+
             # Create invoice (shop order)
             invoice = Invoice.objects.create(
+                customer=customer,  # Link to customer if authenticated
                 user=request.user if request.user.is_authenticated else None,
                 is_shop_order=True,
                 email=request.POST.get("email"),
@@ -461,7 +537,7 @@ def checkout(request):
             invoice.shipping_postal_code = billing_postal_code
             invoice.shipping_country = "US"
 
-            # Add shipping cost
+            # Add shipping cost (default to 0 for free shipping)
             shipping_rate_id = request.POST.get("shipping_rate")
             if shipping_rate_id:
                 try:
@@ -472,7 +548,10 @@ def checkout(request):
                     if cost is not None:
                         invoice.shipping_cost = cost
                 except ShippingRate.DoesNotExist:
-                    pass
+                    invoice.shipping_cost = Decimal("0")
+            else:
+                # No shipping rate selected, use free shipping
+                invoice.shipping_cost = Decimal("0")
 
             # Apply promo code if provided
             promo_code = request.POST.get("promo_code")
@@ -523,7 +602,14 @@ def checkout(request):
             print(f"Checkout error: {str(e)}")
             print(traceback.format_exc())
 
-            messages.error(request, f"An error occurred during checkout. Please try again.")
+            # Provide more specific error message
+            error_msg = "An error occurred during checkout."
+            if "email" in str(e).lower():
+                error_msg = "Please provide a valid email address."
+            elif "address" in str(e).lower() or "required" in str(e).lower():
+                error_msg = "Please fill in all required fields."
+            
+            messages.error(request, f"{error_msg} Please try again.")
             return redirect("shop:checkout")
 
 
@@ -560,3 +646,88 @@ def order_tracking(request):
                 request, "Order not found. Please check your tracking code and email."
             )
             return render(request, "shop/order_tracking.html")
+
+
+def blog_list(request):
+    """Display list of published blog posts"""
+    from blog.models import Post, Category as BlogCategory
+    
+    # Get only published posts
+    posts = Post.objects.filter(status='published').select_related(
+        'author', 'category'
+    ).prefetch_related('tags')
+    
+    # Get blog categories for sidebar
+    blog_categories = BlogCategory.objects.annotate(
+        post_count=models.Count('posts', filter=models.Q(posts__status='published'))
+    ).filter(post_count__gt=0)
+    
+    # Filter by category if provided
+    category_slug = request.GET.get('category')
+    if category_slug:
+        posts = posts.filter(category__slug=category_slug)
+    
+    # Search functionality
+    search_query = request.GET.get('search')
+    if search_query:
+        posts = posts.filter(
+            Q(title__icontains=search_query) |
+            Q(excerpt__icontains=search_query) |
+            Q(content__icontains=search_query)
+        )
+    
+    # Pagination
+    paginator = Paginator(posts, 6)  # Show 6 posts per page
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+    
+    context = {
+        'posts': page_obj,
+        'blog_categories': blog_categories,
+        'current_category': category_slug,
+        'search_query': search_query,
+    }
+    
+    return render(request, 'shop/blog_list.html', context)
+
+
+def blog_detail(request, pk):
+    """Display single blog post detail"""
+    from blog.models import Post, Category as BlogCategory
+    
+    # Get the post with related data
+    post = get_object_or_404(
+        Post.objects.select_related('author', 'category', 'product_category')
+            .prefetch_related('tags', 'related_products'),
+        pk=pk,
+        status='published'
+    )
+    
+    # Increment view count
+    post.views += 1
+    post.save(update_fields=['views'])
+    
+    # Get related posts from same category
+    related_posts = Post.objects.filter(
+        category=post.category,
+        status='published'
+    ).exclude(pk=pk).select_related('author', 'category')[:3]
+    
+    # Get recent posts for sidebar
+    recent_posts = Post.objects.filter(
+        status='published'
+    ).exclude(pk=pk).select_related('author', 'category')[:5]
+    
+    # Get blog categories for sidebar
+    blog_categories = BlogCategory.objects.annotate(
+        post_count=models.Count('posts', filter=models.Q(posts__status='published'))
+    ).filter(post_count__gt=0)
+    
+    context = {
+        'post': post,
+        'related_posts': related_posts,
+        'recent_posts': recent_posts,
+        'blog_categories': blog_categories,
+    }
+    
+    return render(request, 'shop/blog_detail.html', context)

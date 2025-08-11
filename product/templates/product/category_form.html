@@ -1,12 +1,35 @@
 {% extends 'dashboard/base_daisyui.html' %}
 
-{% block title %}{% if category %}Edit Category{% else %}Create Category{% endif %}{% endblock %}
+{% block title %}{{ title|default:"Category Form" }}{% endblock %}
+
+{% block head_extra %}
+{{ form.media }}
+<style>
+    /* Custom styles for Summernote in DaisyUI theme */
+    .note-editor {
+        border: 1px solid oklch(var(--bc) / 0.2) !important;
+        border-radius: var(--rounded-btn, 0.5rem) !important;
+    }
+    .note-toolbar {
+        background-color: oklch(var(--b2)) !important;
+        border-bottom: 1px solid oklch(var(--bc) / 0.2) !important;
+    }
+    .note-editable {
+        background-color: oklch(var(--b1)) !important;
+        color: oklch(var(--bc)) !important;
+    }
+    .note-statusbar {
+        background-color: oklch(var(--b2)) !important;
+        border-top: 1px solid oklch(var(--bc) / 0.2) !important;
+    }
+</style>
+{% endblock %}
 
 {% block dashboard_content %}
 <div class="max-w-4xl mx-auto space-y-4">
     <!-- Page Header -->
     <div>
-        <h1 class="text-2xl font-bold">{% if category %}Edit Category{% else %}Create Category{% endif %}</h1>
+        <h1 class="text-2xl font-bold">{{ title|default:"Category Form" }}</h1>
         <div class="text-sm breadcrumbs">
             <ul>
                 <li><a href="{% url 'dashboard:home' %}" class="link link-hover">Dashboard</a></li>
@@ -17,7 +40,7 @@
     </div>
 
     <!-- Form -->
-    <form method="post" class="card bg-base-100 shadow-xl">
+    <form method="post" enctype="multipart/form-data" class="card bg-base-100 shadow-xl">
         {% csrf_token %}
         <div class="card-body">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -26,8 +49,12 @@
                     <label class="label">
                         <span class="label-text">Name <span class="text-error">*</span></span>
                     </label>
-                    <input type="text" name="name" value="{{ category.name|default:'' }}" 
-                           class="input input-bordered" required />
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ form.name.errors.0 }}</span>
+                    </label>
+                    {% endif %}
                 </div>
 
                 <!-- Parent Category -->
@@ -35,14 +62,12 @@
                     <label class="label">
                         <span class="label-text">Parent Category</span>
                     </label>
-                    <select name="parent" class="select select-bordered">
-                        <option value="">None (Top Level)</option>
-                        {% for cat in categories %}
-                            <option value="{{ cat.pk }}" {% if category.parent.pk == cat.pk %}selected{% endif %}>
-                                {{ cat.get_full_path }}
-                            </option>
-                        {% endfor %}
-                    </select>
+                    {{ form.parent }}
+                    {% if form.parent.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ form.parent.errors.0 }}</span>
+                    </label>
+                    {% endif %}
                 </div>
 
                 <!-- Icon -->
@@ -51,9 +76,12 @@
                         <span class="label-text">Icon Class</span>
                         <span class="label-text-alt">e.g., fas fa-tooth</span>
                     </label>
-                    <input type="text" name="icon" value="{{ category.icon|default:'' }}" 
-                           class="input input-bordered" 
-                           placeholder="fas fa-folder" />
+                    {{ form.icon }}
+                    {% if form.icon.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ form.icon.errors.0 }}</span>
+                    </label>
+                    {% endif %}
                 </div>
 
                 <!-- Order -->
@@ -61,28 +89,72 @@
                     <label class="label">
                         <span class="label-text">Display Order</span>
                     </label>
-                    <input type="number" name="order" value="{{ category.order|default:0 }}" 
-                           class="input input-bordered" />
+                    {{ form.order }}
+                    {% if form.order.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ form.order.errors.0 }}</span>
+                    </label>
+                    {% endif %}
                 </div>
 
-                <!-- Description -->
+                <!-- Cover Image -->
+                <div class="form-control md:col-span-2">
+                    <label class="label">
+                        <span class="label-text">Cover Image</span>
+                    </label>
+                    {{ form.cover_image }}
+                    {% if category.cover_image %}
+                    <div class="label">
+                        <span class="label-text-alt">Current: <a href="{{ category.cover_image.url }}" target="_blank" class="link link-primary">{{ category.cover_image.name }}</a></span>
+                    </div>
+                    {% endif %}
+                    {% if form.cover_image.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ form.cover_image.errors.0 }}</span>
+                    </label>
+                    {% endif %}
+                </div>
+
+                <!-- Description (with Summernote) -->
                 <div class="form-control md:col-span-2">
                     <label class="label">
                         <span class="label-text">Description</span>
                     </label>
-                    <textarea name="description" rows="3" 
-                              class="textarea textarea-bordered">{{ category.description|default:'' }}</textarea>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ form.description.errors.0 }}</span>
+                    </label>
+                    {% endif %}
                 </div>
 
                 <!-- Status -->
                 <div class="form-control">
                     <label class="label cursor-pointer">
                         <span class="label-text">Active</span>
-                        <input type="checkbox" name="is_active" class="checkbox checkbox-primary" 
-                               {% if category %}{% if category.is_active %}checked{% endif %}{% else %}checked{% endif %} />
+                        {{ form.is_active }}
                     </label>
+                    {% if form.is_active.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ form.is_active.errors.0 }}</span>
+                    </label>
+                    {% endif %}
                 </div>
             </div>
+
+            <!-- Form Errors -->
+            {% if form.non_field_errors %}
+            <div class="alert alert-error mt-4">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                    {% for error in form.non_field_errors %}
+                    <p>{{ error }}</p>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
 
             <!-- Actions -->
             <div class="card-actions justify-end mt-6">

@@ -1,0 +1,188 @@
+{% extends 'shop/base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block page_title %}Blog{% endblock %}
+
+{% block content %}
+<div class="space-y-6">
+    <!-- Page Header -->
+    <div class="text-center mb-8">
+        <h1 class="text-3xl font-bold mb-2">Our Blog</h1>
+        <p class="text-base-content/70">Latest news, insights, and updates from IntegDental</p>
+    </div>
+
+    <!-- Search Bar for Blog -->
+    {% if search_query %}
+    <div class="alert alert-info mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <div>
+            <p>Search results for: <strong>{{ search_query }}</strong></p>
+            <a href="{% url 'shop:blog_list' %}" class="link link-primary text-sm">Clear search</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Category Filter -->
+    {% if current_category %}
+    <div class="alert mb-6">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"></path>
+        </svg>
+        <div>
+            <p>Filtered by category: <strong>{{ current_category }}</strong></p>
+            <a href="{% url 'shop:blog_list' %}" class="link link-primary text-sm">Show all posts</a>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Blog Posts Grid -->
+    {% if posts %}
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {% for post in posts %}
+        <div class="card bg-base-100 shadow-sm hover:shadow-lg transition-shadow">
+            {% if post.featured_image %}
+            <figure class="h-48 overflow-hidden">
+                <img src="{{ post.featured_image.url }}" alt="{{ post.title }}" class="w-full h-full object-cover">
+            </figure>
+            {% endif %}
+            <div class="card-body">
+                <!-- Category and Date -->
+                <div class="flex items-center gap-2 text-sm text-base-content/60 mb-2">
+                    {% if post.category %}
+                    <span class="badge badge-ghost badge-sm">{{ post.category.name }}</span>
+                    {% endif %}
+                    <span>{{ post.published_date|date:"M d, Y" }}</span>
+                </div>
+                
+                <!-- Title -->
+                <h2 class="card-title text-lg">
+                    <a href="{% url 'shop:blog_detail' post.pk %}" class="hover:text-primary transition-colors">
+                        {{ post.title }}
+                    </a>
+                </h2>
+                
+                <!-- Excerpt -->
+                <p class="text-base-content/70 text-sm line-clamp-3">{{ post.excerpt }}</p>
+                
+                <!-- Author and Actions -->
+                <div class="card-actions justify-between items-center mt-4">
+                    <div class="flex items-center gap-2">
+                        <div class="avatar placeholder">
+                            <div class="bg-neutral text-neutral-content rounded-full w-8">
+                                <span class="text-xs">{{ post.author.username|first|upper }}</span>
+                            </div>
+                        </div>
+                        <span class="text-sm text-base-content/70">{{ post.author.get_full_name|default:post.author.username }}</span>
+                    </div>
+                    <a href="{% url 'shop:blog_detail' post.pk %}" class="btn btn-sm btn-ghost">
+                        Read More
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                        </svg>
+                    </a>
+                </div>
+                
+                <!-- Tags -->
+                {% if post.tags.exists %}
+                <div class="flex flex-wrap gap-1 mt-2">
+                    {% for tag in post.tags.all %}
+                    <span class="badge badge-outline badge-xs">{{ tag.name }}</span>
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- Pagination -->
+    {% if is_paginated %}
+    <div class="flex justify-center mt-8">
+        <div class="join">
+            {% if page_obj.has_previous %}
+            <a href="?page={{ page_obj.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}" class="join-item btn">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                </svg>
+            </a>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <button class="join-item btn btn-active">{{ num }}</button>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <a href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}" class="join-item btn">{{ num }}</a>
+                {% endif %}
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+            <a href="?page={{ page_obj.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if current_category %}&category={{ current_category }}{% endif %}" class="join-item btn">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- No Posts Found -->
+    <div class="hero min-h-[400px] bg-base-200 rounded-lg">
+        <div class="hero-content text-center">
+            <div class="max-w-md">
+                <h2 class="text-2xl font-bold mb-4">No Blog Posts Found</h2>
+                <p class="mb-6">{% if search_query %}No posts match your search.{% else %}There are no published blog posts yet.{% endif %}</p>
+                {% if search_query or current_category %}
+                <a href="{% url 'shop:blog_list' %}" class="btn btn-primary">View All Posts</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Blog Categories Sidebar (override the main sidebar) -->
+<style>
+    /* Hide product categories for blog page */
+    aside .card:has(h3:contains("Categories")) {
+        display: none;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Replace Categories section with Blog Categories
+    const sidebar = document.querySelector('aside .sticky');
+    if (sidebar) {
+        const categoriesCard = sidebar.querySelector('.card');
+        if (categoriesCard && categoriesCard.querySelector('h3').textContent === 'Categories') {
+            // Create Blog Categories section
+            const blogCategoriesHTML = `
+                <div class="card bg-base-100 shadow-sm mb-6">
+                    <div class="card-body">
+                        <h3 class="card-title text-base">Blog Categories</h3>
+                        <ul class="menu menu-sm">
+                            <li><a href="{% url 'shop:blog_list' %}" class="{% if not current_category %}active{% endif %}">All Posts</a></li>
+                            {% for category in blog_categories %}
+                            <li>
+                                <a href="{% url 'shop:blog_list' %}?category={{ category.slug }}" 
+                                   class="{% if current_category == category.slug %}active{% endif %}">
+                                    {{ category.name }}
+                                    <span class="badge badge-sm">{{ category.post_count }}</span>
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+            `;
+            categoriesCard.outerHTML = blogCategoriesHTML;
+        }
+    }
+});
+</script>
+{% endblock %}

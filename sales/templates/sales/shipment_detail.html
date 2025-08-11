@@ -1,0 +1,315 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}Shipment {{ shipment.shipment_number }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="space-y-6">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </a></li>
+            <li><a href="{% url 'sales:invoice_list' %}">Invoices</a></li>
+            <li><a href="{% url 'sales:invoice_detail' shipment.invoice.pk %}">Invoice #{{ shipment.invoice.invoice_number }}</a></li>
+            <li>{{ shipment.shipment_number }}</li>
+        </ul>
+    </div>
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+            <h1 class="text-3xl font-bold">{{ shipment.shipment_number }}</h1>
+            <p class="text-base-content/60 mt-1">For Invoice #{{ shipment.invoice.invoice_number }}</p>
+        </div>
+        
+        <div class="flex gap-2">
+            <a href="{% url 'sales:shipment_update' shipment.pk %}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit
+            </a>
+            <button onclick="printShipment()" class="btn btn-outline">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                </svg>
+                Print
+            </button>
+        </div>
+    </div>
+
+    <!-- Status and Tracking -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Shipment Status -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">Shipment Status</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-sm text-base-content/60">Current Status</p>
+                        <div class="badge 
+                            {% if shipment.status == 'awaiting_shipment' %}badge-ghost
+                            {% elif shipment.status == 'shipped' or shipment.status == 'in_transit' %}badge-info
+                            {% elif shipment.status == 'out_for_delivery' %}badge-accent
+                            {% elif shipment.status == 'delivered' %}badge-success
+                            {% elif shipment.status == 'failed' or shipment.status == 'returned' %}badge-error
+                            {% else %}badge-ghost{% endif %} badge-lg mt-1">
+                            {{ shipment.get_status_display }}
+                        </div>
+                    </div>
+                    
+                    {% if shipment.ship_date %}
+                    <div>
+                        <p class="text-sm text-base-content/60">Ship Date</p>
+                        <p class="font-semibold">{{ shipment.ship_date|date:"F d, Y" }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if shipment.estimated_delivery %}
+                    <div>
+                        <p class="text-sm text-base-content/60">Estimated Delivery</p>
+                        <p class="font-semibold">{{ shipment.estimated_delivery|date:"F d, Y" }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if shipment.actual_delivery %}
+                    <div>
+                        <p class="text-sm text-base-content/60">Actual Delivery</p>
+                        <p class="font-semibold text-success">{{ shipment.actual_delivery|date:"F d, Y" }}</p>
+                        {% if shipment.delivered_to %}
+                        <p class="text-sm text-base-content/60 mt-1">Delivered to: {{ shipment.delivered_to }}</p>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Tracking Information -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">Tracking Information</h2>
+                
+                <div class="space-y-4">
+                    <div>
+                        <p class="text-sm text-base-content/60">Carrier</p>
+                        <p class="font-semibold">{{ shipment.get_carrier_display|default:"Not specified" }}</p>
+                    </div>
+                    
+                    {% if shipment.service_type %}
+                    <div>
+                        <p class="text-sm text-base-content/60">Service Type</p>
+                        <p class="font-semibold">{{ shipment.service_type }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if shipment.tracking_number %}
+                    <div>
+                        <p class="text-sm text-base-content/60">Tracking Number</p>
+                        <p class="font-mono font-semibold">{{ shipment.tracking_number }}</p>
+                        {% if shipment.get_tracking_url %}
+                        <a href="{{ shipment.get_tracking_url }}" target="_blank" class="btn btn-sm btn-outline btn-primary mt-2">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                            </svg>
+                            Track Package
+                        </a>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    {% if shipment.package_count %}
+                    <div>
+                        <p class="text-sm text-base-content/60">Package Count</p>
+                        <p class="font-semibold">{{ shipment.package_count }} package{{ shipment.package_count|pluralize }}</p>
+                    </div>
+                    {% endif %}
+                    
+                    {% if shipment.total_weight %}
+                    <div>
+                        <p class="text-sm text-base-content/60">Total Weight</p>
+                        <p class="font-semibold">{{ shipment.total_weight }} lbs</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Shipping Address -->
+    {% if shipment.ship_to_name %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">Shipping Address</h2>
+            
+            <address class="not-italic text-base-content/80">
+                {{ shipment.ship_to_name }}<br>
+                {% if shipment.ship_to_company %}{{ shipment.ship_to_company }}<br>{% endif %}
+                {{ shipment.ship_to_address_line1 }}<br>
+                {% if shipment.ship_to_address_line2 %}{{ shipment.ship_to_address_line2 }}<br>{% endif %}
+                {{ shipment.ship_to_city }}, {{ shipment.ship_to_state }} {{ shipment.ship_to_postal_code }}<br>
+                {{ shipment.ship_to_country|default:"US" }}
+                {% if shipment.ship_to_phone %}<br>Phone: {{ shipment.ship_to_phone }}{% endif %}
+                {% if shipment.ship_to_email %}<br>Email: {{ shipment.ship_to_email }}{% endif %}
+            </address>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Shipment Items -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title">Shipment Items</h2>
+            
+            {% if items %}
+            <div class="overflow-x-auto">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Product</th>
+                            <th>Description</th>
+                            <th class="text-right">Quantity Shipped</th>
+                            <th>Notes</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td>
+                                {% if item.invoice_item.product %}
+                                    <div class="font-medium">{{ item.invoice_item.product.name }}</div>
+                                    <div class="text-sm text-base-content/60">SKU: {{ item.invoice_item.product.sku }}</div>
+                                {% else %}
+                                    <span class="text-base-content/60">-</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {{ item.invoice_item.description }}
+                                {% if item.invoice_item.product_options %}
+                                    <div class="text-sm text-base-content/60">
+                                        {% for key, value in item.invoice_item.product_options.items %}
+                                            {{ key }}: {{ value }}{% if not forloop.last %}, {% endif %}
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </td>
+                            <td class="text-right font-semibold">{{ item.quantity_shipped|floatformat:0 }}</td>
+                            <td>{{ item.notes|default:"-" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-base-content/60">No items in this shipment.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Additional Information -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <!-- Costs -->
+        {% if shipment.shipping_cost or shipment.insurance_amount %}
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">Costs</h2>
+                
+                <div class="space-y-2">
+                    {% if shipment.shipping_cost %}
+                    <div class="flex justify-between">
+                        <span class="text-base-content/60">Shipping Cost:</span>
+                        <span class="font-semibold">${{ shipment.shipping_cost|floatformat:2 }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if shipment.insurance_amount %}
+                    <div class="flex justify-between">
+                        <span class="text-base-content/60">Insurance:</span>
+                        <span class="font-semibold">${{ shipment.insurance_amount|floatformat:2 }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if shipment.shipping_cost and shipment.insurance_amount %}
+                    <div class="divider my-1"></div>
+                    <div class="flex justify-between">
+                        <span class="font-medium">Total:</span>
+                        <span class="font-bold">${{ shipment.shipping_cost|add:shipment.insurance_amount|floatformat:2 }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Notes -->
+        {% if shipment.internal_notes or shipment.delivery_notes %}
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">Notes</h2>
+                
+                {% if shipment.internal_notes %}
+                <div>
+                    <p class="text-sm font-semibold text-base-content/60">Internal Notes</p>
+                    <p class="mt-1">{{ shipment.internal_notes|linebreaks }}</p>
+                </div>
+                {% endif %}
+                
+                {% if shipment.delivery_notes %}
+                <div class="{% if shipment.internal_notes %}mt-4{% endif %}">
+                    <p class="text-sm font-semibold text-base-content/60">Delivery Notes</p>
+                    <p class="mt-1">{{ shipment.delivery_notes|linebreaks }}</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Metadata -->
+    <div class="card bg-base-200">
+        <div class="card-body">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div>
+                    <span class="text-base-content/60">Created:</span>
+                    <span class="ml-2">{{ shipment.created_at|date:"M d, Y g:i A" }}</span>
+                </div>
+                {% if shipment.created_by %}
+                <div>
+                    <span class="text-base-content/60">Created By:</span>
+                    <span class="ml-2">{{ shipment.created_by.get_full_name|default:shipment.created_by.username }}</span>
+                </div>
+                {% endif %}
+                <div>
+                    <span class="text-base-content/60">Last Updated:</span>
+                    <span class="ml-2">{{ shipment.updated_at|date:"M d, Y g:i A" }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function printShipment() {
+    window.print();
+}
+</script>
+
+<style>
+@media print {
+    .btn, .breadcrumbs, aside, nav, footer {
+        display: none !important;
+    }
+    
+    .card {
+        box-shadow: none !important;
+        border: 1px solid #ddd !important;
+        page-break-inside: avoid;
+    }
+}
+</style>
+
+{% endblock %}

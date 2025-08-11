@@ -285,7 +285,7 @@
                             <span class="text-primary">${{ cart.subtotal|floatformat:2 }}</span>
                         </div>
 
-                        <button type="submit" class="btn btn-primary btn-block btn-lg mt-6">
+                        <button type="submit" class="btn btn-primary btn-block btn-lg mt-6" id="place-order-btn">
                             <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
                             </svg>
@@ -338,6 +338,26 @@ window.addEventListener('DOMContentLoaded', function() {
     if (savedAddress && savedAddress.value) {
         savedAddress.dispatchEvent(new Event('change'));
     }
+});
+
+// Handle form submission
+document.getElementById('checkout-form').addEventListener('submit', function(e) {
+    const button = document.getElementById('place-order-btn');
+    
+    // Check if form is valid
+    if (!this.checkValidity()) {
+        e.preventDefault();
+        // Show validation errors
+        this.reportValidity();
+        return false;
+    }
+    
+    // Disable button to prevent double submission
+    button.disabled = true;
+    button.innerHTML = '<span class="loading loading-spinner"></span> Processing...';
+    
+    // Allow form to submit
+    return true;
 });
 </script>
 

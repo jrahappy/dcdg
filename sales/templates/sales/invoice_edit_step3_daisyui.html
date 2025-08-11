@@ -1,0 +1,313 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}Edit Invoice - Step 3{% endblock %}
+
+{% block dashboard_content %}
+<div class="space-y-6">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </a></li>
+            <li><a href="{% url 'sales:invoice_list' %}">Invoices</a></li>
+            <li><a href="{% url 'sales:invoice_detail' invoice.pk %}">{{ invoice.invoice_number }}</a></li>
+            <li>Edit - Step 3</li>
+        </ul>
+    </div>
+
+    <!-- Header with Progress Steps -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <h1 class="text-2xl font-bold">Edit Invoice {{ invoice.invoice_number }}</h1>
+                
+                <!-- Progress Steps -->
+                <ul class="steps">
+                    <li class="step step-primary">Customer & Details</li>
+                    <li class="step step-primary">Edit Products</li>
+                    <li class="step step-primary">Review & Save</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Invoice Preview Card -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <!-- Invoice Header -->
+                <div class="flex flex-col lg:flex-row justify-between gap-6 mb-8">
+                    <div>
+                        <h2 class="text-3xl font-bold mb-4">INVOICE</h2>
+                        <div class="space-y-2">
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-semibold">Invoice Number</span>
+                                </label>
+                                <input type="text" name="invoice_number" value="{{ invoice_number }}" 
+                                       class="input input-bordered input-sm w-full max-w-xs" readonly>
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-semibold">Invoice Date</span>
+                                </label>
+                                <input type="date" name="invoice_date" value="{{ invoice_date|date:'Y-m-d' }}" 
+                                       class="input input-bordered input-sm w-full max-w-xs">
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-semibold">Due Date</span>
+                                </label>
+                                <input type="date" name="due_date" value="{{ due_date|date:'Y-m-d' }}" 
+                                       class="input input-bordered input-sm w-full max-w-xs">
+                            </div>
+                            <div class="form-control">
+                                <label class="label">
+                                    <span class="label-text font-semibold">Status</span>
+                                </label>
+                                <select name="status" class="select select-bordered select-sm w-full max-w-xs">
+                                    <option value="draft" {% if status == 'draft' %}selected{% endif %}>Draft</option>
+                                    <option value="sent" {% if status == 'sent' %}selected{% endif %}>Sent</option>
+                                    <option value="partial" {% if status == 'partial' %}selected{% endif %}>Partial</option>
+                                    <option value="paid" {% if status == 'paid' %}selected{% endif %}>Paid</option>
+                                    <option value="cancelled" {% if status == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="text-right">
+                        {% if organization %}
+                        <h3 class="text-lg font-semibold mb-2">{{ organization.name }}</h3>
+                        <div class="text-sm text-base-content/60">
+                            {% if organization.address_line1 %}
+                            <p>{{ organization.address_line1 }}</p>
+                            {% if organization.address_line2 %}
+                            <p>{{ organization.address_line2 }}</p>
+                            {% endif %}
+                            <p>{{ organization.city }}, {{ organization.state }} {{ organization.postal_code }}</p>
+                            {% endif %}
+                            {% if organization.phone %}
+                            <p>Phone: {{ organization.phone }}</p>
+                            {% endif %}
+                            {% if organization.email %}
+                            <p>Email: {{ organization.email }}</p>
+                            {% endif %}
+                            {% if organization.website %}
+                            <p>Website: {{ organization.website }}</p>
+                            {% endif %}
+                        </div>
+                        {% else %}
+                        <h3 class="text-lg font-semibold mb-2">Your Organization</h3>
+                        <div class="text-sm text-base-content/60">
+                            <p class="text-warning">No organization configured</p>
+                            <p>Please set up your organization in settings</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Bill To -->
+                <div class="mb-8">
+                    <h3 class="text-sm font-semibold uppercase tracking-wider mb-2">Bill To:</h3>
+                    <div class="bg-base-200 p-4 rounded-lg">
+                        <p class="font-semibold">{{ customer.get_full_name }}</p>
+                        {% if customer.company_name %}<p>{{ customer.company_name }}</p>{% endif %}
+                        {% with customer.get_default_address as address %}
+                            {% if address %}
+                                <p>{{ address.address_line1 }}</p>
+                                {% if address.address_line2 %}<p>{{ address.address_line2 }}</p>{% endif %}
+                                <p>{{ address.city }}, {{ address.state }} {{ address.postal_code }}</p>
+                                <p>{{ address.country }}</p>
+                            {% else %}
+                                <p class="text-warning">No address on file</p>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
+                </div>
+
+                <!-- Invoice Items Table -->
+                <div class="overflow-x-auto mb-8">
+                    <table class="table table-zebra w-full">
+                        <thead>
+                            <tr>
+                                <th class="text-left">Description</th>
+                                <th class="text-right">Qty</th>
+                                <th class="text-right">Unit Price</th>
+                                <th class="text-right">Discount</th>
+                                <th class="text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in invoice_items %}
+                            <tr>
+                                <td>
+                                    <div>
+                                        {{ item.description }}
+                                        {% if item.product_name %}
+                                            <div class="text-xs text-base-content/50">{{ item.product_name }}</div>
+                                        {% endif %}
+                                        {% if item.is_existing %}
+                                            <span class="badge badge-ghost badge-xs">Existing</span>
+                                        {% else %}
+                                            <span class="badge badge-success badge-xs">New</span>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                                <td class="text-right">{{ item.quantity|floatformat:"-2" }}</td>
+                                <td class="text-right">${{ item.unit_price|floatformat:2 }}</td>
+                                <td class="text-right">{{ item.discount_percent|floatformat:"-2" }}%</td>
+                                <td class="text-right font-semibold">${{ item.line_total|floatformat:2 }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Additional Details Collapsible Section -->
+                <div class="collapse collapse-arrow bg-base-200">
+                    <input type="checkbox" />
+                    <div class="collapse-title text-xl font-medium">
+                        Additional Details (Tax, Shipping, Discount, Notes)
+                    </div>
+                    <div class="collapse-content">
+                        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-4">
+                            <div class="space-y-4">
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text">Tax Rate (%)</span>
+                                    </label>
+                                    <input type="number" name="tax_rate" value="{{ tax_rate|default:'0' }}" 
+                                           min="0" max="100" step="0.001"
+                                           class="input input-bordered w-full" id="taxRate">
+                                </div>
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text">Shipping Cost</span>
+                                    </label>
+                                    <input type="number" name="shipping_cost" value="{{ shipping_cost|default:'0' }}" 
+                                           min="0" step="0.01"
+                                           class="input input-bordered w-full" id="shippingCost">
+                                </div>
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text">Discount (%)</span>
+                                    </label>
+                                    <input type="number" name="discount_percent" value="{{ discount_percent|default:'0' }}" 
+                                           min="0" max="100" step="0.01"
+                                           class="input input-bordered w-full" id="discountPercent">
+                                </div>
+                            </div>
+                            <div class="space-y-4">
+                                <div class="form-control">
+                                    <label class="label">
+                                        <span class="label-text">Notes</span>
+                                    </label>
+                                    <textarea name="notes" rows="6" 
+                                              class="textarea textarea-bordered w-full">{{ notes }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Totals -->
+                <div class="flex justify-end">
+                    <div class="bg-base-200 p-6 rounded-lg w-full max-w-sm">
+                        <div class="space-y-2 text-sm">
+                            <div class="flex justify-between">
+                                <span>Subtotal:</span>
+                                <span id="subtotalDisplay">${{ subtotal|floatformat:2 }}</span>
+                            </div>
+                            <div class="flex justify-between text-error" id="discountRow">
+                                <span>Discount (<span id="discountPercentDisplay">{{ discount_percent|default:'0' }}</span>%):</span>
+                                <span id="discountDisplay">-${{ discount_amount|default:'0.00'|floatformat:2 }}</span>
+                            </div>
+                            <div class="flex justify-between" id="taxRow">
+                                <span>Tax (<span id="taxRateDisplay">{{ tax_rate|default:'0' }}</span>%):</span>
+                                <span id="taxDisplay">${{ tax_amount|default:'0.00'|floatformat:2 }}</span>
+                            </div>
+                            <div class="flex justify-between" id="shippingRow">
+                                <span>Shipping:</span>
+                                <span id="shippingDisplay">${{ shipping_cost|default:'0.00'|floatformat:2 }}</span>
+                            </div>
+                            <div class="divider"></div>
+                            <div class="flex justify-between text-lg font-bold">
+                                <span>Total:</span>
+                                <span id="totalDisplay">${{ total|floatformat:2 }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div class="flex justify-between">
+            <a href="{% url 'sales:invoice_edit_step2' invoice.pk %}" class="btn btn-ghost">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+                </svg>
+                Previous
+            </a>
+            <button type="submit" class="btn btn-primary btn-lg">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                Update Invoice
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const taxRateInput = document.getElementById('taxRate');
+    const shippingCostInput = document.getElementById('shippingCost');
+    const discountPercentInput = document.getElementById('discountPercent');
+    
+    const subtotal = {{ subtotal|default:'0' }};
+    
+    function updateTotals() {
+        const taxRate = parseFloat(taxRateInput.value) || 0;
+        const shippingCost = parseFloat(shippingCostInput.value) || 0;
+        const discountPercent = parseFloat(discountPercentInput.value) || 0;
+        
+        // Calculate discount
+        const discountAmount = subtotal * (discountPercent / 100);
+        const discountedSubtotal = subtotal - discountAmount;
+        
+        // Calculate tax on discounted subtotal
+        const taxAmount = discountedSubtotal * (taxRate / 100);
+        
+        // Calculate total
+        const total = discountedSubtotal + taxAmount + shippingCost;
+        
+        // Update displays
+        document.getElementById('discountPercentDisplay').textContent = discountPercent.toFixed(2);
+        document.getElementById('discountDisplay').textContent = '-$' + discountAmount.toFixed(2);
+        document.getElementById('taxRateDisplay').textContent = taxRate.toFixed(2);
+        document.getElementById('taxDisplay').textContent = '$' + taxAmount.toFixed(2);
+        document.getElementById('shippingDisplay').textContent = '$' + shippingCost.toFixed(2);
+        document.getElementById('totalDisplay').textContent = '$' + total.toFixed(2);
+        
+        // Show/hide rows based on values
+        document.getElementById('discountRow').style.display = discountPercent > 0 ? 'flex' : 'none';
+        document.getElementById('taxRow').style.display = taxRate > 0 ? 'flex' : 'none';
+        document.getElementById('shippingRow').style.display = shippingCost > 0 ? 'flex' : 'none';
+    }
+    
+    // Add event listeners
+    taxRateInput.addEventListener('input', updateTotals);
+    shippingCostInput.addEventListener('input', updateTotals);
+    discountPercentInput.addEventListener('input', updateTotals);
+    
+    // Initial update
+    updateTotals();
+});
+</script>
+{% endblock %}

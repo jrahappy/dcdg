@@ -439,3 +439,72 @@ class InventoryForm(forms.ModelForm):
                 self.fields["customer"].required = False
                 self.fields["sale_date"].required = False
                 self.fields["sale_price"].required = False
+
+
+class CategoryForm(forms.ModelForm):
+    class Meta:
+        model = Category
+        fields = [
+            "name",
+            "parent",
+            "description",
+            "icon",
+            "order",
+            "is_active",
+            "cover_image",
+        ]
+        widgets = {
+            "name": forms.TextInput(
+                attrs={
+                    "class": "input input-bordered w-full",
+                    "placeholder": "Enter category name",
+                }
+            ),
+            "parent": forms.Select(
+                attrs={
+                    "class": "select select-bordered w-full"
+                }
+            ),
+            "description": SummernoteWidget(),
+            "icon": forms.TextInput(
+                attrs={
+                    "class": "input input-bordered w-full",
+                    "placeholder": "fas fa-folder",
+                }
+            ),
+            "order": forms.NumberInput(
+                attrs={
+                    "class": "input input-bordered w-full",
+                    "min": "0",
+                }
+            ),
+            "is_active": forms.CheckboxInput(
+                attrs={
+                    "class": "checkbox checkbox-primary"
+                }
+            ),
+            "cover_image": forms.FileInput(
+                attrs={
+                    "class": "file-input file-input-bordered w-full",
+                    "accept": "image/*",
+                }
+            ),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Get all categories except self and its descendants for parent selection
+        if self.instance and self.instance.pk:
+            # Exclude self and descendants from parent choices
+            excluded_ids = [self.instance.pk]
+            # get_descendants() returns a list of Category objects, not a QuerySet
+            descendants = self.instance.get_descendants()
+            excluded_ids.extend([cat.pk for cat in descendants])
+            self.fields['parent'].queryset = Category.objects.exclude(pk__in=excluded_ids)
+        else:
+            self.fields['parent'].queryset = Category.objects.all()
+        
+        # Make parent field optional
+        self.fields['parent'].required = False
+        self.fields['parent'].empty_label = "None (Top Level)"

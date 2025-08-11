@@ -22,7 +22,9 @@ class PostListView(ListView):
     paginate_by = 10
     
     def get_queryset(self):
-        queryset = Post.objects.filter(status='published').select_related('author', 'category').prefetch_related('tags')
+        queryset = Post.objects.filter(status='published').select_related(
+            'author', 'category', 'product_category'
+        ).prefetch_related('tags', 'related_products')
         
         # Search functionality
         search_query = self.request.GET.get('search')
@@ -63,8 +65,8 @@ class PostDetailView(DetailView):
         if self.request.user.is_authenticated:
             return Post.objects.filter(
                 Q(status='published') | Q(author=self.request.user)
-            ).select_related('author', 'category').prefetch_related('tags', 'comments')
-        return Post.objects.filter(status='published').select_related('author', 'category').prefetch_related('tags', 'comments')
+            ).select_related('author', 'category', 'product_category').prefetch_related('tags', 'comments', 'related_products')
+        return Post.objects.filter(status='published').select_related('author', 'category', 'product_category').prefetch_related('tags', 'comments', 'related_products')
     
     def get_object(self):
         obj = super().get_object()

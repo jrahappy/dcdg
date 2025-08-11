@@ -3,11 +3,120 @@
 ## Project Overview
 Django-based dental support organization system with ongoing Tailwind CSS conversion.
 
-## Recent Work (Last updated: 2025-08-10)
+## Recent Work (Last updated: 2025-01-11)
+
+### Completed Tasks (2025-01-11)
+
+1. **Fixed Payment Number Duplication Issue**
+   - Changed payment number generation to include timestamp (YYYYMMDD-HHMMSS-MSS format)
+   - Added microseconds for extra uniqueness to prevent concurrent duplicates
+   - Example format: PAY-20250111-143025-123
+   - Files modified:
+     - `sales/forms.py`: Lines 611-616 - Updated PaymentForm.save() method
+
+2. **Fixed Invoice Total Amount Rounding Issues**
+   - Added proper rounding to 2 decimal places using Decimal.quantize()
+   - Fixed precision issues like 115.631250000 displaying instead of 115.63
+   - Applied rounding to all monetary fields (subtotal, tax_amount, shipping_cost, total_amount, etc.)
+   - Files modified:
+     - `sales/models.py`: Lines 412-457 - Updated calculate_totals() and recalculate_paid_amount()
+     - `sales/views.py`: Multiple locations - Added rounding to payment calculations
+
+3. **Added Tax Rate and Shipping Cost to Invoice Create Step 3**
+   - Added tax rate input field with percentage display
+   - Added shipping cost input field
+   - Implemented session storage for tax and shipping values
+   - Added "Update Preview" functionality to recalculate totals
+   - Files modified:
+     - `sales/templates/sales/invoice_create_step3_daisyui.html`: Lines 172-195
+     - `sales/views.py`: Lines 550-558, 582-607 - Added context and POST handling
+
+4. **Fixed Invoice List Statistics Display**
+   - Implemented proper statistics calculation for current month
+   - Fixed Revenue This Month font size (removed text-lg class)
+   - Changed revenue display to integer format
+   - Added date range filtering support
+   - Added special handling for "overdue" status filter
+   - Files modified:
+     - `sales/views.py`: Lines 342-382 - Added get_context_data method to InvoiceListView
+     - `sales/templates/sales/invoice_list_daisyui.html`: Line 40
+
+5. **Improved Shipping Information Section Layout**
+   - Moved "Create Shipment" button to header (matching Payment History section)
+   - Button now always visible in upper right corner
+   - Removed duplicate button from empty state
+   - Files modified:
+     - `sales/templates/sales/invoice_detail_daisyui.html`: Lines 444-449, 596-601
+
+6. **Fixed Checkout Page Place Order Button**
+   - Fixed missing shipping rate handling (defaults to free shipping)
+   - Added JavaScript form validation with visual feedback
+   - Added loading spinner on button click to prevent double submission
+   - Improved error messages for better debugging
+   - Files modified:
+     - `shop/templates/shop/checkout.html`: Lines 288-293, 343-361
+     - `shop/views.py`: Lines 540-554, 598-613
+
+### Completed Tasks (2025-01-10)
+
+1. **Enhanced Shop Navbar with Notification and Search Features**
+   - **Added Notification System**:
+     - Bell icon with dropdown menu for notifications
+     - Badge indicator for unread notification count
+     - Demo notifications with different types (order, product, offer)
+     - Auto-refresh every minute for authenticated users
+     - Links to customer portal notification center
+   - **Implemented Product Search**:
+     - Desktop: Search bar in navbar-center with DaisyUI join component
+     - Mobile: Search button that opens modal dialog
+     - Autocomplete suggestions with debouncing (300ms)
+     - Quick search links for popular categories
+     - Real-time search suggestions with highlighting
+   - **Fixed Navbar Layout Issues**:
+     - Restructured navbar using proper DaisyUI navbar-start/center/end classes
+     - Fixed search bar being cut off by using navbar-center positioning
+     - Set fixed width (w-80) for search input for consistency
+     - Removed nested containers that were causing display issues
+   - **Features Added**:
+     - JavaScript functions for cart and notification updates
+     - Search suggestion dropdown with product links
+     - Responsive design with mobile modal for search
+   - Files modified:
+     - `shop/templates/shop/navbar.html`: Complete restructure with new features
+
+2. **Staff Login Redirect to Admin Dashboard**
+   - Modified authentication adapter to redirect staff/superusers to /home/
+   - Prioritized staff check before customer check in login redirect logic
+   - Regular customers still redirect to shop homepage
+   - Files modified:
+     - `accounts/adapter.py`: Lines 31-33 - Added staff user check first
 
 ### Completed Tasks (2025-08-10)
 
-1. **Redesigned Product List Page with DaisyUI**
+1. **Fixed Static and Media File Serving with DEBUG=False**
+   - **Issue Identified**: 
+     - CSS styles not loading when DEBUG=False
+     - Product images returning 404 errors
+     - Django doesn't serve static/media files in production mode by default
+   - **Solutions Implemented**:
+     - Installed and configured WhiteNoise middleware for static file serving
+     - Added WhiteNoise to MIDDLEWARE after SecurityMiddleware
+     - Configured STATICFILES_STORAGE for compressed static files
+     - Created custom URL pattern using Django's serve view for media files
+     - Media files now served via re_path when DEBUG=False
+   - **Product Image Fix**:
+     - Populated empty main_image and thumbnail_image fields from ProductImage gallery
+     - Updated 27 out of 39 products with their primary gallery images
+   - **Configuration Changes**:
+     - `core/settings.py`: Added WhiteNoise middleware and storage backend
+     - `core/urls.py`: Added conditional media file serving for DEBUG=False
+     - `templates/base.html`: Removed duplicate vite_asset tags
+   - **Important Notes**:
+     - Solution suitable for local development and testing
+     - Production environments should use Nginx/Apache for media files
+     - WhiteNoise handles static files, custom view handles media files
+
+2. **Redesigned Product List Page with DaisyUI**
    - **Converted from Tailwind Elements to DaisyUI**: Complete redesign using DaisyUI components
    - **Component Updates**:
      - Cards for product display with hover effects
@@ -31,7 +140,7 @@ Django-based dental support organization system with ongoing Tailwind CSS conver
    - Files modified:
      - `shop/templates/shop/product_list.html`: Complete template rewrite using DaisyUI
 
-2. **Added Document Downloads to Product Detail Page**
+3. **Added Document Downloads to Product Detail Page**
    - **Backend Changes**:
      - Updated shop view to pass public documents to template
      - Added filtering for `is_public=True` documents only
@@ -52,7 +161,7 @@ Django-based dental support organization system with ongoing Tailwind CSS conver
      - `shop/views.py`: Line 145 - Added documents to context
      - `shop/templates/shop/product_detail.html`: Lines 245-297 - Added documents section
 
-3. **Updated My Orders Page to Show Shipping Status**
+4. **Updated My Orders Page to Show Shipping Status**
    - **Replaced Order Status with Shipping Information**:
      - Changed from general order status to specific shipping status
      - Shows first shipment status for each order

@@ -35,10 +35,16 @@ urlpatterns = [
     path('invoices/create/step2/', views.InvoiceCreateStep2View.as_view(), name='invoice_create_step2'),
     path('invoices/create/step3/', views.InvoiceCreateStep3View.as_view(), name='invoice_create_step3'),
     path('invoices/<int:pk>/', views.InvoiceDetailView.as_view(), name='invoice_detail'),
-    path('invoices/<int:pk>/update/', views.InvoiceUpdateView.as_view(), name='invoice_update'),
+    path('invoices/<int:pk>/update/', views.InvoiceEditStep1View.as_view(), name='invoice_update'),
+    path('invoices/<int:pk>/edit/step1/', views.InvoiceEditStep1View.as_view(), name='invoice_edit_step1'),
+    path('invoices/<int:pk>/edit/step2/', views.InvoiceEditStep2View.as_view(), name='invoice_edit_step2'),
+    path('invoices/<int:pk>/edit/step3/', views.InvoiceEditStep3View.as_view(), name='invoice_edit_step3'),
     path('invoices/<int:pk>/delete/', views.InvoiceDeleteView.as_view(), name='invoice_delete'),
     path('invoices/<int:pk>/send/', views.InvoiceSendView.as_view(), name='invoice_send'),
     path('invoices/<int:pk>/update-tracking/', views.invoice_update_tracking, name='invoice_update_tracking'),
+    path('invoices/<int:pk>/mark-paid/', views.invoice_mark_paid, name='invoice_mark_paid'),
+    path('invoices/<int:pk>/mark-shipped/', views.invoice_mark_shipped, name='invoice_mark_shipped'),
+    path('invoices/<int:pk>/recalculate/', views.invoice_recalculate, name='invoice_recalculate'),
     path('invoices/<int:pk>/pdf/', views.InvoicePDFView.as_view(), name='invoice_pdf'),
     
     # Invoice Items
@@ -49,6 +55,8 @@ urlpatterns = [
     # Payment URLs
     path('invoices/<int:invoice_pk>/payments/add/', views.PaymentCreateView.as_view(), name='payment_add'),
     path('payments/<int:pk>/', views.PaymentDetailView.as_view(), name='payment_detail'),
+    path('payments/<int:pk>/edit/', views.PaymentUpdateView.as_view(), name='payment_edit'),
+    path('payments/<int:pk>/delete/', views.PaymentDeleteView.as_view(), name='payment_delete'),
     
     # Shipment URLs
     path('shipments/', views.ShipmentListView.as_view(), name='shipment_list'),

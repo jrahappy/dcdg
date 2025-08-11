@@ -20,4 +20,8 @@ urlpatterns = [
     # Order management
     path('order/success/<uuid:tracking_code>/', views.order_success, name='order_success'),
     path('order/track/', views.order_tracking, name='order_tracking'),
+    
+    # Blog
+    path('blog/', views.blog_list, name='blog_list'),
+    path('blog/<int:pk>/', views.blog_detail, name='blog_detail'),
 ]

@@ -30,9 +30,9 @@ class Quote(models.Model):
 
     # Amounts
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=3, default=0)
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    discount_percent = models.DecimalField(max_digits=5, decimal_places=3, default=0)
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
@@ -138,9 +138,9 @@ class Order(models.Model):
     # Amounts
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     shipping_cost = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=3, default=0)
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    discount_percent = models.DecimalField(max_digits=5, decimal_places=3, default=0)
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     total_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     paid_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -308,7 +308,7 @@ class Invoice(models.Model):
 
     # Amounts
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=3, default=0)
     tax_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
@@ -411,16 +411,60 @@ class Invoice(models.Model):
 
     def calculate_totals(self):
         """Calculate invoice totals from items"""
-        from decimal import Decimal
+        from decimal import Decimal, ROUND_HALF_UP
 
         self.subtotal = sum(item.line_total for item in self.items.all()) or Decimal(
             "0"
         )
-        self.tax_amount = self.subtotal * (self.tax_rate / Decimal("100"))
+        # Calculate discount amount based on discount percent
+        self.discount_amount = self.subtotal * (self.discount_percent / Decimal("100"))
+        # Apply discount to subtotal before calculating tax
+        discounted_subtotal = self.subtotal - self.discount_amount
+        # Calculate tax on the discounted amount
+        self.tax_amount = discounted_subtotal * (self.tax_rate / Decimal("100"))
+        
+        # Round all monetary values to 2 decimal places
+        self.subtotal = self.subtotal.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        self.discount_amount = self.discount_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        self.tax_amount = self.tax_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        self.shipping_cost = self.shipping_cost.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        
         self.total_amount = (
-            self.subtotal + self.tax_amount + self.shipping_cost - self.discount_amount
+            discounted_subtotal + self.tax_amount + self.shipping_cost
+        ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        
+        self.balance_due = (self.total_amount - self.paid_amount).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
         )
-        self.balance_due = self.total_amount - self.paid_amount
+        self.save()
+
+    def recalculate_paid_amount(self):
+        """Recalculate the total paid amount from all completed payments"""
+        from django.db.models import Sum
+        from decimal import Decimal, ROUND_HALF_UP
+        
+        # Calculate total from completed payments only
+        total_paid = self.payments.filter(
+            status='completed'
+        ).aggregate(
+            total=Sum('amount')
+        )['total'] or Decimal('0')
+        
+        # Round to 2 decimal places
+        self.paid_amount = total_paid.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+        self.balance_due = (self.total_amount - self.paid_amount).quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        
+        # Update status based on new paid amount
+        if self.paid_amount >= self.total_amount:
+            self.status = 'paid'
+        elif self.paid_amount > 0:
+            self.status = 'partial'
+        elif self.status == 'paid' and self.paid_amount < self.total_amount:
+            # If it was marked as paid but payment was removed/reduced
+            self.status = 'sent'
+        
         self.save()
 
     def update_status(self):
@@ -831,7 +875,7 @@ class InvoiceShipment(models.Model):
         if invoice.shipping_same_as_billing or not invoice.shipping_address_line1:
             # Use billing address
             self.ship_to_name = f"{invoice.first_name} {invoice.last_name}".strip()
-            self.ship_to_company = invoice.customer.company if invoice.customer else ""
+            self.ship_to_company = invoice.customer.company_name if invoice.customer else ""
             self.ship_to_address_line1 = invoice.billing_address_line1
             self.ship_to_address_line2 = invoice.billing_address_line2 or ""
             self.ship_to_city = invoice.billing_city
@@ -841,7 +885,7 @@ class InvoiceShipment(models.Model):
         else:
             # Use shipping address
             self.ship_to_name = f"{invoice.first_name} {invoice.last_name}".strip()
-            self.ship_to_company = invoice.customer.company if invoice.customer else ""
+            self.ship_to_company = invoice.customer.company_name if invoice.customer else ""
             self.ship_to_address_line1 = invoice.shipping_address_line1
             self.ship_to_address_line2 = invoice.shipping_address_line2 or ""
             self.ship_to_city = invoice.shipping_city

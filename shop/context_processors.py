@@ -7,11 +7,11 @@ def shop_context(request):
     """
     context = {}
     
-    # Add cart count to context
+    # Add cart count to context (total quantity of all items)
     if request.user.is_authenticated:
         cart = Cart.objects.filter(user=request.user).first()
         if cart:
-            context['cart_item_count'] = cart.items.count()
+            context['cart_item_count'] = cart.total_items  # Use total_items property for quantity sum
         else:
             context['cart_item_count'] = 0
     else:
@@ -20,7 +20,7 @@ def shop_context(request):
         if session_key:
             cart = Cart.objects.filter(session_key=session_key).first()
             if cart:
-                context['cart_item_count'] = cart.items.count()
+                context['cart_item_count'] = cart.total_items  # Use total_items property for quantity sum
             else:
                 context['cart_item_count'] = 0
         else:

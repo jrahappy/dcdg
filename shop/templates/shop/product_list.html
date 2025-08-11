@@ -39,6 +39,15 @@
             </div>
 
             <div class="flex items-center gap-2">
+                <!-- Group by Category Toggle -->
+                <a href="?group_by_category={% if group_by_category %}false{% else %}true{% endif %}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" 
+                   class="btn btn-sm {% if group_by_category %}btn-primary{% else %}btn-outline btn-primary{% endif %} gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 7.125C2.25 6.504 2.754 6 3.375 6h6c.621 0 1.125.504 1.125 1.125v3.75c0 .621-.504 1.125-1.125 1.125h-6a1.125 1.125 0 01-1.125-1.125v-3.75zM14.25 8.625c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v8.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-8.25zM3.75 16.125c0-.621.504-1.125 1.125-1.125h5.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-5.25a1.125 1.125 0 01-1.125-1.125v-2.25z" />
+                    </svg>
+                    Group by Category
+                </a>
+                
                 <!-- Sort Dropdown -->
                 <div class="dropdown dropdown-end">
                     <label tabindex="0" class="btn btn-sm btn-ghost gap-1">
@@ -48,10 +57,10 @@
                         Sort
                     </label>
                     <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-lg bg-base-100 rounded-box w-52 mt-2">
-                        <li><a href="?sort=-created_at{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="{% if request.GET.sort == '-created_at' or not request.GET.sort %}active{% endif %}">Newest</a></li>
-                        <li><a href="?sort=price{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="{% if request.GET.sort == 'price' %}active{% endif %}">Price: Low to High</a></li>
-                        <li><a href="?sort=-price{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="{% if request.GET.sort == '-price' %}active{% endif %}">Price: High to Low</a></li>
-                        <li><a href="?sort=name{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" class="{% if request.GET.sort == 'name' %}active{% endif %}">Name: A to Z</a></li>
+                        <li><a href="?sort=-created_at{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if group_by_category %}&group_by_category=true{% endif %}" class="{% if request.GET.sort == '-created_at' or not request.GET.sort %}active{% endif %}">Newest</a></li>
+                        <li><a href="?sort=price{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if group_by_category %}&group_by_category=true{% endif %}" class="{% if request.GET.sort == 'price' %}active{% endif %}">Price: Low to High</a></li>
+                        <li><a href="?sort=-price{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if group_by_category %}&group_by_category=true{% endif %}" class="{% if request.GET.sort == '-price' %}active{% endif %}">Price: High to Low</a></li>
+                        <li><a href="?sort=name{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if group_by_category %}&group_by_category=true{% endif %}" class="{% if request.GET.sort == 'name' %}active{% endif %}">Name: A to Z</a></li>
                     </ul>
                 </div>
 
@@ -65,10 +74,44 @@
             </div>
         </div>
 
+        <!-- Category Cover Image and Description -->
+        {% if current_category %}
+            {% if current_category.cover_image or current_category.description %}
+            <div class="mb-6">
+                <div class="card bg-base-100 shadow-xl">
+                    {% if current_category.cover_image %}
+                    <figure class="max-h-96">
+                        <img src="{{ current_category.cover_image.url }}" 
+                             alt="{{ current_category.name }} cover" 
+                             class="w-full h-full object-cover">
+                    </figure>
+                    {% endif %}
+                    {% if current_category.description %}
+                    <div class="card-body">
+                        <div class="prose prose-lg max-w-none">
+                            {{ current_category.description|safe }}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        {% endif %}
+
         <!-- Products Section -->
-                {% if products %}
+        {% if group_by_category and products_by_category %}
+            <!-- Grouped by Category View -->
+            {% for category_group in page_obj %}
+            <div class="mb-12">
+                <!-- Category Header -->
+                <div class="divider">
+                    <h2 class="text-2xl font-bold">{{ category_group.category.name }}</h2>
+                    <span class="badge badge-lg badge-ghost">{{ category_group.products|length }} products</span>
+                </div>
+                
+                <!-- Products Grid -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                    {% for product in products %}
+                    {% for product in category_group.products %}
                     <div class="card bg-base-100 shadow-sm hover:shadow-lg transition-shadow">
                         <figure class="px-4 pt-4">
                             <a href="{% url 'shop:product_detail' product.pk %}" class="block aspect-square w-full bg-base-200 rounded-lg overflow-hidden">
@@ -112,52 +155,162 @@
                     </div>
                     {% endfor %}
                 </div>
-
-                <!-- Pagination -->
-                {% if is_paginated %}
-                <div class="flex justify-center mt-8">
-                    <div class="join">
-                        {% if page_obj.has_previous %}
-                        <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" 
-                           class="join-item btn btn-sm">«</a>
-                        {% else %}
-                        <button class="join-item btn btn-sm btn-disabled">«</button>
-                        {% endif %}
-                        
-                        {% for num in page_obj.paginator.page_range %}
-                            {% if page_obj.number == num %}
-                            <button class="join-item btn btn-sm btn-active">{{ num }}</button>
-                            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                            <a href="?page={{ num }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" 
-                               class="join-item btn btn-sm">{{ num }}</a>
-                            {% endif %}
-                        {% endfor %}
-                        
-                        {% if page_obj.has_next %}
-                        <a href="?page={{ page_obj.next_page_number }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" 
-                           class="join-item btn btn-sm">»</a>
-                        {% else %}
-                        <button class="join-item btn btn-sm btn-disabled">»</button>
-                        {% endif %}
+            </div>
+            {% empty %}
+            <!-- Empty State for grouped view -->
+            <div class="hero min-h-[400px] bg-base-200 rounded-lg">
+                <div class="hero-content text-center">
+                    <div class="max-w-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-16 h-16 mx-auto mb-4 opacity-50">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                        </svg>
+                        <h3 class="text-2xl font-bold mb-2">No products found</h3>
+                        <p class="text-base-content/70 mb-4">No products are categorized yet.</p>
+                        <a href="{% url 'shop:product_list' %}" class="btn btn-primary">View All Products</a>
                     </div>
                 </div>
-                {% endif %}
-                
-                {% else %}
-                <!-- Empty State -->
-                <div class="hero min-h-[400px] bg-base-200 rounded-lg">
-                    <div class="hero-content text-center">
-                        <div class="max-w-md">
-                            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-16 h-16 mx-auto mb-4 opacity-50">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
-                            </svg>
-                            <h3 class="text-2xl font-bold mb-2">No products found</h3>
-                            <p class="text-base-content/70 mb-4">Try adjusting your search or filter criteria to find what you're looking for.</p>
-                            <a href="{% url 'shop:product_list' %}" class="btn btn-primary">View All Products</a>
+            </div>
+            {% endfor %}
+        {% elif products %}
+            <!-- Regular Grid View -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                {% for product in products %}
+                <div class="card bg-base-100 shadow-sm hover:shadow-lg transition-shadow">
+                    <figure class="px-4 pt-4">
+                        <a href="{% url 'shop:product_detail' product.pk %}" class="block aspect-square w-full bg-base-200 rounded-lg overflow-hidden">
+                            {% if product.main_image %}
+                            <img src="{{ product.main_image.url }}" alt="{{ product.name }}" 
+                                 class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+                            {% elif product.images.all %}
+                            {% with product.images.all.0 as first_image %}
+                            <img src="{{ first_image.image.url }}" alt="{{ product.name }}" 
+                                 class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+                            {% endwith %}
+                            {% else %}
+                            <img src="{% static 'img/integdental/integdental_logo_w200_1620064653__69009.original.png' %}" 
+                                 alt="Default product image" 
+                                 class="w-full h-full object-contain p-8">
+                            {% endif %}
+                        </a>
+                    </figure>
+                    <div class="card-body">
+                        <h2 class="card-title text-base">
+                            <a href="{% url 'shop:product_detail' product.pk %}" class="link link-hover">
+                                {{ product.name|truncatechars:50 }}
+                            </a>
+                        </h2>
+                        <p class="text-sm opacity-70">{{ product.short_description|truncatewords:12 }}</p>
+                        
+                        <div class="flex items-center justify-between mt-4">
+                            <span class="text-xl font-bold">${{ product.price|floatformat:2|intcomma }}</span>
+                        </div>
+                        
+                        <div class="card-actions justify-end mt-2">
+                            <button onclick="addToCart({{ product.pk }})" 
+                                    class="btn btn-primary btn-sm w-full">
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                                </svg>
+                                Add to Cart
+                            </button>
                         </div>
                     </div>
                 </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <!-- Empty State -->
+            <div class="hero min-h-[400px] bg-base-200 rounded-lg">
+                <div class="hero-content text-center">
+                    <div class="max-w-md">
+                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-16 h-16 mx-auto mb-4 opacity-50">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                        </svg>
+                        <h3 class="text-2xl font-bold mb-2">No products found</h3>
+                        <p class="text-base-content/70 mb-4">Try adjusting your search or filter criteria to find what you're looking for.</p>
+                        <a href="{% url 'shop:product_list' %}" class="btn btn-primary">View All Products</a>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
+        <!-- Related Blog Posts Section -->
+        {% if related_posts and current_category %}
+        <div class="mt-12">
+            <div class="divider">
+                <h2 class="text-2xl font-bold">Related Articles about {{ current_category.name }}</h2>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {% for post in related_posts %}
+                <div class="card bg-base-100 shadow-sm hover:shadow-lg transition-shadow">
+                    {% if post.featured_image %}
+                    <figure class="h-48 overflow-hidden">
+                        <img src="{{ post.featured_image.url }}" alt="{{ post.title }}" class="w-full h-full object-cover">
+                    </figure>
+                    {% endif %}
+                    <div class="card-body">
+                        <div class="flex items-center gap-2 mb-2">
+                            {% if post.category %}
+                            <span class="badge badge-sm badge-ghost">{{ post.category.name }}</span>
+                            {% endif %}
+                            <span class="text-xs text-base-content/60">{{ post.published_date|date:"M d, Y" }}</span>
+                        </div>
+                        <h3 class="card-title text-base">
+                            <a href="{% url 'shop:blog_detail' post.pk %}" class="hover:text-primary transition-colors">
+                                {{ post.title }}
+                            </a>
+                        </h3>
+                        <p class="text-sm text-base-content/70 line-clamp-3">{{ post.excerpt|default:post.content|striptags|truncatewords:20 }}</p>
+                        <div class="card-actions justify-between items-center mt-4">
+                            <span class="text-xs text-base-content/60">{{ post.views }} views</span>
+                            <a href="{% url 'shop:blog_detail' post.pk %}" class="btn btn-sm btn-ghost">
+                                Read More
+                                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                                </svg>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="text-center mt-6">
+                <a href="{% url 'shop:blog_list' %}" class="btn btn-outline btn-primary">
+                    View All Blog Posts
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="flex justify-center mt-8">
+            <div class="join">
+                {% if page_obj.has_previous %}
+                <a href="?page={{ page_obj.previous_page_number }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if group_by_category %}&group_by_category=true{% endif %}" 
+                   class="join-item btn btn-sm">«</a>
+                {% else %}
+                <button class="join-item btn btn-sm btn-disabled">«</button>
                 {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <button class="join-item btn btn-sm btn-active">{{ num }}</button>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <a href="?page={{ num }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if group_by_category %}&group_by_category=true{% endif %}" 
+                       class="join-item btn btn-sm">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                <a href="?page={{ page_obj.next_page_number }}{% if request.GET.category %}&category={{ request.GET.category }}{% endif %}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}{% if group_by_category %}&group_by_category=true{% endif %}" 
+                   class="join-item btn btn-sm">»</a>
+                {% else %}
+                <button class="join-item btn btn-sm btn-disabled">»</button>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
     </div>
     
     <!-- Mobile Filter Drawer -->
@@ -181,7 +334,7 @@
                 </li>
                 {% for category in categories %}
                 <li>
-                    <a href="?category={{ category.id }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}" 
+                    <a href="?category={{ category.id }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if group_by_category %}&group_by_category=true{% endif %}" 
                        class="{% if request.GET.category == category.id|stringformat:'s' %}active{% endif %}">
                         {{ category.name }}
                         <span class="badge badge-sm">{{ category.product_count|default:0 }}</span>
@@ -207,9 +360,14 @@ function addToCart(productId) {
     .then(data => {
         if (data.success) {
             // Update cart counter
-            const cartCount = document.getElementById('cart-count');
+            const cartCount = document.getElementById('cart-count-number');
             if (cartCount) {
                 cartCount.textContent = data.cart_total_items;
+            }
+            // Also show the badge if it was hidden
+            const cartBadge = document.getElementById('cart-count-badge');
+            if (cartBadge && data.cart_total_items > 0) {
+                cartBadge.style.display = '';
             }
             // Show success toast
             showToast(data.message || 'Added to cart!', 'success');

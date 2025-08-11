@@ -22,40 +22,43 @@ def product_list(request):
     ).all()
     form = ProductSearchForm(request.GET)
 
-    # Apply filters
-    if form.is_valid():
-        search = form.cleaned_data.get("search")
-        category = form.cleaned_data.get("category")
-        status = form.cleaned_data.get("status")
-        is_featured = form.cleaned_data.get("is_featured")
+    # Apply filters manually (since we're using simple GET parameters)
+    search = request.GET.get('search', '')
+    category_id = request.GET.get('category', '')
+    status = request.GET.get('status', '')
+    is_featured = request.GET.get('is_featured', '')
 
-        if search:
-            products = products.filter(
-                Q(name__icontains=search)
-                | Q(sku__icontains=search)
-                | Q(brand__icontains=search)
-                | Q(manufacturer__icontains=search)
-                | Q(short_description__icontains=search)
-                | Q(tags__icontains=search)
-            )
+    if search:
+        products = products.filter(
+            Q(name__icontains=search)
+            | Q(sku__icontains=search)
+            | Q(brand__icontains=search)
+            | Q(manufacturer__icontains=search)
+            | Q(short_description__icontains=search)
+            | Q(tags__icontains=search)
+        )
 
-        if category:
-            products = products.filter(category=category)
+    if category_id:
+        products = products.filter(category_id=category_id)
 
-        if status:
+    if status:
+        # Handle special status filters
+        if status == 'out_of_stock':
+            products = products.filter(quantity_in_stock=0)
+        else:
             products = products.filter(status=status)
 
-        if is_featured:
-            if is_featured == "true":
-                products = products.filter(is_featured=True)
-            elif is_featured == "false":
-                products = products.filter(is_featured=False)
+    if is_featured:
+        if is_featured == "true":
+            products = products.filter(is_featured=True)
+        elif is_featured == "false":
+            products = products.filter(is_featured=False)
 
     # Order by created date
     products = products.order_by("-created_at")
 
     # Pagination
-    paginator = Paginator(products, 20)
+    paginator = Paginator(products, 32)
     page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
 
@@ -66,12 +69,19 @@ def product_list(request):
         quantity_in_stock__lte=F("minimum_stock_level")
     ).count()
 
+    # Get categories for the filter dropdown
+    categories = Category.objects.filter(is_active=True).order_by('order', 'name')
+    
     context = {
         "page_obj": page_obj,
         "form": form,
         "total_products": total_products,
         "active_products": active_products,
         "low_stock_products": low_stock_products,
+        "categories": categories,
+        "search_query": request.GET.get('search', ''),
+        "selected_category": request.GET.get('category', ''),
+        "status_filter": request.GET.get('status', ''),
     }
 
     return render(request, "product/product_list_daisyui.html", context)
@@ -904,39 +914,20 @@ def category_list(request):
 @staff_member_required
 def category_create(request):
     """Create a new product category"""
-    if request.method == 'POST':
-        name = request.POST.get('name')
-        parent_id = request.POST.get('parent')
-        description = request.POST.get('description', '')
-        icon = request.POST.get('icon', '')
-        is_active = 'is_active' in request.POST
-        order = request.POST.get('order', 0)
-        
-        try:
-            order = int(order)
-        except (ValueError, TypeError):
-            order = 0
-        
-        parent = None
-        if parent_id:
-            parent = get_object_or_404(Category, pk=parent_id)
-        
-        category = Category(
-            name=name,
-            parent=parent,
-            description=description,
-            icon=icon,
-            is_active=is_active,
-            order=order
-        )
-        category.save()
-        
-        messages.success(request, f'Category "{category.name}" has been created successfully.')
-        return redirect('product:category_detail', pk=category.pk)
+    from .forms import CategoryForm
     
-    categories = Category.objects.filter(is_active=True)
+    if request.method == 'POST':
+        form = CategoryForm(request.POST, request.FILES)
+        if form.is_valid():
+            category = form.save()
+            messages.success(request, f'Category "{category.name}" has been created successfully.')
+            return redirect('product:category_detail', pk=category.pk)
+    else:
+        form = CategoryForm()
+    
     context = {
-        'categories': categories,
+        'form': form,
+        'title': 'Create New Category',
     }
     
     return render(request, 'product/category_form.html', context)
@@ -983,41 +974,23 @@ def category_detail(request, pk):
 @staff_member_required
 def category_update(request, pk):
     """Update a product category"""
+    from .forms import CategoryForm
+    
     category = get_object_or_404(Category, pk=pk)
     
     if request.method == 'POST':
-        category.name = request.POST.get('name', category.name)
-        category.description = request.POST.get('description', '')
-        category.icon = request.POST.get('icon', '')
-        category.is_active = 'is_active' in request.POST
-        
-        try:
-            category.order = int(request.POST.get('order', 0))
-        except (ValueError, TypeError):
-            category.order = 0
-        
-        parent_id = request.POST.get('parent')
-        if parent_id:
-            parent = get_object_or_404(Category, pk=parent_id)
-            # Prevent setting self or descendants as parent
-            if parent != category and parent not in category.get_descendants():
-                category.parent = parent
-        else:
-            category.parent = None
-        
-        category.save()
-        
-        messages.success(request, f'Category "{category.name}" has been updated successfully.')
-        return redirect('product:category_detail', pk=category.pk)
-    
-    # Get all categories except self and its descendants for parent selection
-    available_parents = Category.objects.exclude(pk=category.pk)
-    for descendant in category.get_descendants():
-        available_parents = available_parents.exclude(pk=descendant.pk)
+        form = CategoryForm(request.POST, request.FILES, instance=category)
+        if form.is_valid():
+            category = form.save()
+            messages.success(request, f'Category "{category.name}" has been updated successfully.')
+            return redirect('product:category_detail', pk=category.pk)
+    else:
+        form = CategoryForm(instance=category)
     
     context = {
+        'form': form,
         'category': category,
-        'categories': available_parents,
+        'title': f'Edit Category: {category.name}',
     }
     
     return render(request, 'product/category_form.html', context)

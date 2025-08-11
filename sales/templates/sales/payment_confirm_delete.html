@@ -1,0 +1,104 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}Delete Payment {{ payment.payment_number }}{% endblock %}
+
+{% block dashboard_content %}
+<div class="space-y-6">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </a></li>
+            <li><a href="{% url 'sales:invoice_list' %}">Invoices</a></li>
+            {% if payment.invoice %}
+            <li><a href="{% url 'sales:invoice_detail' payment.invoice.pk %}">{{ payment.invoice.invoice_number }}</a></li>
+            {% endif %}
+            <li><a href="{% url 'sales:payment_detail' payment.pk %}">Payment {{ payment.payment_number }}</a></li>
+            <li>Delete</li>
+        </ul>
+    </div>
+
+    <!-- Confirmation Card -->
+    <div class="max-w-2xl mx-auto">
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-error">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    Confirm Payment Deletion
+                </h2>
+
+                <div class="alert alert-error mt-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div>
+                        <h3 class="font-bold">Warning!</h3>
+                        <div class="text-xs">This action cannot be undone. The invoice's payment status will be updated accordingly.</div>
+                    </div>
+                </div>
+
+                <div class="mt-6 space-y-2">
+                    <p class="text-lg">Are you sure you want to delete payment <strong>{{ payment.payment_number }}</strong>?</p>
+                    
+                    <div class="bg-base-200 rounded-lg p-4 space-y-2">
+                        <div class="flex justify-between">
+                            <span class="text-base-content/60">Payment Amount:</span>
+                            <span class="font-semibold">${{ payment.amount|floatformat:2 }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-base-content/60">Payment Date:</span>
+                            <span>{{ payment.payment_date|date:"F d, Y" }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-base-content/60">Payment Method:</span>
+                            <span>{{ payment.get_payment_method_display }}</span>
+                        </div>
+                        {% if payment.reference_number %}
+                        <div class="flex justify-between">
+                            <span class="text-base-content/60">Reference Number:</span>
+                            <span>{{ payment.reference_number }}</span>
+                        </div>
+                        {% endif %}
+                        {% if payment.customer %}
+                        <div class="flex justify-between">
+                            <span class="text-base-content/60">Customer:</span>
+                            <span>{{ payment.customer.get_full_name }}</span>
+                        </div>
+                        {% endif %}
+                        {% if payment.invoice %}
+                        <div class="flex justify-between">
+                            <span class="text-base-content/60">Related Invoice:</span>
+                            <span>
+                                <a href="{% url 'sales:invoice_detail' payment.invoice.pk %}" class="link link-primary">
+                                    {{ payment.invoice.invoice_number }}
+                                </a>
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <form method="post" class="mt-6">
+                    {% csrf_token %}
+                    <div class="flex gap-4 justify-end">
+                        <a href="{% url 'sales:payment_detail' payment.pk %}" class="btn btn-ghost">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-error">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete Payment
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

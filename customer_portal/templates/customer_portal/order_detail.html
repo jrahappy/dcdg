@@ -108,15 +108,13 @@
             <div>
                 <p class="text-sm font-semibold text-base-content/60">Order Status</p>
                 <div class="badge 
-                    {% if order.shipping_status == 'pending' %}badge-ghost
-                    {% elif order.shipping_status == 'preparing' %}badge-info
-                    {% elif order.shipping_status == 'shipped' %}badge-info
-                    {% elif order.shipping_status == 'partially_shipped' %}badge-secondary
-                    {% elif order.shipping_status == 'delivered' %}badge-success
-                    {% elif order.shipping_status == 'returned' %}badge-warning
-                    {% elif order.shipping_status == 'cancelled' %}badge-error
+                    {% if order.status == 'draft' %}badge-ghost
+                    {% elif order.status == 'pending' %}badge-warning
+                    {% elif order.status == 'sent' %}badge-info
+                    {% elif order.status == 'paid' %}badge-success
+                    {% elif order.status == 'cancelled' %}badge-error
                     {% else %}badge-ghost{% endif %} badge-lg mt-1">
-                    {{ order.get_shipping_status_display }}
+                    {{ order.get_status_display }}
                 </div>
             </div>
             
@@ -125,26 +123,15 @@
                 <p class="text-lg font-bold">${{ order.total_amount|floatformat:2 }}</p>
             </div>
             
-            {% if order.delivery_service %}
             <div>
-                <p class="text-sm font-semibold text-base-content/60">Delivery Service</p>
-                <p class="text-base">{{ order.get_delivery_service_display }}</p>
+                <p class="text-sm font-semibold text-base-content/60">Order Date</p>
+                <p class="text-base">{{ order.invoice_date|date:"F d, Y" }}</p>
             </div>
-            {% endif %}
             
-            {% if order.post_tracking_number %}
             <div>
-                <p class="text-sm font-semibold text-base-content/60">Tracking Number</p>
-                <p class="text-base font-mono">{{ order.post_tracking_number }}</p>
+                <p class="text-sm font-semibold text-base-content/60">Invoice Number</p>
+                <p class="text-base font-mono">#{{ order.invoice_number }}</p>
             </div>
-            {% endif %}
-            
-            {% if order.estimated_delivery %}
-            <div>
-                <p class="text-sm font-semibold text-base-content/60">Estimated Delivery</p>
-                <p class="text-base">{{ order.estimated_delivery|date:"F d, Y" }}</p>
-            </div>
-            {% endif %}
         </div>
     </div>
 </div>
@@ -204,6 +191,7 @@
                         <th>Product</th>
                         <th>Details</th>
                         <th>Quantity</th>
+                        <th>Shipping Status</th>
                         <th class="text-right">Price</th>
                         <th class="text-right">Total</th>
                     </tr>
@@ -265,6 +253,30 @@
                             {% endif %}
                         </td>
                         <td>{{ item.quantity }}</td>
+                        <td>
+                            {% with item.shipment_items.first as shipment_item %}
+                            {% if shipment_item %}
+                                {% with shipment_item.shipment as shipment %}
+                                <div class="badge 
+                                    {% if shipment.status == 'awaiting_shipment' %}badge-ghost badge-sm
+                                    {% elif shipment.status == 'shipped' or shipment.status == 'in_transit' %}badge-info badge-sm
+                                    {% elif shipment.status == 'out_for_delivery' %}badge-accent badge-sm
+                                    {% elif shipment.status == 'delivered' %}badge-success badge-sm
+                                    {% elif shipment.status == 'failed' or shipment.status == 'returned' %}badge-error badge-sm
+                                    {% else %}badge-ghost badge-sm{% endif %}">
+                                    {{ shipment.get_status_display }}
+                                </div>
+                                {% if shipment.tracking_number %}
+                                <div class="text-xs text-base-content/60 mt-1">
+                                    {{ shipment.get_carrier_display }}: {{ shipment.tracking_number }}
+                                </div>
+                                {% endif %}
+                                {% endwith %}
+                            {% else %}
+                                <div class="badge badge-ghost badge-sm">Awaiting Shipment</div>
+                            {% endif %}
+                            {% endwith %}
+                        </td>
                         <td class="text-right">${{ item.unit_price|floatformat:2 }}</td>
                         <td class="text-right font-semibold">${{ item.line_total|floatformat:2 }}</td>
                     </tr>

@@ -37,6 +37,17 @@
         </div>
     </div>
 
+    <!-- Cover Image -->
+    {% if category.cover_image %}
+    <div class="card bg-base-100 shadow-xl">
+        <figure>
+            <img src="{{ category.cover_image.url }}" 
+                 alt="{{ category.name }} cover" 
+                 class="w-full h-auto object-contain">
+        </figure>
+    </div>
+    {% endif %}
+
     <!-- Category Info -->
     <div class="card bg-base-100 shadow-xl">
         <div class="card-body">
@@ -85,7 +96,9 @@
                 {% if category.description %}
                 <div class="md:col-span-2">
                     <label class="text-sm font-medium text-base-content/60">Description</label>
-                    <p>{{ category.description }}</p>
+                    <div class="prose prose-sm max-w-none mt-2">
+                        {{ category.description|safe }}
+                    </div>
                 </div>
                 {% endif %}
             </div>

@@ -133,7 +133,18 @@
       "Bash(\"D:/Dev/dcdg/dcdg/venv/Scripts/python.exe\" manage.py shell -c \"from sales.models import InvoiceShipment, ShipmentItem; shipment = InvoiceShipment.objects.get(pk=3); print(f''Invoice: {shipment.invoice.invoice_number}''); print(f''Invoice items: {shipment.invoice.items.count()}''); [print(f''  - {item.description}: {item.quantity}'') for item in shipment.invoice.items.all()]\")",
       "Bash(\"D:/Dev/dcdg/dcdg/venv/Scripts/python.exe\" manage.py shell -c \"from sales.models import InvoiceShipment, ShipmentItem; shipment = InvoiceShipment.objects.get(pk=3); invoice_item = shipment.invoice.items.first(); shipment_item = ShipmentItem.objects.create(shipment=shipment, invoice_item=invoice_item, quantity_shipped=invoice_item.quantity, notes=''Test item added via shell''); print(f''Created shipment item: {shipment_item}''); print(f''Shipment now has {shipment.items.count()} items'')\")",
       "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe -c \"from django.template.loader import get_template; t = get_template(''customer_portal/dashboard.html''); print(''Template loaded successfully'')\")",
-      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py runserver 8001)"
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py runserver 8001)",
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py collectstatic --noinput)",
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py runserver 8000)",
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe update_product_images.py)",
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py makemigrations blog)",
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py migrate blog)",
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py makemigrations sales --dry-run)",
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py migrate sales --fake)",
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py makemigrations customer --dry-run)",
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py migrate customer --fake)",
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py makemigrations sales -n change_tax_rate_decimal_places)",
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py makemigrations sales -n fix_tax_and_discount_decimal_places)"
     ],
     "deny": []
   }

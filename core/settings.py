@@ -25,9 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/4.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv(
-    "SECRET_KEY", "django-insecure-0*@)!plk*dko$*1$+5a^7jzp0n9mdh2_yojwb^u3=4o1lh^4f6"
-)
+SECRET_KEY = os.getenv("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.getenv("DEBUG", "False").lower() in ("true", "1", "yes")
@@ -80,6 +78,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",  # Add WhiteNoise here, after SecurityMiddleware
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -174,6 +173,12 @@ STATICFILES_DIRS = [
 ]
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# WhiteNoise configuration
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
+# Allow WhiteNoise to serve media files in development
+WHITENOISE_AUTOREFRESH = True
+WHITENOISE_USE_FINDERS = True
+
 # Media files
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
@@ -181,10 +186,10 @@ MEDIA_ROOT = BASE_DIR / "media"
 # Django Vite Settings
 DJANGO_VITE = {
     "default": {
-        "dev_mode": os.getenv("DJANGO_VITE_DEV_MODE", "True").lower()
+        "dev_mode": os.getenv("DJANGO_VITE_DEV_MODE", "False").lower()
         in ("true", "1", "yes"),
-        "dev_server_port": 5173,
-        "static_url_prefix": "",
+        # "dev_server_port": 5173,
+        # "static_url_prefix": "",
     }
 }
 
@@ -216,13 +221,20 @@ EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() in ("true", "1", "yes
 
 # django-allauth configuration
 # New format for authentication method
-ACCOUNT_LOGIN_METHODS = {"email"}  # Use email for login (replaces ACCOUNT_AUTHENTICATION_METHOD)
+ACCOUNT_LOGIN_METHODS = {
+    "email"
+}  # Use email for login (replaces ACCOUNT_AUTHENTICATION_METHOD)
 
 # Email verification settings
 ACCOUNT_EMAIL_VERIFICATION = "none"  # Disabled email verification
 
 # New format for signup fields
-ACCOUNT_SIGNUP_FIELDS = ["email*", "username*", "password1*", "password2*"]  # Replaces ACCOUNT_EMAIL_REQUIRED and ACCOUNT_SIGNUP_EMAIL_ENTER_TWICE
+ACCOUNT_SIGNUP_FIELDS = [
+    "email*",
+    "username*",
+    "password1*",
+    "password2*",
+]  # Replaces ACCOUNT_EMAIL_REQUIRED and ACCOUNT_SIGNUP_EMAIL_ENTER_TWICE
 
 # Other settings
 ACCOUNT_USERNAME_MIN_LENGTH = 4
@@ -238,54 +250,51 @@ ACCOUNT_ADAPTER = "accounts.adapter.NoEmailVerificationAdapter"  # Custom adapte
 
 # Logging Configuration
 LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
-            'style': '{',
+    "version": 1,
+    "disable_existing_loggers": False,
+    "formatters": {
+        "verbose": {
+            "format": "{levelname} {asctime} {module} {process:d} {thread:d} {message}",
+            "style": "{",
         },
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose'
-        },
-        'file': {
-            'class': 'logging.FileHandler',
-            'filename': 'debug.log',
-            'formatter': 'verbose'
+        "simple": {
+            "format": "{levelname} {message}",
+            "style": "{",
         },
     },
-    'root': {
-        'handlers': ['console'],
-        'level': 'INFO',
+    "handlers": {
+        "console": {"class": "logging.StreamHandler", "formatter": "verbose"},
+        "file": {
+            "class": "logging.FileHandler",
+            "filename": "debug.log",
+            "formatter": "verbose",
+        },
     },
-    'loggers': {
-        'django': {
-            'handlers': ['console', 'file'],
-            'level': os.getenv('DJANGO_LOG_LEVEL', 'INFO'),
-            'propagate': False,
+    "root": {
+        "handlers": ["console"],
+        "level": "INFO",
+    },
+    "loggers": {
+        "django": {
+            "handlers": ["console", "file"],
+            "level": os.getenv("DJANGO_LOG_LEVEL", "INFO"),
+            "propagate": False,
         },
         # Add your app-specific loggers here
-        'sales': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': False,
+        "sales": {
+            "handlers": ["console", "file"],
+            "level": "DEBUG",
+            "propagate": False,
         },
-        'purchases': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': False,
+        "purchases": {
+            "handlers": ["console", "file"],
+            "level": "DEBUG",
+            "propagate": False,
         },
-        'product': {
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': False,
+        "product": {
+            "handlers": ["console", "file"],
+            "level": "DEBUG",
+            "propagate": False,
         },
     },
 }
@@ -328,19 +337,21 @@ INTERNAL_IPS = [
     "localhost",
 ]
 
+
 # Custom callback to show/hide debug toolbar
 def show_toolbar(request):
     # Don't show toolbar on customer-facing pages
-    if request.path.startswith('/account/') or request.path.startswith('/shop/'):
+    if request.path.startswith("/account/") or request.path.startswith("/shop/"):
         return False
     return DEBUG
 
+
 # Show SQL queries in debug toolbar
 DEBUG_TOOLBAR_CONFIG = {
-    'SHOW_TOOLBAR_CALLBACK': show_toolbar,
-    'SHOW_COLLAPSED': True,
-    'SHOW_TEMPLATE_CONTEXT': True,
-    'ENABLE_STACKTRACES': True,
+    "SHOW_TOOLBAR_CALLBACK": show_toolbar,
+    "SHOW_COLLAPSED": True,
+    "SHOW_TEMPLATE_CONTEXT": True,
+    "ENABLE_STACKTRACES": True,
 }
 
 # Django Extensions configuration
@@ -349,17 +360,13 @@ SHELL_PLUS_PRINT_SQL = True  # Print SQL queries in shell_plus
 # Django Channels configuration
 # Use Redis in production, in-memory for development
 if DEBUG:
-    CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels.layers.InMemoryChannelLayer'
-        }
-    }
+    CHANNEL_LAYERS = {"default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}}
 else:
     CHANNEL_LAYERS = {
-        'default': {
-            'BACKEND': 'channels_redis.core.RedisChannelLayer',
-            'CONFIG': {
-                "hosts": [('127.0.0.1', 6379)],
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {
+                "hosts": [("127.0.0.1", 6379)],
             },
         },
     }

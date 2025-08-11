@@ -1,9 +1,67 @@
+{% load static %}
 <!-- Shop Navigation Bar -->
-<div class="navbar sticky top-0 z-50 max-w-7xl mx-auto px-4 sm:px-6 lg:px-10 py-4 bg-base-100 shadow-sm">
-    <div class="flex-1">
-        <a href="{% url 'shop:product_list' %}" class="btn btn-ghost text-xl">IntegDental</a>
+<div class="sticky top-0 z-50 bg-base-100 shadow-sm">
+  <div class="navbar max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="navbar-start">
+        <!-- Mobile Menu Button -->
+        <div class="dropdown md:hidden">
+            <label tabindex="0" class="btn btn-ghost btn-circle">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h7" />
+                </svg>
+            </label>
+            <ul tabindex="0" class="menu menu-sm dropdown-content mt-3 z-[1] p-2 shadow bg-base-100 rounded-box w-52">
+                <li><a href="{% url 'shop:product_list' %}">Products</a></li>
+                <li><a href="#">Support</a></li>
+                <li><a href="{% url 'shop:blog_list' %}">Blog</a></li>
+            </ul>
+        </div>
+        
+        <a href="{% url 'shop:product_list' %}" class="btn btn-ghost text-xl">
+            <img src="{% static 'img/integdental/integdental_logo_w200.png' %}" alt="IntegDental" class="h-8">
+        </a>
+        
+        <!-- Desktop Menu Items -->
+        <div class="hidden md:flex ml-4">
+            <a href="{% url 'shop:product_list' %}" class="btn btn-ghost">Products</a>
+            <a href="#" class="btn btn-ghost">Support</a>
+            <a href="{% url 'shop:blog_list' %}" class="btn btn-ghost">Blog</a>
+        </div>
     </div>
-    <div class="flex-none">
+    
+    <div class="navbar-end">
+        <!-- Notification Button -->
+                {% if user.is_authenticated %}
+                <div class="dropdown dropdown-end">
+            <button tabindex="0" class="btn btn-ghost btn-circle mr-2">
+                <div class="indicator">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                    <span id="notification-count-badge" class="badge badge-sm badge-error indicator-item" style="display: none;">
+                        <span id="notification-count-number">0</span>
+                    </span>
+                </div>
+            </button>
+            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-xl bg-base-100 rounded-box w-80 mt-3">
+                <li class="menu-title flex flex-row justify-between">
+                    <span>Notifications</span>
+                    <a href="#" class="text-xs text-primary hover:underline">Mark all as read</a>
+                </li>
+                <div id="notification-list" class="max-h-96 overflow-y-auto">
+                    <!-- Notifications will be loaded here -->
+                    <li class="p-4 text-center text-base-content/60">
+                        <span>No new notifications</span>
+                    </li>
+                </div>
+                <div class="divider my-0"></div>
+                <li><a href="{% url 'customer_portal:dashboard' %}#notifications" class="justify-center">
+                    View all notifications
+                </a></li>
+            </ul>
+        </div>
+        {% endif %}
+        
         <!-- Cart Button -->
         <a href="{% url 'shop:cart' %}" class="btn btn-ghost btn-circle mr-2">
             <div class="indicator">
@@ -24,14 +82,55 @@
                     <span class="text-xl">{{ user.username|first|upper }}</span>
                 </div>
             </div>
-            <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow">
+            <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow-xl bg-base-100 rounded-box w-64 mt-3">
+                    <li class="menu-title">
+                        <span>{{ request.user.get_full_name|default:request.user.username }}</span>
+                        <span class="text-xs opacity-60">{{ request.user.email }}</span>
+                    </li>
+                    <li><a href="{% url 'customer_portal:dashboard' %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        My Dashboard
+                    </a></li>
+                    <li><a href="{% url 'customer_portal:order_list' %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        My Orders
+                    </a></li>
+                    
+                    <li><a href="{% url 'customer_portal:address_list' %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        My Addresses
+                    </a></li>
+                    {% if request.user.is_superuser %}
+                    <li><a href="{% url 'account-organization' %}">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                        </svg>
+                        My Organization
+                    </a></li>
+                    {% endif %}
+                    <div class="divider my-0"></div>
+                    <li><a href="{% url 'account_logout' %}" class="text-error">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                        Sign out
+                    </a></li>
+                </ul>
+            <!-- <ul tabindex="0" class="menu menu-sm dropdown-content bg-base-100 rounded-box z-[1] mt-3 w-52 p-2 shadow">
                 <li class="menu-title">
                     <span>Hello {{ user.username }}</span>
                 </li>
                 <li class="border-b"><a href="{% url 'customer_portal:dashboard' %}">My Account</a></li>
 
                 <li><a href="{% url 'account_logout' %}">Logout</a></li>
-            </ul>
+            </ul> -->
         </div>
         {% else %}
         <a href="{% url 'account_signup' %}" class="btn btn-ghost btn-sm">
@@ -42,7 +141,9 @@
         </a>
         {% endif %}
     </div>
+  </div>
 </div>
+
 
 <script>
 // Function to update cart count in navbar
@@ -62,4 +163,96 @@ function updateCartCount(count) {
 
 // Make it globally available
 window.updateCartCount = updateCartCount;
+
+// Notification system functions
+function updateNotificationCount(count) {
+    const badge = document.getElementById('notification-count-badge');
+    const numberElement = document.getElementById('notification-count-number');
+    
+    if (badge && numberElement) {
+        if (count > 0) {
+            numberElement.textContent = count;
+            badge.style.display = '';
+        } else {
+            badge.style.display = 'none';
+        }
+    }
+}
+
+function loadNotifications() {
+    // This is a placeholder - you would fetch real notifications from your backend
+    // For demo purposes, let's show some sample notifications
+    const notifications = [
+        {
+            id: 1,
+            title: 'Order Shipped',
+            message: 'Your order #1234 has been shipped',
+            time: '2 hours ago',
+            read: false,
+            icon: 'truck'
+        },
+        {
+            id: 2,
+            title: 'New Product Available',
+            message: 'Check out our new dental equipment',
+            time: '1 day ago',
+            read: false,
+            icon: 'sparkles'
+        },
+        {
+            id: 3,
+            title: 'Special Offer',
+            message: '20% off on selected items this week',
+            time: '3 days ago',
+            read: true,
+            icon: 'tag'
+        }
+    ];
+    
+    const unreadCount = notifications.filter(n => !n.read).length;
+    updateNotificationCount(unreadCount);
+    
+    // Render notifications in dropdown
+    const notificationList = document.getElementById('notification-list');
+    if (notificationList && notifications.length > 0) {
+        const notificationHTML = notifications.map(notification => `
+            <li class="border-b border-base-200 last:border-0">
+                <a href="#" class="flex items-start p-3 hover:bg-base-200 ${notification.read ? 'opacity-60' : ''}">
+                    <div class="flex-shrink-0 mt-1">
+                        ${getNotificationIcon(notification.icon)}
+                    </div>
+                    <div class="ml-3 flex-1">
+                        <p class="text-sm font-medium ${notification.read ? '' : 'text-primary'}">${notification.title}</p>
+                        <p class="text-xs text-base-content/70">${notification.message}</p>
+                        <p class="text-xs text-base-content/50 mt-1">${notification.time}</p>
+                    </div>
+                    ${!notification.read ? '<div class="w-2 h-2 bg-error rounded-full flex-shrink-0 mt-2"></div>' : ''}
+                </a>
+            </li>
+        `).join('');
+        
+        notificationList.innerHTML = notificationHTML;
+    }
+}
+
+function getNotificationIcon(type) {
+    const icons = {
+        'truck': '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-info" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" /></svg>',
+        'sparkles': '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-warning" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" /></svg>',
+        'tag': '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z" /></svg>',
+        'default': '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>'
+    };
+    return icons[type] || icons['default'];
+}
+
+// Load notifications when page loads (only for authenticated users)
+{% if user.is_authenticated %}
+document.addEventListener('DOMContentLoaded', function() {
+    loadNotifications();
+    
+    // Optionally, refresh notifications periodically
+    setInterval(loadNotifications, 60000); // Refresh every minute
+});
+{% endif %}
+
 </script>
