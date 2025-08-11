@@ -1,0 +1,239 @@
+{% extends 'dashboard/base_daisyui.html' %}
+
+{% block title %}Create Notification{% endblock %}
+
+{% block dashboard_content %}
+<div class="space-y-6">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </a></li>
+            <li><a href="{% url 'dashboard:notification_manage' %}">Notifications</a></li>
+            <li>Create</li>
+        </ul>
+    </div>
+
+    <!-- Header -->
+    <div class="flex items-center justify-between">
+        <h1 class="text-2xl font-bold">Create Notification</h1>
+    </div>
+
+    <!-- Form -->
+    <form method="post" class="space-y-6">
+        {% csrf_token %}
+        
+        <!-- Notification Details Card -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z" />
+                    </svg>
+                    Notification Details
+                </h2>
+                
+                <div class="grid grid-cols-1 gap-6">
+                    <!-- Title -->
+                    <div class="form-control">
+                        <label for="title" class="label">
+                            <span class="label-text">Title <span class="text-error">*</span></span>
+                        </label>
+                        <input type="text" id="title" name="title" required
+                               class="input input-bordered w-full"
+                               placeholder="Enter notification title">
+                        <label class="label">
+                            <span class="label-text-alt">This will be displayed as the notification heading</span>
+                        </label>
+                    </div>
+                    
+                    <!-- Type and Priority Row -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <!-- Notification Type -->
+                        <div class="form-control">
+                            <label for="notification_type" class="label">
+                                <span class="label-text">Type <span class="text-error">*</span></span>
+                            </label>
+                            <select id="notification_type" name="notification_type" required
+                                    class="select select-bordered w-full">
+                                {% for value, label in notification_types %}
+                                <option value="{{ value }}">{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        
+                        <!-- Priority -->
+                        <div class="form-control">
+                            <label for="priority" class="label">
+                                <span class="label-text">Priority <span class="text-error">*</span></span>
+                            </label>
+                            <select id="priority" name="priority" required
+                                    class="select select-bordered w-full">
+                                {% for value, label in priority_levels %}
+                                <option value="{{ value }}" {% if value == 'medium' %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Message -->
+                    <div class="form-control">
+                        <label for="message" class="label">
+                            <span class="label-text">Message <span class="text-error">*</span></span>
+                        </label>
+                        <textarea id="message" name="message" rows="4" required
+                                  class="textarea textarea-bordered h-24"
+                                  placeholder="Enter the notification message"></textarea>
+                        <label class="label">
+                            <span class="label-text-alt">The main content of the notification</span>
+                        </label>
+                    </div>
+                    
+                    <!-- Link (Optional) -->
+                    <div class="form-control">
+                        <label for="link" class="label">
+                            <span class="label-text">Link (Optional)</span>
+                        </label>
+                        <input type="url" id="link" name="link"
+                               class="input input-bordered w-full"
+                               placeholder="https://example.com/order/123">
+                        <label class="label">
+                            <span class="label-text-alt">Optional link for the notification (e.g., to an order or product)</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recipients Card -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <div class="flex items-center justify-between">
+                    <h2 class="card-title">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        Select Recipients
+                    </h2>
+                    <div class="join">
+                        <button type="button" onclick="selectAllUsers()"
+                                class="btn btn-sm join-item">
+                            Select All
+                        </button>
+                        <button type="button" onclick="deselectAllUsers()"
+                                class="btn btn-sm join-item">
+                            Deselect All
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Search Box -->
+                <div class="form-control">
+                    <input type="text" id="user-search"
+                           class="input input-bordered w-full"
+                           placeholder="Search users by name or email...">
+                </div>
+                
+                <!-- User List -->
+                <div class="border border-base-300 rounded-lg max-h-96 overflow-y-auto">
+                    {% for user in users %}
+                    <div class="user-item hover:bg-base-200 border-b border-base-200 last:border-b-0"
+                         data-search="{{ user.get_full_name|lower }} {{ user.username|lower }} {{ user.email|lower }}">
+                        <label class="flex items-center p-3 cursor-pointer">
+                            <input type="checkbox" name="users" value="{{ user.pk }}"
+                                   class="checkbox checkbox-primary user-checkbox">
+                            <div class="ml-3 flex-1">
+                                <div class="font-medium">{{ user.get_full_name|default:user.username }}</div>
+                                <div class="text-sm text-base-content/60">{{ user.email }}</div>
+                                {% if user.last_login %}
+                                <div class="text-xs text-base-content/40 mt-1">Last login: {{ user.last_login|timesince }} ago</div>
+                                {% endif %}
+                            </div>
+                        </label>
+                    </div>
+                    {% empty %}
+                    <div class="p-4 text-center text-base-content/60">
+                        No users available
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                <div class="stats bg-base-200">
+                    <div class="stat">
+                        <div class="stat-title">Selected Recipients</div>
+                        <div class="stat-value text-primary" id="selected-count">0</div>
+                        <div class="stat-desc">users will receive this notification</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Form Actions -->
+        <div class="flex items-center justify-end gap-3">
+            <a href="{% url 'dashboard:notification_manage' %}"
+               class="btn btn-ghost">
+                Cancel
+            </a>
+            <button type="submit"
+                    class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                </svg>
+                Send Notification
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// User search functionality
+document.getElementById('user-search').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const userItems = document.querySelectorAll('.user-item');
+    
+    userItems.forEach(item => {
+        const searchText = item.dataset.search;
+        if (searchText.includes(searchTerm)) {
+            item.style.display = 'block';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+});
+
+// Update selected count
+function updateSelectedCount() {
+    const checkboxes = document.querySelectorAll('.user-checkbox:checked');
+    document.getElementById('selected-count').textContent = checkboxes.length;
+}
+
+document.querySelectorAll('.user-checkbox').forEach(checkbox => {
+    checkbox.addEventListener('change', updateSelectedCount);
+});
+
+// Select/Deselect all
+function selectAllUsers() {
+    const visibleCheckboxes = document.querySelectorAll('.user-item:not([style*="display: none"]) .user-checkbox');
+    visibleCheckboxes.forEach(checkbox => checkbox.checked = true);
+    updateSelectedCount();
+}
+
+function deselectAllUsers() {
+    document.querySelectorAll('.user-checkbox').forEach(checkbox => checkbox.checked = false);
+    updateSelectedCount();
+}
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const selectedUsers = document.querySelectorAll('.user-checkbox:checked');
+    if (selectedUsers.length === 0) {
+        e.preventDefault();
+        alert('Please select at least one recipient');
+        return false;
+    }
+});
+</script>
+{% endblock %}
