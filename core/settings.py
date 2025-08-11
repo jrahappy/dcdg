@@ -40,17 +40,27 @@ if os.getenv("CSRF_TRUSTED_ORIGINS"):
     CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS").split(",")
     # Ensure URLs have proper scheme
     CSRF_TRUSTED_ORIGINS = [
-        origin if origin.startswith(('http://', 'https://')) else f'https://{origin}'
+        origin.strip() if origin.strip().startswith(('http://', 'https://')) else f'https://{origin.strip()}'
         for origin in CSRF_TRUSTED_ORIGINS
     ]
+else:
+    # Default for development
+    if DEBUG:
+        CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'http://127.0.0.1:8000']
 
 # Additional security settings for production
 if not DEBUG:
-    # Force HTTPS for CSRF cookies in production
-    CSRF_COOKIE_SECURE = True
-    SESSION_COOKIE_SECURE = True
-    # Ensure CSRF cookie is accessible by JavaScript
-    CSRF_COOKIE_HTTPONLY = False
+    # Get these from environment with sensible defaults
+    CSRF_COOKIE_SECURE = os.getenv("CSRF_COOKIE_SECURE", "True").lower() == "true"
+    SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "True").lower() == "true"
+else:
+    # Development settings
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_SECURE = False
+
+# Always ensure CSRF cookie is accessible by JavaScript for AJAX requests
+CSRF_COOKIE_HTTPONLY = False
+CSRF_USE_SESSIONS = False  # Use cookies instead of sessions for CSRF
 
 
 # Application definition
