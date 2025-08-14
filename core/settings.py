@@ -40,13 +40,17 @@ if os.getenv("CSRF_TRUSTED_ORIGINS"):
     CSRF_TRUSTED_ORIGINS = os.getenv("CSRF_TRUSTED_ORIGINS").split(",")
     # Ensure URLs have proper scheme
     CSRF_TRUSTED_ORIGINS = [
-        origin.strip() if origin.strip().startswith(('http://', 'https://')) else f'https://{origin.strip()}'
+        (
+            origin.strip()
+            if origin.strip().startswith(("http://", "https://"))
+            else f"https://{origin.strip()}"
+        )
         for origin in CSRF_TRUSTED_ORIGINS
     ]
 else:
     # Default for development
     if DEBUG:
-        CSRF_TRUSTED_ORIGINS = ['http://localhost:8000', 'http://127.0.0.1:8000']
+        CSRF_TRUSTED_ORIGINS = ["http://localhost:8000", "http://127.0.0.1:8000"]
 
 # Additional security settings for production
 if not DEBUG:
@@ -102,6 +106,7 @@ INSTALLED_APPS = [
     "chat",
     "factory",
     "factory_portal",
+    "accounting",
 ]
 
 MIDDLEWARE = [

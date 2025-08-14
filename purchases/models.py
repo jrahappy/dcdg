@@ -105,9 +105,27 @@ class PurchaseOrder(models.Model):
         ("cancelled", "Cancelled"),
     ]
 
+    class ACCOUNTING_STATUS_CHOICES(models.TextChoices):
+        DRAFT = "DRAFT", "Draft"
+        APPROVED = "APPROVED", "Approved"
+
+    # Accounting status
+    accounting_status = models.CharField(
+        max_length=20,
+        choices=ACCOUNTING_STATUS_CHOICES.choices,
+        default=ACCOUNTING_STATUS_CHOICES.DRAFT,
+        help_text="Accounting status for invoices",
+    )
+    is_posted = models.BooleanField(default=False)
+    posted_at = models.DateTimeField(null=True, blank=True)
+
     order_number = models.CharField(max_length=50, unique=True)
     supplier = models.ForeignKey(
-        Supplier, on_delete=models.CASCADE, related_name="purchase_orders", null=True, blank=True
+        Supplier,
+        on_delete=models.CASCADE,
+        related_name="purchase_orders",
+        null=True,
+        blank=True,
     )
 
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft")
@@ -214,8 +232,12 @@ class PurchaseOrderItem(models.Model):
     def save(self, *args, **kwargs):
         # Calculate line total
         # Ensure both values are Decimal to avoid type errors
-        quantity = Decimal(str(self.quantity)) if self.quantity is not None else Decimal('0')
-        unit_cost = Decimal(str(self.unit_cost)) if self.unit_cost is not None else Decimal('0')
+        quantity = (
+            Decimal(str(self.quantity)) if self.quantity is not None else Decimal("0")
+        )
+        unit_cost = (
+            Decimal(str(self.unit_cost)) if self.unit_cost is not None else Decimal("0")
+        )
         subtotal = quantity * unit_cost
         # discount = subtotal * (self.discount_percent / Decimal('100'))
         self.line_total = subtotal
@@ -230,3 +252,43 @@ class PurchaseOrderItem(models.Model):
     def is_fully_received(self):
         """Check if all items have been received"""
         return self.quantity_received >= self.quantity
+
+
+class SupplierPayment(models.Model):
+    class Status(models.TextChoices):
+        DRAFT = "DRAFT", "Draft"
+        APPROVED = "APPROVED", "Approved"
+
+    company = models.ForeignKey("customer.Organization", on_delete=models.CASCADE)
+    supplier = models.ForeignKey(
+        Supplier, null=True, blank=True, on_delete=models.SET_NULL
+    )
+    purchase_order = models.ForeignKey(
+        PurchaseOrder, null=True, blank=True, on_delete=models.SET_NULL
+    )
+
+    date = models.DateField()
+    amount = models.DecimalField(max_digits=14, decimal_places=2)
+
+    method = models.CharField(max_length=30, blank=True)  # e.g., Cash, Wire, Card
+    bank_account_code = models.CharField(max_length=10, blank=True)  # "1010" 등
+    is_advance = models.BooleanField(
+        default=False
+    )  # 선지급 여부(PO 단계 지급이면 True)
+    advance_account_code = models.CharField(
+        max_length=10, blank=True
+    )  # 기본 "1310" 덮어쓰기용
+
+    status = models.CharField(
+        max_length=10, choices=Status.choices, default=Status.DRAFT
+    )
+    posted = models.BooleanField(default=False)
+    posted_at = models.DateTimeField(null=True, blank=True)
+
+    def approve(self):
+        from accounting.usecases import approve_and_post_outgoing_payment
+
+        return approve_and_post_outgoing_payment(self)
+
+    def __str__(self):
+        return f"VendorPayment#{self.pk} {self.date} {self.amount}"

@@ -241,6 +241,11 @@ class Invoice(models.Model):
         ("cancelled", "Cancelled"),
     ]
 
+    ACCOUNTING_STATUS_CHOICES = [
+        ("draft", "Draft"),
+        ("approved", "Approved"),
+    ]
+
     invoice_number = models.CharField(max_length=50, unique=True)
     customer = models.ForeignKey(
         Customer,
@@ -287,6 +292,21 @@ class Invoice(models.Model):
     # Dates
     invoice_date = models.DateField()
     due_date = models.DateField()
+
+    # Accounting status
+    class ACCOUNTING_STATUS_CHOICES(models.TextChoices):
+        DRAFT = "DRAFT", "Draft"
+        APPROVED = "APPROVED", "Approved"
+
+    accounting_status = models.CharField(
+        max_length=20,
+        choices=ACCOUNTING_STATUS_CHOICES.choices,
+        default=ACCOUNTING_STATUS_CHOICES.DRAFT,
+        help_text="Accounting status for invoices",
+    )
+
+    is_posted = models.BooleanField(default=False)
+    posted_at = models.DateTimeField(null=True, blank=True)
 
     # Billing address
     billing_address_line1 = models.CharField(max_length=255, blank=True)
@@ -380,6 +400,13 @@ class Invoice(models.Model):
 
         super().save(*args, **kwargs)
 
+    # ✅ 승인 메서드: 승인 + 전기
+    def approve(self):
+        # 순환 임포트 방지: 함수 내부에서 import
+        from accounting.usecases import approve_and_post_sale
+
+        return approve_and_post_sale(self)
+
     def __str__(self):
         if self.customer:
             return f"Invoice {self.invoice_number} - {self.customer.get_full_name()}"
@@ -422,17 +449,23 @@ class Invoice(models.Model):
         discounted_subtotal = self.subtotal - self.discount_amount
         # Calculate tax on the discounted amount
         self.tax_amount = discounted_subtotal * (self.tax_rate / Decimal("100"))
-        
+
         # Round all monetary values to 2 decimal places
         self.subtotal = self.subtotal.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        self.discount_amount = self.discount_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        self.tax_amount = self.tax_amount.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        self.shipping_cost = self.shipping_cost.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        
+        self.discount_amount = self.discount_amount.quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        self.tax_amount = self.tax_amount.quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+        self.shipping_cost = self.shipping_cost.quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
+
         self.total_amount = (
             discounted_subtotal + self.tax_amount + self.shipping_cost
         ).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        
+
         self.balance_due = (self.total_amount - self.paid_amount).quantize(
             Decimal("0.01"), rounding=ROUND_HALF_UP
         )
@@ -442,29 +475,27 @@ class Invoice(models.Model):
         """Recalculate the total paid amount from all completed payments"""
         from django.db.models import Sum
         from decimal import Decimal, ROUND_HALF_UP
-        
+
         # Calculate total from completed payments only
-        total_paid = self.payments.filter(
-            status='completed'
-        ).aggregate(
-            total=Sum('amount')
-        )['total'] or Decimal('0')
-        
+        total_paid = self.payments.filter(status="completed").aggregate(
+            total=Sum("amount")
+        )["total"] or Decimal("0")
+
         # Round to 2 decimal places
         self.paid_amount = total_paid.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
         self.balance_due = (self.total_amount - self.paid_amount).quantize(
             Decimal("0.01"), rounding=ROUND_HALF_UP
         )
-        
+
         # Update status based on new paid amount
         if self.paid_amount >= self.total_amount:
-            self.status = 'paid'
+            self.status = "paid"
         elif self.paid_amount > 0:
-            self.status = 'partial'
-        elif self.status == 'paid' and self.paid_amount < self.total_amount:
+            self.status = "partial"
+        elif self.status == "paid" and self.paid_amount < self.total_amount:
             # If it was marked as paid but payment was removed/reduced
-            self.status = 'sent'
-        
+            self.status = "sent"
+
         self.save()
 
     def update_status(self):
@@ -875,7 +906,9 @@ class InvoiceShipment(models.Model):
         if invoice.shipping_same_as_billing or not invoice.shipping_address_line1:
             # Use billing address
             self.ship_to_name = f"{invoice.first_name} {invoice.last_name}".strip()
-            self.ship_to_company = invoice.customer.company_name if invoice.customer else ""
+            self.ship_to_company = (
+                invoice.customer.company_name if invoice.customer else ""
+            )
             self.ship_to_address_line1 = invoice.billing_address_line1
             self.ship_to_address_line2 = invoice.billing_address_line2 or ""
             self.ship_to_city = invoice.billing_city
@@ -885,7 +918,9 @@ class InvoiceShipment(models.Model):
         else:
             # Use shipping address
             self.ship_to_name = f"{invoice.first_name} {invoice.last_name}".strip()
-            self.ship_to_company = invoice.customer.company_name if invoice.customer else ""
+            self.ship_to_company = (
+                invoice.customer.company_name if invoice.customer else ""
+            )
             self.ship_to_address_line1 = invoice.shipping_address_line1
             self.ship_to_address_line2 = invoice.shipping_address_line2 or ""
             self.ship_to_city = invoice.shipping_city

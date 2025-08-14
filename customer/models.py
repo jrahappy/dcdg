@@ -12,6 +12,7 @@ class Organization(models.Model):
     NOT for customer use - this is for internal tracking and organization
     of admin/staff users within the dental support organization.
     """
+
     ORGANIZATION_TYPE_CHOICES = [
         ("dental_practice", "Dental Practice"),
         ("supplier", "Supplier"),
@@ -19,16 +20,14 @@ class Organization(models.Model):
         ("distributor", "Distributor"),
         ("other", "Other"),
     ]
-    
+
     name = models.CharField(max_length=255, unique=True)
     organization_type = models.CharField(
-        max_length=20, 
-        choices=ORGANIZATION_TYPE_CHOICES, 
-        default="dental_practice"
+        max_length=20, choices=ORGANIZATION_TYPE_CHOICES, default="dental_practice"
     )
     tax_id = models.CharField(max_length=50, blank=True)
     website = models.URLField(blank=True)
-    
+
     # Contact Information
     phone_regex = RegexValidator(
         regex=r"^\+?1?\d{9,15}$",
@@ -36,7 +35,7 @@ class Organization(models.Model):
     )
     phone = models.CharField(validators=[phone_regex], max_length=17, blank=True)
     email = models.EmailField(blank=True)
-    
+
     # Address
     address_line1 = models.CharField(max_length=255, blank=True)
     address_line2 = models.CharField(max_length=255, blank=True)
@@ -44,21 +43,24 @@ class Organization(models.Model):
     state = models.CharField(max_length=100, blank=True)
     postal_code = models.CharField(max_length=20, blank=True)
     country = models.CharField(max_length=100, default="United States", blank=True)
-    
+
     # Metadata
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     is_active = models.BooleanField(default=True)
     notes = models.TextField(blank=True)
-    
+    lock_until = models.DateField(
+        blank=True, null=True
+    )  # 마감 잠금(이 날짜 이하 전기 금지)
+
     class Meta:
         ordering = ["name"]
         verbose_name = "Organization"
         verbose_name_plural = "Organizations"
-    
+
     def __str__(self):
         return self.name
-    
+
     @property
     def full_address(self):
         address_parts = [
@@ -70,7 +72,7 @@ class Organization(models.Model):
             self.country,
         ]
         return ", ".join(part for part in address_parts if part)
-    
+
     @property
     def member_count(self):
         """Get count of active users in this organization"""
@@ -83,6 +85,7 @@ class Customer(models.Model):
     Organization field is for internal admin/staff use only to group
     and manage admin/staff users - NOT for customer organizations.
     """
+
     ROLE_CHOICES = [
         ("owner", "Owner"),
         ("admin", "Administrator"),
@@ -90,7 +93,7 @@ class Customer(models.Model):
         ("staff", "Staff"),
         ("customer", "Customer"),
     ]
-    
+
     company_category_choices = [
         ("supplier", "Supplier"),
         ("retailer", "Retailer"),
@@ -107,8 +110,7 @@ class Customer(models.Model):
         null=True,
         blank=True,
     )
-    
-    
+
     company_category = models.CharField(
         max_length=20, choices=company_category_choices, default="customer"
     )
@@ -142,27 +144,29 @@ class Customer(models.Model):
     def get_default_address(self):
         """Get the default address for this customer"""
         return self.addresses.filter(is_default=True, is_active=True).first()
-    
+
     @property
     def get_billing_address(self):
         """Get the default billing address"""
         from django.db.models import Q
+
         return self.addresses.filter(
-            Q(address_type='billing') | Q(address_type='both'),
+            Q(address_type="billing") | Q(address_type="both"),
             is_default=True,
-            is_active=True
+            is_active=True,
         ).first()
-    
+
     @property
     def get_shipping_address(self):
         """Get the default shipping address"""
         from django.db.models import Q
+
         return self.addresses.filter(
-            Q(address_type='shipping') | Q(address_type='both'),
+            Q(address_type="shipping") | Q(address_type="both"),
             is_default=True,
-            is_active=True
+            is_active=True,
         ).first()
-    
+
     @property
     def display_name(self):
         """Display name with organization if available"""
@@ -185,7 +189,11 @@ class CustomerAddress(models.Model):
     )
     # Optional user link for registered shop customers
     user = models.ForeignKey(
-        User, on_delete=models.CASCADE, related_name="saved_addresses", null=True, blank=True
+        User,
+        on_delete=models.CASCADE,
+        related_name="saved_addresses",
+        null=True,
+        blank=True,
     )
     address_type = models.CharField(
         max_length=10, choices=ADDRESS_TYPE_CHOICES, default="shipping"

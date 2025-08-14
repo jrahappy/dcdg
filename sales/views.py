@@ -49,6 +49,30 @@ from product.models import Product, Inventory
 from purchases.models import Supplier
 
 
+class InvoiceApproveView(UpdateView):
+    model = Invoice
+    fields = [
+        "invoice_date",
+        "customer",
+        "subtotal",
+        "tax_amount",
+        "total_amount",
+        "accounting_status",
+    ]
+    success_url = reverse_lazy("sales:list")
+
+    def form_valid(self, form):
+        resp = super().form_valid(form)
+        invoice = self.object
+        if (
+            invoice.accounting_status == Invoice.ACCOUNTING_STATUS_CHOICES.APPROVED
+            and not invoice.is_posted
+        ):
+            invoice.approve()  # 승인 & 전기
+            messages.success(self.request, f"매출 #{invoice.pk} 승인/전기 완료")
+        return resp
+
+
 # Mixin to require staff membership
 class StaffRequiredMixin(LoginRequiredMixin):
     @method_decorator(staff_member_required)
@@ -338,65 +362,64 @@ class InvoiceListView(StaffRequiredMixin, ListView):
             if status == "overdue":
                 # Special handling for overdue - check if due_date has passed and not paid
                 from django.utils import timezone
+
                 today = timezone.now().date()
                 queryset = queryset.filter(
-                    due_date__lt=today,
-                    status__in=['sent', 'partial']
+                    due_date__lt=today, status__in=["sent", "partial"]
                 )
             else:
                 queryset = queryset.filter(status=status)
-        
+
         # Date range filter
         date_from = self.request.GET.get("date_from")
         if date_from:
             queryset = queryset.filter(invoice_date__gte=date_from)
-        
+
         date_to = self.request.GET.get("date_to")
         if date_to:
             queryset = queryset.filter(invoice_date__lte=date_to)
 
         return queryset.order_by("-created_at")
-    
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        
+
         # Calculate stats for current month
         from django.utils import timezone
         from django.db.models import Sum, Count
         from datetime import datetime
-        
+
         # Get current month's start and end dates
         today = timezone.now().date()
         month_start = today.replace(day=1)
-        
+
         # Get all invoices for current month (not filtered)
         month_invoices = Invoice.objects.filter(
-            invoice_date__gte=month_start,
-            invoice_date__lte=today
+            invoice_date__gte=month_start, invoice_date__lte=today
         )
-        
+
         # Calculate statistics
-        context['total_invoices'] = month_invoices.count()
-        
+        context["total_invoices"] = month_invoices.count()
+
         # Total revenue (sum of total_amount for all invoices this month)
-        context['total_revenue'] = month_invoices.aggregate(
-            total=Sum('total_amount')
-        )['total'] or 0
-        
+        context["total_revenue"] = (
+            month_invoices.aggregate(total=Sum("total_amount"))["total"] or 0
+        )
+
         # Paid count (invoices with status 'paid' this month)
-        context['paid_count'] = month_invoices.filter(status='paid').count()
-        
+        context["paid_count"] = month_invoices.filter(status="paid").count()
+
         # Pending count (invoices with status in 'sent', 'partial', 'overdue' this month)
-        context['pending_count'] = month_invoices.filter(
-            status__in=['sent', 'partial', 'overdue', 'draft']
+        context["pending_count"] = month_invoices.filter(
+            status__in=["sent", "partial", "overdue", "draft"]
         ).count()
-        
+
         # Add filter values to context for form persistence
-        context['search_query'] = self.request.GET.get('search', '')
-        context['status_filter'] = self.request.GET.get('status', '')
-        context['date_from'] = self.request.GET.get('date_from', '')
-        context['date_to'] = self.request.GET.get('date_to', '')
-        
+        context["search_query"] = self.request.GET.get("search", "")
+        context["status_filter"] = self.request.GET.get("status", "")
+        context["date_from"] = self.request.GET.get("date_from", "")
+        context["date_to"] = self.request.GET.get("date_to", "")
+
         return context
 
 
@@ -607,11 +630,13 @@ class InvoiceCreateStep3View(StaffRequiredMixin, TemplateView):
             processed_items  # Changed from 'items' to 'invoice_items'
         )
         context["subtotal"] = subtotal
-        
+
         # Get tax rate and shipping cost from session or defaults
         context["tax_rate"] = self.request.session.get("invoice_tax_rate", Decimal("0"))
-        context["shipping_cost"] = self.request.session.get("invoice_shipping_cost", Decimal("0"))
-        
+        context["shipping_cost"] = self.request.session.get(
+            "invoice_shipping_cost", Decimal("0")
+        )
+
         # Calculate tax amount and total
         tax_amount = subtotal * (context["tax_rate"] / Decimal("100"))
         context["tax_amount"] = tax_amount
@@ -641,7 +666,7 @@ class InvoiceCreateStep3View(StaffRequiredMixin, TemplateView):
 
     def post(self, request):
         action = request.POST.get("action")
-        
+
         # Get data from session
         customer_id = request.session.get("invoice_customer_id")
         items_data = request.session.get("invoice_items", [])
@@ -655,13 +680,17 @@ class InvoiceCreateStep3View(StaffRequiredMixin, TemplateView):
         discount_percent = request.POST.get("discount_percent", "0")
         notes = request.POST.get("notes", "")
         internal_notes = request.POST.get("internal_notes", "")
-        
+
         # Handle update action - save to session and refresh
         if action == "update":
-            request.session["invoice_tax_rate"] = Decimal(tax_rate) if tax_rate else Decimal("0")
-            request.session["invoice_shipping_cost"] = Decimal(shipping_cost) if shipping_cost else Decimal("0")
+            request.session["invoice_tax_rate"] = (
+                Decimal(tax_rate) if tax_rate else Decimal("0")
+            )
+            request.session["invoice_shipping_cost"] = (
+                Decimal(shipping_cost) if shipping_cost else Decimal("0")
+            )
             return redirect("sales:invoice_create_step3")
-        
+
         # Handle back action
         if action == "back":
             return redirect("sales:invoice_create_step2")
@@ -1218,7 +1247,10 @@ def invoice_recalculate(request, pk):
 
     # Round to 2 decimal places
     from decimal import ROUND_HALF_UP
-    invoice.paid_amount = total_payments.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+    invoice.paid_amount = total_payments.quantize(
+        Decimal("0.01"), rounding=ROUND_HALF_UP
+    )
 
     # Update payment status based on payments
     if total_payments == 0:
@@ -1414,7 +1446,10 @@ class PaymentCreateView(StaffRequiredMixin, CreateView):
 
         # Round to 2 decimal places
         from decimal import ROUND_HALF_UP
-        invoice.paid_amount = total_paid.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+        invoice.paid_amount = total_paid.quantize(
+            Decimal("0.01"), rounding=ROUND_HALF_UP
+        )
         invoice.balance_due = (invoice.total_amount - total_paid).quantize(
             Decimal("0.01"), rounding=ROUND_HALF_UP
         )
@@ -1476,7 +1511,10 @@ class PaymentUpdateView(StaffRequiredMixin, UpdateView):
 
             # Round to 2 decimal places
             from decimal import ROUND_HALF_UP
-            invoice.paid_amount = total_paid.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+            invoice.paid_amount = total_paid.quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
             invoice.balance_due = (invoice.total_amount - total_paid).quantize(
                 Decimal("0.01"), rounding=ROUND_HALF_UP
             )
@@ -1523,7 +1561,10 @@ class PaymentDeleteView(StaffRequiredMixin, DeleteView):
 
             # Round to 2 decimal places
             from decimal import ROUND_HALF_UP
-            invoice.paid_amount = total_paid.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+
+            invoice.paid_amount = total_paid.quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
             invoice.balance_due = (invoice.total_amount - total_paid).quantize(
                 Decimal("0.01"), rounding=ROUND_HALF_UP
             )

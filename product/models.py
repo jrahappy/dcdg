@@ -211,6 +211,20 @@ class Product(models.Model):
     is_serial_number_managed = models.BooleanField(
         default=False, help_text="Whether this product requires serial number tracking"
     )
+    is_price_disclosed = models.BooleanField(
+        default=False,
+        help_text="Whether this product's price is disclosed to customers",
+    )
+    is_member_only = models.BooleanField(
+        default=False, help_text="Whether this product is only available to members"
+    )
+    member_price = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Member price for this product",
+    )
 
     class Meta:
         ordering = ["-created_at"]

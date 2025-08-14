@@ -1,0 +1,365 @@
+[
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 1000,
+        "fields": {
+            "company": 1,
+            "code": "1000",
+            "name": "Cash on Hand",
+            "type": "ASSET",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 1010,
+        "fields": {
+            "company": 1,
+            "code": "1010",
+            "name": "Bank - Checking",
+            "type": "ASSET",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 1020,
+        "fields": {
+            "company": 1,
+            "code": "1020",
+            "name": "Bank - Savings",
+            "type": "ASSET",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 1100,
+        "fields": {
+            "company": 1,
+            "code": "1100",
+            "name": "Accounts Receivable",
+            "type": "ASSET",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 1200,
+        "fields": {
+            "company": 1,
+            "code": "1200",
+            "name": "Inventory",
+            "type": "ASSET",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 1300,
+        "fields": {
+            "company": 1,
+            "code": "1300",
+            "name": "Prepaid Expenses",
+            "type": "ASSET",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 1500,
+        "fields": {
+            "company": 1,
+            "code": "1500",
+            "name": "Fixed Assets",
+            "type": "ASSET",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 1590,
+        "fields": {
+            "company": 1,
+            "code": "1590",
+            "name": "Accumulated Depreciation",
+            "type": "ASSET",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 2000,
+        "fields": {
+            "company": 1,
+            "code": "2000",
+            "name": "Accounts Payable",
+            "type": "LIABILITY",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 2100,
+        "fields": {
+            "company": 1,
+            "code": "2100",
+            "name": "Credit Card Payable",
+            "type": "LIABILITY",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 2200,
+        "fields": {
+            "company": 1,
+            "code": "2200",
+            "name": "Sales Tax Payable",
+            "type": "LIABILITY",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 2300,
+        "fields": {
+            "company": 1,
+            "code": "2300",
+            "name": "Payroll Liabilities",
+            "type": "LIABILITY",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 2500,
+        "fields": {
+            "company": 1,
+            "code": "2500",
+            "name": "Loans Payable",
+            "type": "LIABILITY",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 3000,
+        "fields": {
+            "company": 1,
+            "code": "3000",
+            "name": "Owner's Equity",
+            "type": "EQUITY",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 3100,
+        "fields": {
+            "company": 1,
+            "code": "3100",
+            "name": "Retained Earnings",
+            "type": "EQUITY",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 4000,
+        "fields": {
+            "company": 1,
+            "code": "4000",
+            "name": "Sales Revenue",
+            "type": "REVENUE",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 4010,
+        "fields": {
+            "company": 1,
+            "code": "4010",
+            "name": "Service Revenue",
+            "type": "REVENUE",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 4090,
+        "fields": {
+            "company": 1,
+            "code": "4090",
+            "name": "Sales Returns & Allowances",
+            "type": "REVENUE",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 4900,
+        "fields": {
+            "company": 1,
+            "code": "4900",
+            "name": "Other Income",
+            "type": "REVENUE",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 5000,
+        "fields": {
+            "company": 1,
+            "code": "5000",
+            "name": "Cost of Goods Sold",
+            "type": "EXPENSE",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 5100,
+        "fields": {
+            "company": 1,
+            "code": "5100",
+            "name": "Salaries & Wages",
+            "type": "EXPENSE",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 5200,
+        "fields": {
+            "company": 1,
+            "code": "5200",
+            "name": "Rent Expense",
+            "type": "EXPENSE",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 5210,
+        "fields": {
+            "company": 1,
+            "code": "5210",
+            "name": "Utilities",
+            "type": "EXPENSE",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 5220,
+        "fields": {
+            "company": 1,
+            "code": "5220",
+            "name": "Internet & Phone",
+            "type": "EXPENSE",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 5300,
+        "fields": {
+            "company": 1,
+            "code": "5300",
+            "name": "Advertising & Marketing",
+            "type": "EXPENSE",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 5310,
+        "fields": {
+            "company": 1,
+            "code": "5310",
+            "name": "Office Supplies",
+            "type": "EXPENSE",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 5400,
+        "fields": {
+            "company": 1,
+            "code": "5400",
+            "name": "Depreciation Expense",
+            "type": "EXPENSE",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 5500,
+        "fields": {
+            "company": 1,
+            "code": "5500",
+            "name": "Bank & Merchant Fees",
+            "type": "EXPENSE",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 5600,
+        "fields": {
+            "company": 1,
+            "code": "5600",
+            "name": "Travel",
+            "type": "EXPENSE",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 5610,
+        "fields": {
+            "company": 1,
+            "code": "5610",
+            "name": "Meals & Entertainment",
+            "type": "EXPENSE",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 5700,
+        "fields": {
+            "company": 1,
+            "code": "5700",
+            "name": "Insurance Expense",
+            "type": "EXPENSE",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 5800,
+        "fields": {
+            "company": 1,
+            "code": "5800",
+            "name": "Professional Services",
+            "type": "EXPENSE",
+            "is_active": true
+        }
+    },
+    {
+        "model": "accounting.ledgeraccount",
+        "pk": 5900,
+        "fields": {
+            "company": 1,
+            "code": "5900",
+            "name": "Income Tax Expense",
+            "type": "EXPENSE",
+            "is_active": true
+        }
+    }
+]
