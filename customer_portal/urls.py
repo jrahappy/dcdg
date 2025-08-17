@@ -14,6 +14,7 @@ urlpatterns = [
     # Profile
     path("manage/profile/", views.profile_view, name="profile"),
     path("manage/profile/edit/", views.profile_edit, name="profile_edit"),
+    path("manage/profile/upload-image/", views.profile_image_upload, name="profile_image_upload"),
     # Company Information
     path("manage/company/", views.company_info, name="company_info"),
     path("manage/company/edit/", views.company_info_edit, name="company_info_edit"),

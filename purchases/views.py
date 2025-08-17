@@ -9,8 +9,8 @@ from django.views.decorators.http import require_POST
 from django.db import transaction
 from django.views.generic import TemplateView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from .models import PurchaseOrder, PurchaseOrderItem, Supplier, SupplierContact
-from .forms import PurchaseOrderForm, PurchaseOrderItemFormSet
+from .models import PurchaseOrder, PurchaseOrderItem, Supplier, SupplierContact, SupplierPayment
+from .forms import PurchaseOrderForm, PurchaseOrderItemFormSet, SupplierPaymentForm
 from product.models import Product, Inventory
 import json
 from datetime import date
@@ -135,9 +135,25 @@ def purchase_order_detail(request, pk):
         else:
             item.inventory_difference = 0
     
+    # Calculate payment information
+    total_paid = SupplierPayment.objects.filter(
+        purchase_order=order,
+        status='APPROVED'
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    
+    balance_due = order.total_amount - total_paid
+    
+    # Get recent payments
+    recent_payments = SupplierPayment.objects.filter(
+        purchase_order=order
+    ).order_by('-date', '-id')[:5]
+    
     context = {
         'order': order,
         'total_pending_inventory': total_pending_inventory,
+        'total_paid': total_paid,
+        'balance_due': balance_due,
+        'recent_payments': recent_payments,
     }
     
     return render(request, 'purchases/purchase_order_detail_daisyui.html', context)
@@ -271,6 +287,88 @@ def purchase_order_receive(request, pk):
     }
     
     return render(request, 'purchases/purchase_order_receive.html', context)
+
+
+@staff_member_required
+def supplier_payment_create(request, pk):
+    """Create a payment for a purchase order"""
+    purchase_order = get_object_or_404(PurchaseOrder, pk=pk)
+    
+    # Calculate total paid so far
+    total_paid = SupplierPayment.objects.filter(
+        purchase_order=purchase_order,
+        status='APPROVED'
+    ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+    
+    balance_due = purchase_order.total_amount - total_paid
+    
+    if request.method == 'POST':
+        form = SupplierPaymentForm(request.POST, purchase_order=purchase_order)
+        if form.is_valid():
+            # The form's save method handles company assignment now
+            payment = form.save(commit=False)
+            
+            # Ensure we have required fields
+            payment.purchase_order = purchase_order
+            payment.supplier = purchase_order.supplier
+            
+            # Set bank account code (default to cash account)
+            payment.bank_account_code = "1010"  # Bank - Checking
+            
+            # Double-check company is set
+            if not payment.company:
+                from customer.models import Organization
+                payment.company = Organization.objects.first() or Organization.objects.create(
+                    name="Default Company",
+                    code="DEFAULT"
+                )
+            
+            # Save the payment
+            payment.save()
+            
+            # Post to accounting ledger
+            try:
+                from accounting.services import post_outgoing_payment
+                
+                # Post the payment to ledger
+                journal_entry = post_outgoing_payment(payment)
+                
+                messages.success(
+                    request,
+                    f"Payment of ${payment.amount} recorded successfully and posted to ledger (Journal Entry #{journal_entry.pk})"
+                )
+            except Exception as e:
+                messages.warning(
+                    request,
+                    f"Payment recorded but could not post to ledger: {str(e)}"
+                )
+            
+            # Update purchase order payment status
+            new_total_paid = total_paid + payment.amount
+            if new_total_paid >= purchase_order.total_amount:
+                # Fully paid
+                if purchase_order.status == 'received':
+                    purchase_order.status = 'received'  # Keep as received if already received
+                messages.info(request, "Purchase order is now fully paid!")
+            
+            return redirect('purchases:purchase_order_detail', pk=purchase_order.pk)
+    else:
+        form = SupplierPaymentForm(purchase_order=purchase_order)
+    
+    # Get payment history
+    payments = SupplierPayment.objects.filter(
+        purchase_order=purchase_order
+    ).order_by('-date', '-id')
+    
+    context = {
+        'order': purchase_order,
+        'form': form,
+        'balance_due': balance_due,
+        'total_paid': total_paid,
+        'payments': payments,
+    }
+    
+    return render(request, 'purchases/supplier_payment_form.html', context)
 
 
 @staff_member_required

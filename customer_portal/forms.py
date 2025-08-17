@@ -79,3 +79,16 @@ class AddressForm(forms.ModelForm):
             'phone': forms.TextInput(attrs={'class': 'form-control'}),
             'is_default': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
+
+
+class ProfileImageForm(forms.ModelForm):
+    """Form for uploading profile image only"""
+    class Meta:
+        model = Customer
+        fields = ['profile_image']
+        widgets = {
+            'profile_image': forms.FileInput(attrs={
+                'class': 'file-input file-input-bordered w-full',
+                'accept': 'image/*'
+            })
+        }

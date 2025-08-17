@@ -17,6 +17,7 @@ urlpatterns = [
     path('orders/<int:pk>/edit/step3/', views.PurchaseOrderEditStep3View.as_view(), name='purchase_order_edit_step3'),
     path('orders/<int:pk>/delete/', views.purchase_order_delete, name='purchase_order_delete'),
     path('orders/<int:pk>/receive/', views.purchase_order_receive, name='purchase_order_receive'),
+    path('orders/<int:pk>/payment/', views.supplier_payment_create, name='supplier_payment_create'),
     
     # Inventory creation
     path('orders/<int:pk>/item/<int:item_id>/create-inventory/', views.create_inventory_items, name='create_inventory_items'),

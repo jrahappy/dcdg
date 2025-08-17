@@ -1,0 +1,49 @@
+{% extends "dashboard/base_daisyui.html" %}
+{% load static %}
+
+{% block title %}Accounting - {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .accounting-stat {
+        @apply bg-base-100 rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow;
+    }
+    .balance-positive {
+        @apply text-success font-semibold;
+    }
+    .balance-negative {
+        @apply text-error font-semibold;
+    }
+    .account-type-header {
+        @apply text-lg font-bold border-b-2 border-base-300 pb-2 mb-4;
+    }
+</style>
+{% endblock %}
+
+{% block dashboard_content %}
+<!-- Breadcrumb -->
+<div class="text-sm breadcrumbs mb-4">
+    <ul>
+        <li><a href="{% url 'dashboard:home' %}">Home</a></li>
+        <li><a href="{% url 'accounting:dashboard' %}">Accounting</a></li>
+        {% block breadcrumb %}{% endblock %}
+    </ul>
+</div>
+
+<!-- Page Header -->
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold text-base-content">
+        {% block page_title %}Accounting{% endblock %}
+    </h1>
+    <div class="flex gap-2">
+        {% block header_actions %}{% endblock %}
+    </div>
+</div>
+
+<!-- Main Content -->
+{% block accounting_content %}{% endblock %}
+{% endblock %}
+
+{% block extra_js %}
+{% block accounting_js %}{% endblock %}
+{% endblock %}

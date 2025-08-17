@@ -306,6 +306,202 @@
             {% endif %}
         </div>
     </div>
+    
+    <!-- Financial Accounts Section -->
+    <div class="bg-white shadow rounded-lg overflow-hidden mt-6">
+        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="text-lg font-medium text-gray-900">Financial Accounts</h3>
+            <button onclick="toggleAddAccountForm()" 
+                    class="inline-flex items-center px-3 py-1.5 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                <i class="fas fa-plus mr-1.5"></i>
+                Add Account
+            </button>
+        </div>
+        
+        <!-- Add Account Form (Hidden by default) -->
+        <div id="addAccountForm" class="px-6 py-4 bg-gray-50 border-b border-gray-200" style="display: none;">
+            <form method="post" action="{% url 'account-organization' %}" class="space-y-4">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="add_financial_account">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Account Type <span class="text-red-500">*</span>
+                        </label>
+                        <select name="account_type" required onchange="toggleCardFields(this)"
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select Type</option>
+                            {% for value, label in account_types %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">
+                            Account Name <span class="text-red-500">*</span>
+                        </label>
+                        <input type="text" name="account_name" required maxlength="255"
+                               placeholder="e.g., Main Checking, Company Visa"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Bank/Institution Name</label>
+                        <input type="text" name="bank_name" maxlength="255"
+                               placeholder="e.g., Chase, Bank of America"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div class="bank-fields">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Routing Number</label>
+                        <input type="text" name="routing_number" maxlength="20"
+                               placeholder="9-digit routing number"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div class="bank-fields">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
+                        <input type="text" name="account_number" maxlength="50"
+                               placeholder="Account number"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div class="card-fields" style="display: none;">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Card Network</label>
+                        <select name="card_network"
+                                class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <option value="">Select Network</option>
+                            {% for value, label in card_networks %}
+                            <option value="{{ value }}">{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="card-fields" style="display: none;">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Last 4 Digits</label>
+                        <input type="text" name="card_last_four" maxlength="4" pattern="\d{4}"
+                               placeholder="1234"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div class="card-fields" style="display: none;">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Cardholder Name</label>
+                        <input type="text" name="cardholder_name" maxlength="255"
+                               placeholder="Name on card"
+                               class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                    </div>
+                    
+                    <div class="card-fields" style="display: none;">
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Expiry</label>
+                        <div class="flex space-x-2">
+                            <input type="number" name="card_expiry_month" min="1" max="12"
+                                   placeholder="MM"
+                                   class="block w-20 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                            <input type="number" name="card_expiry_year" min="2024" max="2040"
+                                   placeholder="YYYY"
+                                   class="block w-24 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500">
+                        </div>
+                    </div>
+                    
+                    <div>
+                        <label class="flex items-center">
+                            <input type="checkbox" name="is_primary" 
+                                   class="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50">
+                            <span class="ml-2 text-sm text-gray-700">Set as primary account</span>
+                        </label>
+                    </div>
+                </div>
+                
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                    <textarea name="account_notes" rows="2"
+                              placeholder="Additional notes about this account..."
+                              class="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"></textarea>
+                </div>
+                
+                <div class="flex justify-end space-x-3">
+                    <button type="button" onclick="toggleAddAccountForm()"
+                            class="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        Cancel
+                    </button>
+                    <button type="submit"
+                            class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+                        <i class="fas fa-save mr-2"></i>
+                        Add Account
+                    </button>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Financial Accounts List -->
+        <div class="px-6 py-4">
+            {% if financial_accounts %}
+            <div class="space-y-3">
+                {% for account in financial_accounts %}
+                <div class="border border-gray-200 rounded-lg p-4">
+                    <div class="flex items-start justify-between">
+                        <div class="flex items-start space-x-3">
+                            <div class="flex-shrink-0">
+                                {% if account.is_card %}
+                                <i class="fas fa-credit-card text-2xl text-gray-400"></i>
+                                {% else %}
+                                <i class="fas fa-university text-2xl text-gray-400"></i>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <div class="flex items-center space-x-2">
+                                    <h4 class="text-sm font-medium text-gray-900">{{ account.account_name }}</h4>
+                                    {% if account.is_primary %}
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                        Primary
+                                    </span>
+                                    {% endif %}
+                                </div>
+                                <p class="text-sm text-gray-500 mt-1">
+                                    {{ account.get_account_type_display }}
+                                    {% if account.bank_name %}• {{ account.bank_name }}{% endif %}
+                                </p>
+                                {% if account.is_card and account.card_network %}
+                                <p class="text-sm text-gray-500">
+                                    {{ account.get_card_network_display }} 
+                                    {% if account.card_last_four %}****{{ account.card_last_four }}{% endif %}
+                                    {% if account.card_expiry_month and account.card_expiry_year %}
+                                    • Exp: {{ account.card_expiry_month|stringformat:"02d" }}/{{ account.card_expiry_year }}
+                                    {% endif %}
+                                </p>
+                                {% endif %}
+                                {% if account.notes %}
+                                <p class="text-sm text-gray-400 mt-1">{{ account.notes }}</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <form method="post" action="{% url 'account-organization' %}" 
+                              onsubmit="return confirm('Are you sure you want to delete this account?');"
+                              style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_financial_account">
+                            <input type="hidden" name="account_id" value="{{ account.id }}">
+                            <button type="submit" 
+                                    class="text-red-600 hover:text-red-900 text-sm">
+                                <i class="fas fa-trash-alt"></i>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-8 text-gray-500">
+                <i class="fas fa-wallet text-4xl mb-4"></i>
+                <p class="text-lg font-medium">No financial accounts</p>
+                <p class="text-sm">Add bank accounts and credit cards for your organization.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
 </div>
 
 {% else %}
@@ -515,6 +711,33 @@ function toggleEditMode() {
         viewMode.style.display = 'none';
         editMode.style.display = 'block';
         editBtn.innerHTML = '<i class="fas fa-times w-4 mr-2"></i>Cancel Edit';
+    }
+}
+
+function toggleAddAccountForm() {
+    const form = document.getElementById('addAccountForm');
+    if (form.style.display === 'none') {
+        form.style.display = 'block';
+    } else {
+        form.style.display = 'none';
+        // Reset form
+        form.querySelector('form').reset();
+    }
+}
+
+function toggleCardFields(selectElement) {
+    const accountType = selectElement.value;
+    const cardFields = document.querySelectorAll('.card-fields');
+    const bankFields = document.querySelectorAll('.bank-fields');
+    
+    if (accountType === 'credit_card' || accountType === 'debit_card') {
+        // Show card fields, hide bank fields
+        cardFields.forEach(field => field.style.display = 'block');
+        bankFields.forEach(field => field.style.display = 'none');
+    } else {
+        // Show bank fields, hide card fields
+        cardFields.forEach(field => field.style.display = 'none');
+        bankFields.forEach(field => field.style.display = 'block');
     }
 }
 </script>

@@ -393,6 +393,31 @@ def sender_information(request):
 
 
 @login_required
+def profile_avatar_upload(request):
+    """Upload or update avatar for staff profile"""
+    if not hasattr(request.user, 'profile'):
+        Profile.objects.create(user=request.user)
+    
+    if request.method == 'POST':
+        profile = request.user.profile
+        
+        if 'avatar' in request.FILES:
+            # Delete old avatar if it exists
+            if profile.avatar:
+                profile.avatar.delete()
+            
+            # Save new avatar
+            profile.avatar = request.FILES['avatar']
+            profile.save()
+            
+            messages.success(request, 'Profile picture updated successfully!')
+        else:
+            messages.error(request, 'Please select an image to upload.')
+    
+    return redirect('account-profile')
+
+
+@login_required
 def my_organization(request):
     """Account management - My Organization section (Admin only)"""
     # Only allow superusers to access organization management
@@ -400,39 +425,87 @@ def my_organization(request):
         messages.error(request, 'Only administrators can manage organizations.')
         return redirect('account-profile')
     
-    from customer.models import Organization
+    from customer.models import Organization, FinancialAccount
     
     if request.user.organization:
         # User has an organization - show organization details or handle updates
         organization = request.user.organization
         
-        if request.method == 'POST' and request.POST.get('action') == 'update':
-            # Update organization information
-            organization.name = request.POST.get('name')
-            organization.organization_type = request.POST.get('organization_type', 'dental_practice')
-            organization.tax_id = request.POST.get('tax_id', '')
-            organization.website = request.POST.get('website', '')
-            organization.email = request.POST.get('email', '')
-            organization.phone = request.POST.get('phone', '')
-            organization.address_line1 = request.POST.get('address_line1', '')
-            organization.address_line2 = request.POST.get('address_line2', '')
-            organization.city = request.POST.get('city', '')
-            organization.state = request.POST.get('state', '')
-            organization.postal_code = request.POST.get('postal_code', '')
-            organization.country = request.POST.get('country', 'United States')
-            organization.notes = request.POST.get('notes', '')
+        if request.method == 'POST':
+            action = request.POST.get('action')
             
-            organization.save()
-            messages.success(request, f'Organization "{organization.name}" updated successfully!')
-            return redirect('account-organization')
+            if action == 'update':
+                # Update organization information
+                organization.name = request.POST.get('name')
+                organization.organization_type = request.POST.get('organization_type', 'dental_practice')
+                organization.tax_id = request.POST.get('tax_id', '')
+                organization.website = request.POST.get('website', '')
+                organization.email = request.POST.get('email', '')
+                organization.phone = request.POST.get('phone', '')
+                organization.address_line1 = request.POST.get('address_line1', '')
+                organization.address_line2 = request.POST.get('address_line2', '')
+                organization.city = request.POST.get('city', '')
+                organization.state = request.POST.get('state', '')
+                organization.postal_code = request.POST.get('postal_code', '')
+                organization.country = request.POST.get('country', 'United States')
+                organization.notes = request.POST.get('notes', '')
+                
+                organization.save()
+                messages.success(request, f'Organization "{organization.name}" updated successfully!')
+                return redirect('account-organization')
+            
+            elif action == 'add_financial_account':
+                # Add new financial account
+                account = FinancialAccount(
+                    organization=organization,
+                    account_type=request.POST.get('account_type'),
+                    account_name=request.POST.get('account_name'),
+                    bank_name=request.POST.get('bank_name', ''),
+                    routing_number=request.POST.get('routing_number', ''),
+                    account_number=request.POST.get('account_number', ''),
+                    card_network=request.POST.get('card_network', ''),
+                    card_last_four=request.POST.get('card_last_four', ''),
+                    cardholder_name=request.POST.get('cardholder_name', ''),
+                    is_primary=request.POST.get('is_primary') == 'on',
+                    notes=request.POST.get('account_notes', ''),
+                )
+                
+                # Handle card expiry for credit/debit cards
+                if account.account_type in ['credit_card', 'debit_card']:
+                    expiry_month = request.POST.get('card_expiry_month')
+                    expiry_year = request.POST.get('card_expiry_year')
+                    if expiry_month:
+                        account.card_expiry_month = int(expiry_month)
+                    if expiry_year:
+                        account.card_expiry_year = int(expiry_year)
+                
+                account.save()
+                messages.success(request, f'Financial account "{account.account_name}" added successfully!')
+                return redirect('account-organization')
+            
+            elif action == 'delete_financial_account':
+                # Delete financial account
+                account_id = request.POST.get('account_id')
+                try:
+                    account = FinancialAccount.objects.get(pk=account_id, organization=organization)
+                    account_name = account.account_name
+                    account.delete()
+                    messages.success(request, f'Financial account "{account_name}" deleted successfully!')
+                except FinancialAccount.DoesNotExist:
+                    messages.error(request, 'Financial account not found.')
+                return redirect('account-organization')
         
         members = organization.users.all().order_by('last_name', 'first_name')
+        financial_accounts = organization.financial_accounts.all().order_by('-is_primary', 'account_type', 'account_name')
         
         context = {
             'organization': organization,
             'members': members,
+            'financial_accounts': financial_accounts,
             'has_organization': True,
             'organization_types': Organization.ORGANIZATION_TYPE_CHOICES,
+            'account_types': FinancialAccount.ACCOUNT_TYPE_CHOICES,
+            'card_networks': FinancialAccount.CARD_NETWORK_CHOICES,
         }
         
         return render(request, 'accounts/account_organization.html', context)

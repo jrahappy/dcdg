@@ -147,8 +147,16 @@
       "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py makemigrations sales -n fix_tax_and_discount_decimal_places)",
       "Bash(git rm:*)",
       "Bash(git push:*)",
-      "Bash(git reset:*)"
+      "Bash(git reset:*)",
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py runserver --verbosity 0)",
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py makemigrations customer -n add_financial_account)",
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py makemigrations sales -n add_financial_account_to_payment)",
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py makemigrations accounting)",
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py migrate accounting)",
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe -c \"exec(open(''test_expense_posting.py'').read())\")",
+      "Bash(D:/Dev/dcdg/dcdg/venv/Scripts/python.exe manage.py makemigrations customer -n add_profile_image)"
     ],
-    "deny": []
+    "deny": [],
+    "defaultMode": "acceptEdits"
   }
 }

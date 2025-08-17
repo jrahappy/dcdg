@@ -30,7 +30,9 @@ urlpatterns = [
     path("home/products/", include("product.urls")),  # Product management
     path("home/purchases/", include("purchases.urls")),  # Purchase orders
     path("home/sales/", include("sales.urls")),  # Sales app (quotes, orders, invoices)
+    path("home/accounting/", include("accounting.urls")),  # Accounting and GL
     path("home/blog/", include("blog.urls")),  # Blog moved to /blog/
+    path("pages/", include("pages.urls")),  # Pages app
     # path("shop/", include("shop.urls")),  # Shop for anonymous visitors
     path(
         "account/", include("customer_portal.urls")
@@ -59,5 +61,5 @@ if settings.DEBUG:
 else:
     # Serve media files even when DEBUG=False (for development/testing)
     urlpatterns += [
-        re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+        re_path(r"^media/(?P<path>.*)$", serve, {"document_root": settings.MEDIA_ROOT}),
     ]

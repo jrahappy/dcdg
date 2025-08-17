@@ -1,0 +1,131 @@
+{% extends "accounting/base.html" %}
+{% load humanize %}
+
+{% block page_title %}Balance Sheet{% endblock %}
+{% block breadcrumb %}<li>Balance Sheet</li>{% endblock %}
+
+{% block accounting_content %}
+<!-- Date Filter -->
+<div class="card bg-base-100 shadow-xl mb-6">
+    <div class="card-body">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">As of Date</span>
+                </label>
+                <input type="date" name="as_of_date" value="{{ as_of_date }}" class="input input-bordered" required>
+            </div>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">&nbsp;</span>
+                </label>
+                <button type="submit" class="btn btn-primary">Generate Report</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Balance Sheet Report -->
+<div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+        <div class="text-center mb-6">
+            <h2 class="text-2xl font-bold">{{ company.name }}</h2>
+            <h3 class="text-xl">Balance Sheet</h3>
+            <p class="text-base-content/70">As of {{ as_of_date }}</p>
+        </div>
+        
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <!-- Assets -->
+            <div>
+                <h4 class="text-lg font-bold border-b-2 border-base-300 pb-2 mb-4">ASSETS</h4>
+                <div class="space-y-2">
+                    {% for item in assets_data %}
+                    <div class="flex justify-between items-center">
+                        <span class="ml-4">{{ item.account.name }}</span>
+                        <span class="font-mono">${{ item.balance|floatformat:2|intcomma }}</span>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-base-content/50 py-2">No asset accounts with balances</div>
+                    {% endfor %}
+                </div>
+                <div class="flex justify-between items-center mt-4 pt-2 border-t-2 font-bold">
+                    <span>Total Assets</span>
+                    <span class="font-mono text-success">${{ total_assets|floatformat:2|intcomma }}</span>
+                </div>
+            </div>
+            
+            <!-- Liabilities & Equity -->
+            <div>
+                <!-- Liabilities -->
+                <h4 class="text-lg font-bold border-b-2 border-base-300 pb-2 mb-4">LIABILITIES</h4>
+                <div class="space-y-2">
+                    {% for item in liabilities_data %}
+                    <div class="flex justify-between items-center">
+                        <span class="ml-4">{{ item.account.name }}</span>
+                        <span class="font-mono">${{ item.balance|floatformat:2|intcomma }}</span>
+                    </div>
+                    {% empty %}
+                    <div class="text-center text-base-content/50 py-2">No liability accounts with balances</div>
+                    {% endfor %}
+                </div>
+                <div class="flex justify-between items-center mt-4 pt-2 border-t font-semibold">
+                    <span>Total Liabilities</span>
+                    <span class="font-mono">${{ total_liabilities|floatformat:2|intcomma }}</span>
+                </div>
+                
+                <!-- Equity -->
+                <h4 class="text-lg font-bold border-b-2 border-base-300 pb-2 mb-4 mt-8">EQUITY</h4>
+                <div class="space-y-2">
+                    {% for item in equity_data %}
+                    <div class="flex justify-between items-center">
+                        <span class="ml-4">{{ item.account.name }}</span>
+                        <span class="font-mono">${{ item.balance|floatformat:2|intcomma }}</span>
+                    </div>
+                    {% endfor %}
+                    <div class="flex justify-between items-center">
+                        <span class="ml-4">Retained Earnings</span>
+                        <span class="font-mono">${{ retained_earnings|floatformat:2|intcomma }}</span>
+                    </div>
+                </div>
+                <div class="flex justify-between items-center mt-4 pt-2 border-t font-semibold">
+                    <span>Total Equity</span>
+                    <span class="font-mono">${{ total_equity|floatformat:2|intcomma }}</span>
+                </div>
+                
+                <!-- Total Liabilities & Equity -->
+                <div class="flex justify-between items-center mt-4 pt-2 border-t-2 font-bold">
+                    <span>Total Liabilities & Equity</span>
+                    <span class="font-mono text-info">${{ total_liabilities_equity|floatformat:2|intcomma }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Balance Check -->
+        <div class="mt-8">
+            {% if is_balanced %}
+            <div class="alert alert-success">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                    <h3 class="font-bold">Balance Sheet is Balanced</h3>
+                    <div class="text-sm">Assets = Liabilities + Equity</div>
+                </div>
+            </div>
+            {% else %}
+            <div class="alert alert-error">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                    <h3 class="font-bold">Balance Sheet is NOT Balanced!</h3>
+                    <div class="text-sm">Please review journal entries for errors.</div>
+                    <div class="text-sm">Difference: ${{ total_assets|add:total_liabilities_equity|floatformat:2 }}</div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

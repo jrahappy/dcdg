@@ -21,11 +21,11 @@
             <img src="{% static 'img/integdental/integdental_logo_w200.png' %}" alt="IntegDental" class="h-8">
         </a>
         
-        <!-- Desktop Menu Items -->
-        <div class="hidden md:flex ml-4">
-            <a href="{% url 'shop:product_list' %}" class="btn btn-ghost">Products</a>
-            <a href="#" class="btn btn-ghost">Support</a>
-            <a href="{% url 'shop:blog_list' %}" class="btn btn-ghost">Blog</a>
+        <!-- Desktop Menu Items --> 
+        <div class="hidden md:flex ml-4 lg:gap-x-6">
+            {% for item in navbar_items %}
+            <a href="{{ item.menu_path_info }}" class="text-sm/6 font-semibold text-gray-900 dark:text-white">{{ item.menu_name }}</a>
+            {% endfor %}
         </div>
     </div>
     

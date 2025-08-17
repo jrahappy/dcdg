@@ -1,0 +1,122 @@
+{% extends "accounting/base.html" %}
+{% load humanize %}
+
+{% block page_title %}Income Statement{% endblock %}
+{% block breadcrumb %}<li>Income Statement</li>{% endblock %}
+
+{% block accounting_content %}
+<!-- Date Filter -->
+<div class="card bg-base-100 shadow-xl mb-6">
+    <div class="card-body">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Date From</span>
+                </label>
+                <input type="date" name="date_from" value="{{ date_from }}" class="input input-bordered" required>
+            </div>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Date To</span>
+                </label>
+                <input type="date" name="date_to" value="{{ date_to }}" class="input input-bordered" required>
+            </div>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">&nbsp;</span>
+                </label>
+                <button type="submit" class="btn btn-primary">Generate Report</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Income Statement Report -->
+<div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+        <div class="text-center mb-6">
+            <h2 class="text-2xl font-bold">{{ company.name }}</h2>
+            <h3 class="text-xl">Income Statement</h3>
+            <p class="text-base-content/70">For the period from {{ date_from }} to {{ date_to }}</p>
+        </div>
+        
+        <!-- Revenue Section -->
+        <div class="mb-8">
+            <h4 class="text-lg font-bold border-b-2 border-base-300 pb-2 mb-4">Revenue</h4>
+            <div class="space-y-2">
+                {% for item in revenue_data %}
+                <div class="flex justify-between items-center">
+                    <span class="ml-4">{{ item.account.name }}</span>
+                    <span class="font-mono">${{ item.amount|floatformat:2|intcomma }}</span>
+                </div>
+                {% empty %}
+                <div class="text-center text-base-content/50 py-2">No revenue accounts with activity</div>
+                {% endfor %}
+            </div>
+            <div class="flex justify-between items-center mt-4 pt-2 border-t font-semibold">
+                <span>Total Revenue</span>
+                <span class="font-mono text-success">${{ total_revenue|floatformat:2|intcomma }}</span>
+            </div>
+        </div>
+        
+        <!-- Expense Section -->
+        <div class="mb-8">
+            <h4 class="text-lg font-bold border-b-2 border-base-300 pb-2 mb-4">Expenses</h4>
+            <div class="space-y-2">
+                {% for item in expense_data %}
+                <div class="flex justify-between items-center">
+                    <span class="ml-4">{{ item.account.name }}</span>
+                    <span class="font-mono">${{ item.amount|floatformat:2|intcomma }}</span>
+                </div>
+                {% empty %}
+                <div class="text-center text-base-content/50 py-2">No expense accounts with activity</div>
+                {% endfor %}
+            </div>
+            <div class="flex justify-between items-center mt-4 pt-2 border-t font-semibold">
+                <span>Total Expenses</span>
+                <span class="font-mono text-error">${{ total_expenses|floatformat:2|intcomma }}</span>
+            </div>
+        </div>
+        
+        <!-- Net Income -->
+        <div class="border-t-4 border-double border-base-300 pt-4">
+            <div class="flex justify-between items-center text-xl font-bold">
+                <span>Net Income</span>
+                <span class="font-mono {% if net_income >= 0 %}text-success{% else %}text-error{% endif %}">
+                    ${{ net_income|floatformat:2|intcomma }}
+                </span>
+            </div>
+        </div>
+        
+        <!-- Summary Stats -->
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-8">
+            <div class="stat bg-base-200 rounded-lg">
+                <div class="stat-title">Gross Margin</div>
+                <div class="stat-value text-2xl">
+                    {% if total_revenue > 0 %}
+                        {% widthratio net_income total_revenue 100 %}%
+                    {% else %}
+                        0%
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="stat bg-base-200 rounded-lg">
+                <div class="stat-title">Revenue</div>
+                <div class="stat-value text-2xl text-success">
+                    ${{ total_revenue|floatformat:0|intcomma }}
+                </div>
+            </div>
+            
+            <div class="stat bg-base-200 rounded-lg">
+                <div class="stat-title">Expenses</div>
+                <div class="stat-value text-2xl text-error">
+                    ${{ total_expenses|floatformat:0|intcomma }}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

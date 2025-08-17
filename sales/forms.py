@@ -512,6 +512,7 @@ class PaymentForm(forms.ModelForm):
             "amount",
             "payment_date",
             "payment_method",
+            "financial_account",
             "status",
             "reference_number",
             "bank_name",
@@ -547,6 +548,11 @@ class PaymentForm(forms.ModelForm):
                 }
             ),
             "payment_method": forms.Select(
+                attrs={
+                    "class": "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                }
+            ),
+            "financial_account": forms.Select(
                 attrs={
                     "class": "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 }
@@ -590,6 +596,34 @@ class PaymentForm(forms.ModelForm):
         self.fields["customer"].required = (
             False  # Customer is now optional for shop orders
         )
+        
+        # Configure financial account field
+        from customer.models import FinancialAccount, Organization
+        # Get the first organization (or you can customize this logic)
+        organization = Organization.objects.first()
+        if organization:
+            self.fields["financial_account"].queryset = FinancialAccount.objects.filter(
+                organization=organization,
+                is_active=True
+            ).order_by('-is_primary', 'account_type', 'account_name')
+            # Set default to primary checking/savings account if available
+            primary_account = FinancialAccount.objects.filter(
+                organization=organization,
+                is_active=True,
+                is_primary=True,
+                account_type__in=['checking', 'savings']
+            ).first()
+            if primary_account and not self.instance.pk:
+                self.initial["financial_account"] = primary_account
+        else:
+            # If no organization, show all active financial accounts
+            self.fields["financial_account"].queryset = FinancialAccount.objects.filter(
+                is_active=True
+            ).order_by('organization', '-is_primary', 'account_type', 'account_name')
+        
+        self.fields["financial_account"].label = "Deposit To Account"
+        self.fields["financial_account"].help_text = "Select the account where this payment will be deposited"
+        self.fields["financial_account"].required = False
 
         # Hide fields that are provided via initial data
         if self.initial.get("invoice"):

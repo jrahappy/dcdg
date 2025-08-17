@@ -1,0 +1,191 @@
+{% extends "accounting/base.html" %}
+{% load humanize %}
+
+{% block page_title %}General Ledger{% endblock %}
+{% block breadcrumb %}<li>General Ledger</li>{% endblock %}
+
+{% block accounting_content %}
+<!-- Filters -->
+<div class="card bg-base-100 shadow-xl mb-6">
+    <div class="card-body">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Status</span>
+                </label>
+                <select name="status" class="select select-bordered">
+                    <option value="all" {% if status_filter == "all" %}selected{% endif %}>All Entries</option>
+                    <option value="posted" {% if status_filter == "posted" %}selected{% endif %}>Posted Only</option>
+                    <option value="draft" {% if status_filter == "draft" %}selected{% endif %}>Draft Only</option>
+                </select>
+            </div>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Account</span>
+                </label>
+                <select name="account" class="select select-bordered">
+                    <option value="">All Accounts</option>
+                    {% for account in accounts %}
+                        <option value="{{ account.id }}" {% if selected_account == account.id|stringformat:"s" %}selected{% endif %}>
+                            {{ account.code }} - {{ account.name }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Date From</span>
+                </label>
+                <input type="date" name="date_from" value="{{ date_from }}" class="input input-bordered">
+            </div>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Date To</span>
+                </label>
+                <input type="date" name="date_to" value="{{ date_to }}" class="input input-bordered">
+            </div>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">&nbsp;</span>
+                </label>
+                <div class="flex gap-2">
+                    <button type="submit" class="btn btn-primary">Filter</button>
+                    <a href="{% url 'accounting:general_ledger' %}" class="btn btn-outline">Clear</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Journal Entries -->
+<div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+        <h2 class="card-title mb-4">Journal Entries</h2>
+        
+        <div class="overflow-x-auto">
+            <table class="table table-zebra">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Entry #</th>
+                        <th>Status</th>
+                        <th>Description</th>
+                        <th>Party</th>
+                        <th>Accounts</th>
+                        <th class="text-right">Debit</th>
+                        <th class="text-right">Credit</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in page_obj %}
+                    <tr>
+                        <td>{{ entry.date|date:"M d, Y" }}</td>
+                        <td>#{{ entry.id }}</td>
+                        <td>
+                            {% if entry.posted %}
+                                <span class="badge badge-success badge-sm">Posted</span>
+                            {% else %}
+                                <span class="badge badge-warning badge-sm">Draft</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ entry.memo|default:"-" }}</td>
+                        <td>
+                            {% if entry.customer %}
+                                <span class="badge badge-info badge-sm">{{ entry.customer.name }}</span>
+                            {% elif entry.supplier %}
+                                <span class="badge badge-warning badge-sm">{{ entry.supplier.name }}</span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="text-xs">
+                                {% for line in entry.lines.all|slice:":2" %}
+                                    <div>{{ line.account.code }} - {{ line.account.name|truncatechars:20 }}</div>
+                                {% endfor %}
+                                {% if entry.lines.count > 2 %}
+                                    <div class="text-base-content/50">+{{ entry.lines.count|add:"-2" }} more...</div>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td class="text-right font-mono">
+                            ${{ entry.total_debit|floatformat:2|intcomma }}
+                        </td>
+                        <td class="text-right font-mono">
+                            ${{ entry.total_credit|floatformat:2|intcomma }}
+                        </td>
+                        <td>
+                            <div class="dropdown dropdown-end">
+                                <label tabindex="0" class="btn btn-ghost btn-xs">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                    </svg>
+                                </label>
+                                <ul tabindex="0" class="dropdown-content z-[1] menu p-2 shadow bg-base-100 rounded-box w-52">
+                                    <li>
+                                        <a href="{% url 'accounting:journal_entry_detail' entry.id %}">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                                            </svg>
+                                            View Details
+                                        </a>
+                                    </li>
+                                    {% if entry.posted %}
+                                    <li>
+                                        <a href="{% url 'accounting:delete_journal_entry' entry.id %}?next={{ request.get_full_path|urlencode }}" class="text-error">
+                                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                            </svg>
+                                            Delete/Rollback
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="9" class="text-center text-base-content/50 py-8">
+                            No journal entries found for the selected criteria
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="flex justify-center mt-6">
+            <div class="btn-group">
+                {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if selected_account %}&account={{ selected_account }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" 
+                       class="btn btn-sm">«</a>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <button class="btn btn-sm btn-active">{{ num }}</button>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <a href="?page={{ num }}{% if selected_account %}&account={{ selected_account }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" 
+                           class="btn btn-sm">{{ num }}</a>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if selected_account %}&account={{ selected_account }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}" 
+                       class="btn btn-sm">»</a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

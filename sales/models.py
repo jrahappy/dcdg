@@ -623,6 +623,16 @@ class Payment(models.Model):
         max_length=100, blank=True
     )  # Check number, transaction ID, etc.
     bank_name = models.CharField(max_length=100, blank=True)
+    
+    # Financial account (for accounting integration)
+    financial_account = models.ForeignKey(
+        'customer.FinancialAccount',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='payments',
+        help_text='Financial account used for this payment'
+    )
 
     # Additional info
     notes = models.TextField(blank=True)

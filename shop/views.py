@@ -9,9 +9,11 @@ from datetime import timedelta
 from decimal import Decimal
 import json
 
-from product.models import Product, Category
+from product.models import Product, Category, ProductOption, ProductOptionItem
 from sales.models import Invoice, InvoiceItem
 from .models import Cart, CartItem, ShippingRate, PromoCode
+from blog.models import Post, Category as BlogCategory
+from pages.models import NavMenu
 
 
 def get_cart(request):
@@ -20,9 +22,9 @@ def get_cart(request):
         request.session.create()
 
     cart, created = Cart.objects.prefetch_related(
-        'items',  # Prefetch cart items
-        'items__product',  # Prefetch products for each cart item
-        'items__product__images',  # Prefetch product images for gallery
+        "items",  # Prefetch cart items
+        "items__product",  # Prefetch products for each cart item
+        "items__product__images",  # Prefetch product images for gallery
     ).get_or_create(
         session_key=request.session.session_key,
         defaults={"user": request.user if request.user.is_authenticated else None},
@@ -33,11 +35,15 @@ def get_cart(request):
 def product_list(request):
     """Display products for shopping"""
     # Optimize query with select_related for ForeignKeys and prefetch_related for reverse ForeignKeys
-    queryset = Product.objects.filter(status="active").select_related(
-        "category",  # ForeignKey to Category
-        "supplier",  # ForeignKey to Supplier (if needed)
-    ).prefetch_related(
-        "images",  # Prefetch related ProductImage objects
+    queryset = (
+        Product.objects.filter(status="active")
+        .select_related(
+            "category",  # ForeignKey to Category
+            "supplier",  # ForeignKey to Supplier (if needed)
+        )
+        .prefetch_related(
+            "images",  # Prefetch related ProductImage objects
+        )
     )
 
     # Search
@@ -68,37 +74,38 @@ def product_list(request):
 
     # Sort
     sort = request.GET.get("sort", "-created_at")
-    
+
     # Check if we should group by category
     group_by_category = request.GET.get("group_by_category", "false") == "true"
-    
+
     if group_by_category:
         # Group products by category
         from itertools import groupby
         from operator import attrgetter
-        
+
         # Sort by category order first, then by product name (or selected sort)
         if sort in ["price", "-price", "name", "-name", "-created_at"]:
             queryset = queryset.order_by("category__order", "category__name", sort)
         else:
             # Default: order by category order, then by product name
             queryset = queryset.order_by("category__order", "category__name", "name")
-        
+
         # Group products by category (only active categories)
         products_by_category = []
-        for category, group in groupby(queryset, key=attrgetter('category')):
-            if category and category.is_active:  # Only include products with active categories
+        for category, group in groupby(queryset, key=attrgetter("category")):
+            if (
+                category and category.is_active
+            ):  # Only include products with active categories
                 products_list = list(group)
-                products_by_category.append({
-                    'category': category,
-                    'products': products_list
-                })
-        
+                products_by_category.append(
+                    {"category": category, "products": products_list}
+                )
+
         # Pagination for grouped view (paginate categories, not individual products)
         paginator = Paginator(products_by_category, 3)  # Show 3 categories per page
         page_number = request.GET.get("page")
         page_obj = paginator.get_page(page_number)
-        
+
         products = None  # Not used in grouped view
     else:
         # Regular pagination for non-grouped view
@@ -108,7 +115,7 @@ def product_list(request):
         else:
             # Default: order by category order, then by product name
             queryset = queryset.order_by("category__order", "category__name", "name")
-        
+
         paginator = Paginator(queryset, 32)
         page_number = request.GET.get("page")
         products = paginator.get_page(page_number)
@@ -117,10 +124,12 @@ def product_list(request):
 
     # Optimize categories query - prefetch children if needed for nested navigation
     # Filter by is_active and sort by order field
-    categories = Category.objects.filter(
-        parent__isnull=True, is_active=True
-    ).prefetch_related("children").order_by("order", "name")
-    
+    categories = (
+        Category.objects.filter(parent__isnull=True, is_active=True)
+        .prefetch_related("children")
+        .order_by("order", "name")
+    )
+
     # Get related blog posts if a category is selected
     related_posts = None
     current_category = None
@@ -129,13 +138,19 @@ def product_list(request):
             current_category = Category.objects.get(pk=category_id, is_active=True)
             # Get blog posts related to this product category
             from blog.models import Post
-            related_posts = Post.objects.filter(
-                product_category=current_category,
-                status='published'
-            ).select_related('author', 'category').order_by('-published_date')[:3]
+
+            related_posts = (
+                Post.objects.filter(
+                    product_category=current_category, status="published"
+                )
+                .select_related("author", "category")
+                .order_by("-published_date")[:3]
+            )
         except Category.DoesNotExist:
             pass
-    
+
+    navbar_items = NavMenu.objects.filter(is_active=True).order_by("order")
+
     context = {
         "products": products,
         "products_by_category": products_by_category if group_by_category else None,
@@ -146,6 +161,7 @@ def product_list(request):
         "group_by_category": group_by_category,
         "related_posts": related_posts,
         "current_category": current_category,
+        "navbar_items": navbar_items,
     }
 
     return render(request, "shop/product_list.html", context)
@@ -155,25 +171,21 @@ def product_detail(request, pk):
     """Display single product detail"""
     # Optimize product query with related data
     product = get_object_or_404(
-        Product.objects.select_related(
-            "category",
-            "supplier"
-        ).prefetch_related(
-            "images",
-            "documents"
+        Product.objects.select_related("category", "supplier").prefetch_related(
+            "images", "documents"
         ),
-        pk=pk, 
-        status="active"
+        pk=pk,
+        status="active",
     )
 
+    navbar_items = NavMenu.objects.filter(is_active=True).order_by("order")
     # Get product options with their items
-    from product.models import ProductOption, ProductOptionItem
 
     # Optimize product options query
-    product_options = ProductOption.objects.filter(
-        product=product, is_active=True
-    ).select_related("option_name").prefetch_related(
-        "option_name__items"  # Prefetch related option items
+    product_options = (
+        ProductOption.objects.filter(product=product, is_active=True)
+        .select_related("option_name")
+        .prefetch_related("option_name__items")  # Prefetch related option items
     )
 
     # Build options data structure with items
@@ -188,19 +200,20 @@ def product_detail(request, pk):
         )
 
     # Get related products from same category - optimize with select_related
-    related_products = Product.objects.filter(
-        category=product.category, status="active"
-    ).select_related(
-        "category"
-    ).prefetch_related(
-        "images"
-    ).exclude(pk=product.pk)[:4]
+    related_products = (
+        Product.objects.filter(category=product.category, status="active")
+        .select_related("category")
+        .prefetch_related("images")
+        .exclude(pk=product.pk)[:4]
+    )
 
     # Get categories for sidebar - same as product_list view
-    categories = Category.objects.filter(
-        parent__isnull=True, is_active=True
-    ).prefetch_related("children").order_by("order", "name")
-    
+    categories = (
+        Category.objects.filter(parent__isnull=True, is_active=True)
+        .prefetch_related("children")
+        .order_by("order", "name")
+    )
+
     context = {
         "product": product,
         "related_products": related_products,
@@ -208,6 +221,7 @@ def product_detail(request, pk):
         "product_options": options_data,
         "documents": product.documents.filter(is_public=True),
         "categories": categories,  # Add categories for sidebar
+        "navbar_items": navbar_items,
     }
 
     return render(request, "shop/product_detail.html", context)
@@ -225,7 +239,7 @@ def cart_view(request):
         from django.template.loader import render_to_string
 
         cart_items_html = render_to_string("shop/cart_items.html", {"cart": cart})
-        
+
         # Generate preview HTML for cart dropdown
         preview_html = ""
         if cart.items.exists():
@@ -239,9 +253,9 @@ def cart_view(request):
                     first_image = item.product.images.first()
                     image_html = f'<div class="w-12 h-12 rounded flex-shrink-0 overflow-hidden"><img src="{first_image.image.url}" alt="" class="w-full h-full object-cover"></div>'
                 else:
-                    image_html += '</div>'
-                    
-                preview_html += f'''
+                    image_html += "</div>"
+
+                preview_html += f"""
                 <div class="flex items-center gap-3 p-2 hover:bg-base-200 rounded">
                     {image_html}
                     <div class="flex-1 min-w-0">
@@ -250,10 +264,10 @@ def cart_view(request):
                     </div>
                     <span class="text-sm font-semibold">${item.line_total}</span>
                 </div>
-                '''
+                """
             if cart.items.count() > 3:
                 preview_html += f'<p class="text-center text-sm text-base-content/60">... and {cart.items.count() - 3} more items</p>'
-            preview_html += '</div>'
+            preview_html += "</div>"
         else:
             preview_html = '<p class="text-center py-4 text-base-content/60">Your cart is empty</p>'
 
@@ -266,15 +280,23 @@ def cart_view(request):
             }
         )
 
+    navbar_items = NavMenu.objects.filter(is_active=True).order_by("order")
     # Get categories for sidebar
-    categories = Category.objects.filter(
-        parent__isnull=True, is_active=True
-    ).prefetch_related("children").order_by("order", "name")
-    
-    return render(request, "shop/cart.html", {
-        "cart": cart,
-        "categories": categories,
-    })
+    categories = (
+        Category.objects.filter(parent__isnull=True, is_active=True)
+        .prefetch_related("children")
+        .order_by("order", "name")
+    )
+
+    return render(
+        request,
+        "shop/cart.html",
+        {
+            "cart": cart,
+            "categories": categories,
+            "navbar_items": navbar_items,
+        },
+    )
 
 
 def add_to_cart(request, pk):
@@ -335,12 +357,12 @@ def add_to_cart(request, pk):
             unit_price=product.price,
             selected_options=selected_options,
         )
-    
+
     # Refresh cart from database to get updated items
     cart.refresh_from_db()
-    
+
     # Alternatively, we can calculate directly from the database
-    total_items = cart.items.aggregate(total=models.Sum('quantity'))['total'] or 0
+    total_items = cart.items.aggregate(total=models.Sum("quantity"))["total"] or 0
     subtotal = sum(item.line_total for item in cart.items.all())
 
     return JsonResponse(
@@ -436,12 +458,15 @@ def checkout(request):
         categories = Category.objects.filter(
             parent__isnull=True, is_active=True
         ).prefetch_related("children")
-        
+
+        navbar_items = NavMenu.objects.filter(is_active=True).order_by("order")
+
         context = {
             "cart": cart,
             "shipping_rates": shipping_rates,
             "saved_addresses": saved_addresses,
             "categories": categories,
+            "navbar_items": navbar_items,
         }
 
         return render(request, "shop/checkout.html", context)
@@ -456,14 +481,17 @@ def checkout(request):
             saved_address_id = request.POST.get("saved_address")
             if saved_address_id and request.user.is_authenticated:
                 from customer.models import CustomerAddress
+
                 try:
                     address = CustomerAddress.objects.get(
-                        pk=saved_address_id, 
-                        user=request.user, 
-                        is_active=True
+                        pk=saved_address_id, user=request.user, is_active=True
                     )
                     # Use saved address data
-                    first_name, last_name = address.recipient_name.split(' ', 1) if ' ' in address.recipient_name else (address.recipient_name, '')
+                    first_name, last_name = (
+                        address.recipient_name.split(" ", 1)
+                        if " " in address.recipient_name
+                        else (address.recipient_name, "")
+                    )
                     billing_address_line1 = address.address_line1
                     billing_address_line2 = address.address_line2 or ""
                     billing_city = address.city
@@ -495,6 +523,7 @@ def checkout(request):
             customer = None
             if request.user.is_authenticated:
                 from customer.models import Customer
+
                 try:
                     customer = request.user.customer
                 except Customer.DoesNotExist:
@@ -591,8 +620,11 @@ def checkout(request):
                 request.session["last_order_tracking"] = str(invoice.tracking_code)
 
             # Add success message
-            messages.success(request, f"Order #{invoice.invoice_number} has been placed successfully!")
-            
+            messages.success(
+                request,
+                f"Order #{invoice.invoice_number} has been placed successfully!",
+            )
+
             # Redirect to order success page
             return redirect("shop:order_success", tracking_code=invoice.tracking_code)
         except Exception as e:
@@ -608,23 +640,29 @@ def checkout(request):
                 error_msg = "Please provide a valid email address."
             elif "address" in str(e).lower() or "required" in str(e).lower():
                 error_msg = "Please fill in all required fields."
-            
+
             messages.error(request, f"{error_msg} Please try again.")
             return redirect("shop:checkout")
 
 
 def order_success(request, tracking_code):
     """Order success page"""
+    navbar_items = NavMenu.objects.filter(is_active=True).order_by("order")
+    # Get categories for sidebar
     try:
         order = Invoice.objects.prefetch_related(
-            'items',
-            'items__product',
-            'items__product__images',
+            "items",
+            "items__product",
+            "items__product__images",
         ).get(tracking_code=tracking_code, is_shop_order=True)
     except Invoice.DoesNotExist:
         order = None
 
-    return render(request, "shop/order_success.html", {"order": order})
+    return render(
+        request,
+        "shop/order_success.html",
+        {"order": order, "navbar_items": navbar_items},
+    )
 
 
 def order_tracking(request):
@@ -650,84 +688,101 @@ def order_tracking(request):
 
 def blog_list(request):
     """Display list of published blog posts"""
-    from blog.models import Post, Category as BlogCategory
-    
+
     # Get only published posts
-    posts = Post.objects.filter(status='published').select_related(
-        'author', 'category'
-    ).prefetch_related('tags')
-    
+    posts = (
+        Post.objects.filter(status="published")
+        .select_related("author", "category")
+        .prefetch_related("tags")
+    )
+
     # Get blog categories for sidebar
     blog_categories = BlogCategory.objects.annotate(
-        post_count=models.Count('posts', filter=models.Q(posts__status='published'))
+        post_count=models.Count("posts", filter=models.Q(posts__status="published"))
     ).filter(post_count__gt=0)
-    
+
     # Filter by category if provided
-    category_slug = request.GET.get('category')
+    category_slug = request.GET.get("category")
     if category_slug:
         posts = posts.filter(category__slug=category_slug)
-    
+
     # Search functionality
-    search_query = request.GET.get('search')
+    search_query = request.GET.get("search")
     if search_query:
         posts = posts.filter(
-            Q(title__icontains=search_query) |
-            Q(excerpt__icontains=search_query) |
-            Q(content__icontains=search_query)
+            Q(title__icontains=search_query)
+            | Q(excerpt__icontains=search_query)
+            | Q(content__icontains=search_query)
         )
-    
+
     # Pagination
     paginator = Paginator(posts, 6)  # Show 6 posts per page
-    page_number = request.GET.get('page')
+    page_number = request.GET.get("page")
     page_obj = paginator.get_page(page_number)
-    
+
+    categories = (
+        Category.objects.filter(parent__isnull=True, is_active=True)
+        .prefetch_related("children")
+        .order_by("order", "name")
+    )
+
+    navbar_items = NavMenu.objects.filter(is_active=True).order_by("order")
+
     context = {
-        'posts': page_obj,
-        'blog_categories': blog_categories,
-        'current_category': category_slug,
-        'search_query': search_query,
+        "posts": page_obj,
+        "blog_categories": blog_categories,
+        "current_category": category_slug,
+        "search_query": search_query,
+        "categories": categories,
+        "navbar_items": navbar_items,
     }
-    
-    return render(request, 'shop/blog_list.html', context)
+
+    return render(request, "shop/blog_list.html", context)
 
 
 def blog_detail(request, pk):
     """Display single blog post detail"""
-    from blog.models import Post, Category as BlogCategory
-    
+
     # Get the post with related data
     post = get_object_or_404(
-        Post.objects.select_related('author', 'category', 'product_category')
-            .prefetch_related('tags', 'related_products'),
+        Post.objects.select_related(
+            "author", "category", "product_category"
+        ).prefetch_related("tags", "related_products"),
         pk=pk,
-        status='published'
+        status="published",
     )
-    
+
     # Increment view count
     post.views += 1
-    post.save(update_fields=['views'])
-    
+    post.save(update_fields=["views"])
+
     # Get related posts from same category
-    related_posts = Post.objects.filter(
-        category=post.category,
-        status='published'
-    ).exclude(pk=pk).select_related('author', 'category')[:3]
-    
+    related_posts = (
+        Post.objects.filter(category=post.category, status="published")
+        .exclude(pk=pk)
+        .select_related("author", "category")[:3]
+    )
+
     # Get recent posts for sidebar
-    recent_posts = Post.objects.filter(
-        status='published'
-    ).exclude(pk=pk).select_related('author', 'category')[:5]
-    
+    recent_posts = (
+        Post.objects.filter(status="published")
+        .exclude(pk=pk)
+        .select_related("author", "category")[:5]
+    )
+
     # Get blog categories for sidebar
     blog_categories = BlogCategory.objects.annotate(
-        post_count=models.Count('posts', filter=models.Q(posts__status='published'))
+        post_count=models.Count("posts", filter=models.Q(posts__status="published"))
     ).filter(post_count__gt=0)
-    
+
+    navbar_items = NavMenu.objects.filter(is_active=True).order_by("order")
+
     context = {
-        'post': post,
-        'related_posts': related_posts,
-        'recent_posts': recent_posts,
-        'blog_categories': blog_categories,
+        "post": post,
+        "related_posts": related_posts,
+        "recent_posts": recent_posts,
+        "blog_categories": blog_categories,
+        "navbar_items": navbar_items,
     }
-    
-    return render(request, 'shop/blog_detail.html', context)
+
+    return render(request, "shop/blog_detail.html", context)

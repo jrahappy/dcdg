@@ -1,0 +1,352 @@
+{% extends 'dashboard/base_daisyui.html' %}
+{% load humanize %}
+
+{% block title %}{{ page_title }} - Accounting{% endblock %}
+
+{% block dashboard_content %}
+<div class="container mx-auto max-w-4xl">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex justify-between items-center">
+            <h1 class="text-3xl font-bold">{{ page_title }}</h1>
+            <a href="{% url 'accounting:expense_list' %}" class="btn btn-ghost">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 17l-5-5m0 0l5-5m-5 5h12" />
+                </svg>
+                Back to List
+            </a>
+        </div>
+    </div>
+
+    <!-- Form -->
+    <form method="post" enctype="multipart/form-data" class="space-y-6">
+        {% csrf_token %}
+        
+        {% if form.non_field_errors %}
+        <div class="alert alert-error">
+            {{ form.non_field_errors }}
+        </div>
+        {% endif %}
+
+        <!-- Main Information -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Expense Information</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Expense Date -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Date <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.expense_date }}
+                        {% if form.expense_date.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.expense_date.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Category -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Category <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.category }}
+                        {% if form.category.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.category.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Vendor Name -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Vendor/Supplier <span class="text-error">*</span></span>
+                    </label>
+                    {{ form.vendor_name }}
+                    {% if form.vendor_name.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ form.vendor_name.errors.0 }}</span>
+                    </label>
+                    {% endif %}
+                </div>
+
+                <!-- Description -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Description <span class="text-error">*</span></span>
+                    </label>
+                    {{ form.description }}
+                    {% if form.description.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ form.description.errors.0 }}</span>
+                    </label>
+                    {% endif %}
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Amount -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Amount <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.amount }}
+                        {% if form.amount.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.amount.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Tax Amount -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Tax</span>
+                        </label>
+                        {{ form.tax_amount }}
+                        {% if form.tax_amount.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.tax_amount.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Total (calculated) -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Total</span>
+                        </label>
+                        <input type="text" id="total_amount" class="input input-bordered w-full font-bold" readonly value="0.00">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <!-- Reference Number -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Reference #</span>
+                        </label>
+                        {{ form.reference_number }}
+                        {% if form.reference_number.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.reference_number.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Payment Method -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Payment Method</span>
+                        </label>
+                        {{ form.payment_method }}
+                        {% if form.payment_method.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.payment_method.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+
+                    <!-- Status -->
+                    <div class="form-control">
+                        <label class="label">
+                            <span class="label-text">Status <span class="text-error">*</span></span>
+                        </label>
+                        {{ form.status }}
+                        {% if form.status.errors %}
+                        <label class="label">
+                            <span class="label-text-alt text-error">{{ form.status.errors.0 }}</span>
+                        </label>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Information -->
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title mb-4">Additional Information</h2>
+                
+                <!-- Notes -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Notes</span>
+                    </label>
+                    {{ form.notes }}
+                    {% if form.notes.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ form.notes.errors.0 }}</span>
+                    </label>
+                    {% endif %}
+                </div>
+
+                <!-- Receipt File -->
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Receipt/Invoice</span>
+                    </label>
+                    
+                    <!-- Camera and File Input Options -->
+                    <div class="flex gap-2 mb-2">
+                        <!-- Camera Capture Button -->
+                        <button type="button" id="cameraBtn" class="btn btn-outline btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            Take Photo
+                        </button>
+                        
+                        <!-- File Upload Button -->
+                        <button type="button" id="fileBtn" class="btn btn-outline btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                            </svg>
+                            Choose File
+                        </button>
+                    </div>
+                    
+                    <!-- Hidden camera input -->
+                    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display: none;">
+                    
+                    <!-- Regular file input (hidden by default) -->
+                    <div style="display: none;">
+                        {{ form.receipt_file }}
+                    </div>
+                    
+                    <!-- Preview area -->
+                    <div id="imagePreview" class="mt-2" style="display: none;">
+                        <div class="card bg-base-200">
+                            <div class="card-body p-4">
+                                <img id="previewImg" src="" alt="Receipt preview" class="max-h-64 mx-auto rounded">
+                                <div class="card-actions justify-end mt-2">
+                                    <button type="button" id="removeImage" class="btn btn-ghost btn-sm text-error">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                        </svg>
+                                        Remove
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if expense and expense.receipt_file %}
+                    <label class="label">
+                        <span class="label-text-alt">Current file: <a href="{{ expense.receipt_file.url }}" target="_blank" class="link link-primary">{{ expense.receipt_file.name }}</a></span>
+                    </label>
+                    {% endif %}
+                    {% if form.receipt_file.errors %}
+                    <label class="label">
+                        <span class="label-text-alt text-error">{{ form.receipt_file.errors.0 }}</span>
+                    </label>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="flex justify-end gap-2">
+            <a href="{% url 'accounting:expense_list' %}" class="btn btn-ghost">Cancel</a>
+            <button type="submit" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                {{ submit_text }}
+            </button>
+        </div>
+    </form>
+</div>
+
+<script>
+// Calculate total amount
+function calculateTotal() {
+    const amount = parseFloat(document.getElementById('id_amount').value) || 0;
+    const taxAmount = parseFloat(document.getElementById('id_tax_amount').value) || 0;
+    const total = amount + taxAmount;
+    document.getElementById('total_amount').value = total.toFixed(2);
+}
+
+document.getElementById('id_amount').addEventListener('input', calculateTotal);
+document.getElementById('id_tax_amount').addEventListener('input', calculateTotal);
+
+// Camera and file upload functionality
+const cameraBtn = document.getElementById('cameraBtn');
+const fileBtn = document.getElementById('fileBtn');
+const cameraInput = document.getElementById('cameraInput');
+const fileInput = document.getElementById('id_receipt_file');
+const imagePreview = document.getElementById('imagePreview');
+const previewImg = document.getElementById('previewImg');
+const removeImageBtn = document.getElementById('removeImage');
+
+// Camera button click - triggers camera capture
+cameraBtn.addEventListener('click', function() {
+    cameraInput.click();
+});
+
+// File button click - triggers file selection
+fileBtn.addEventListener('click', function() {
+    fileInput.click();
+});
+
+// Handle camera capture
+cameraInput.addEventListener('change', function(e) {
+    handleFileSelect(e.target.files);
+});
+
+// Handle file selection
+fileInput.addEventListener('change', function(e) {
+    handleFileSelect(e.target.files);
+});
+
+// Function to handle file selection and preview
+function handleFileSelect(files) {
+    if (files && files[0]) {
+        const file = files[0];
+        
+        // Check if file is an image
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                previewImg.src = e.target.result;
+                imagePreview.style.display = 'block';
+                
+                // If the file came from camera, we need to transfer it to the form's file input
+                if (files === cameraInput.files) {
+                    // Create a new DataTransfer object to transfer the file
+                    const dataTransfer = new DataTransfer();
+                    dataTransfer.items.add(file);
+                    fileInput.files = dataTransfer.files;
+                }
+            };
+            
+            reader.readAsDataURL(file);
+        } else {
+            alert('Please select an image file.');
+        }
+    }
+}
+
+// Remove image
+removeImageBtn.addEventListener('click', function() {
+    fileInput.value = '';
+    cameraInput.value = '';
+    previewImg.src = '';
+    imagePreview.style.display = 'none';
+});
+
+// Initialize on page load
+calculateTotal();
+
+// Check if there's an existing file on edit
+{% if expense and expense.receipt_file %}
+previewImg.src = '{{ expense.receipt_file.url }}';
+imagePreview.style.display = 'block';
+{% endif %}
+</script>
+{% endblock %}

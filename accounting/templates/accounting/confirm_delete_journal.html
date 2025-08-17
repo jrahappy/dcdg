@@ -1,0 +1,121 @@
+{% extends "dashboard/base_daisyui.html" %}
+{% load humanize %}
+
+{% block title %}Confirm Delete Journal Entry{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-2xl mx-auto">
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title text-error">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    Confirm Journal Entry Deletion
+                </h2>
+                
+                <div class="alert alert-warning mt-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <div>
+                        <h3 class="font-bold">Warning!</h3>
+                        <div class="text-sm">This action will permanently delete the journal entry and mark the source document as unposted. This action cannot be undone.</div>
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <h3 class="text-lg font-semibold mb-2">Journal Entry Details:</h3>
+                    <div class="bg-base-200 rounded-lg p-4">
+                        <dl class="space-y-2">
+                            <div class="flex justify-between">
+                                <dt class="font-medium">Entry #:</dt>
+                                <dd>{{ journal_entry.pk }}</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="font-medium">Date:</dt>
+                                <dd>{{ journal_entry.date|date:"M d, Y" }}</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="font-medium">Memo:</dt>
+                                <dd>{{ journal_entry.memo }}</dd>
+                            </div>
+                            <div class="flex justify-between">
+                                <dt class="font-medium">Status:</dt>
+                                <dd>
+                                    {% if journal_entry.posted %}
+                                        <span class="badge badge-success">Posted</span>
+                                    {% else %}
+                                        <span class="badge badge-warning">Draft</span>
+                                    {% endif %}
+                                </dd>
+                            </div>
+                            {% if journal_entry.customer %}
+                            <div class="flex justify-between">
+                                <dt class="font-medium">Customer:</dt>
+                                <dd>{{ journal_entry.customer.name }}</dd>
+                            </div>
+                            {% endif %}
+                            {% if journal_entry.supplier %}
+                            <div class="flex justify-between">
+                                <dt class="font-medium">Supplier:</dt>
+                                <dd>{{ journal_entry.supplier.name }}</dd>
+                            </div>
+                            {% endif %}
+                        </dl>
+                    </div>
+                </div>
+                
+                <div class="mt-6">
+                    <h3 class="text-lg font-semibold mb-2">Journal Lines:</h3>
+                    <div class="overflow-x-auto">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Account</th>
+                                    <th class="text-right">Debit</th>
+                                    <th class="text-right">Credit</th>
+                                    <th>Description</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for line in journal_entry.lines.all %}
+                                <tr>
+                                    <td>{{ line.account.code }} - {{ line.account.name }}</td>
+                                    <td class="text-right">
+                                        {% if line.debit > 0 %}
+                                            ${{ line.debit|floatformat:2|intcomma }}
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-right">
+                                        {% if line.credit > 0 %}
+                                            ${{ line.credit|floatformat:2|intcomma }}
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ line.description }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                
+                <div class="card-actions justify-end mt-6">
+                    <form method="post" class="inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="next" value="{{ next }}">
+                        <button type="submit" class="btn btn-error">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete Journal Entry
+                        </button>
+                    </form>
+                    <a href="{{ next }}" class="btn btn-ghost">Cancel</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

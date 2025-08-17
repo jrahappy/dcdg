@@ -52,6 +52,12 @@
                 Receive Items
             </a>
             {% endif %}
+            <a href="{% url 'purchases:supplier_payment_create' order.pk %}" class="btn btn-warning btn-sm">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+                Record Payment
+            </a>
             <button onclick="window.print()" class="btn btn-ghost btn-sm">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -313,6 +319,110 @@
                 </div>
             </div>
             {% endif %}
+
+            <!-- Payment History -->
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <div class="flex items-center justify-between">
+                        <h2 class="card-title">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            Payment History
+                        </h2>
+                        <a href="{% url 'purchases:supplier_payment_create' order.pk %}" class="btn btn-primary btn-sm">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Payment
+                        </a>
+                    </div>
+                    
+                    <!-- Payment Summary -->
+                    <div class="bg-base-200 rounded-lg p-4 mt-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <p class="text-sm font-semibold text-base-content/70">Order Total</p>
+                                <p class="text-xl font-bold">${{ order.total_amount|floatformat:2 }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-base-content/70">Total Paid</p>
+                                <p class="text-xl font-bold text-success">${{ total_paid|floatformat:2 }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-base-content/70">Balance Due</p>
+                                <p class="text-xl font-bold {% if balance_due > 0 %}text-error{% else %}text-success{% endif %}">
+                                    ${{ balance_due|floatformat:2 }}
+                                </p>
+                            </div>
+                        </div>
+                        {% if balance_due == 0 %}
+                        <div class="mt-3">
+                            <span class="badge badge-success badge-lg w-full">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                Fully Paid
+                            </span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Payment List -->
+                    {% if recent_payments %}
+                    <div class="overflow-x-auto mt-4">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Amount</th>
+                                    <th>Method</th>
+                                    <th>Status</th>
+                                    <th>Type</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for payment in recent_payments %}
+                                <tr>
+                                    <td>{{ payment.date|date:"M d, Y" }}</td>
+                                    <td class="font-mono font-semibold">${{ payment.amount|floatformat:2 }}</td>
+                                    <td>
+                                        {% if payment.method %}
+                                            <span class="badge badge-ghost badge-sm">{{ payment.get_method_display|default:payment.method|title }}</span>
+                                        {% else %}
+                                            <span class="text-base-content/50">--</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge {% if payment.status == 'APPROVED' %}badge-success{% else %}badge-warning{% endif %} badge-sm">
+                                            {{ payment.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if payment.is_advance %}
+                                            <span class="badge badge-info badge-sm">Advance</span>
+                                        {% else %}
+                                            <span class="badge badge-outline badge-sm">Regular</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-8">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto text-base-content/30 mb-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <p class="text-base-content/50">No payments recorded yet</p>
+                        <a href="{% url 'purchases:supplier_payment_create' order.pk %}" class="btn btn-primary btn-sm mt-3">
+                            Record First Payment
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
 
             {% if order.internal_notes %}
             <!-- Internal Notes -->

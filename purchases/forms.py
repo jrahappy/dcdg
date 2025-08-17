@@ -1,8 +1,9 @@
 from django import forms
 from django.forms import inlineformset_factory
-from .models import PurchaseOrder, PurchaseOrderItem
+from .models import PurchaseOrder, PurchaseOrderItem, SupplierPayment
 from product.models import Product
-from datetime import date
+from datetime import date, datetime
+from decimal import Decimal
 
 
 class PurchaseOrderForm(forms.ModelForm):
@@ -124,3 +125,97 @@ PurchaseOrderItemFormSet = inlineformset_factory(
     min_num=1,
     validate_min=True
 )
+
+
+class SupplierPaymentForm(forms.ModelForm):
+    """Form for recording supplier payments"""
+    
+    PAYMENT_METHOD_CHOICES = [
+        ('', '--- Select Payment Method ---'),
+        ('cash', 'Cash'),
+        ('check', 'Check'),
+        ('wire', 'Wire Transfer'),
+        ('credit_card', 'Credit Card'),
+        ('ach', 'ACH Transfer'),
+        ('other', 'Other'),
+    ]
+    
+    method = forms.ChoiceField(
+        choices=PAYMENT_METHOD_CHOICES,
+        required=True,
+        widget=forms.Select(attrs={
+            'class': 'select select-bordered w-full'
+        })
+    )
+    
+    class Meta:
+        model = SupplierPayment
+        fields = ['date', 'amount', 'method', 'is_advance']
+        widgets = {
+            'date': forms.DateInput(attrs={
+                'type': 'date',
+                'class': 'input input-bordered w-full',
+                'value': date.today().strftime('%Y-%m-%d')
+            }),
+            'amount': forms.NumberInput(attrs={
+                'class': 'input input-bordered w-full',
+                'step': '0.01',
+                'min': '0.01',
+                'placeholder': 'Enter payment amount'
+            }),
+            'is_advance': forms.CheckboxInput(attrs={
+                'class': 'checkbox'
+            })
+        }
+        labels = {
+            'is_advance': 'This is an advance payment (prepayment)'
+        }
+    
+    def __init__(self, *args, **kwargs):
+        self.purchase_order = kwargs.pop('purchase_order', None)
+        super().__init__(*args, **kwargs)
+        
+        if self.purchase_order:
+            # Set the initial amount to the remaining balance
+            if hasattr(self.purchase_order, 'get_balance_due'):
+                self.fields['amount'].initial = self.purchase_order.get_balance_due()
+            else:
+                # Calculate balance due if method doesn't exist
+                from django.db.models import Sum
+                total_paid = SupplierPayment.objects.filter(
+                    purchase_order=self.purchase_order,
+                    status='APPROVED'
+                ).aggregate(total=Sum('amount'))['total'] or Decimal('0')
+                balance = self.purchase_order.total_amount - total_paid
+                self.fields['amount'].initial = max(balance, Decimal('0'))
+    
+    def save(self, commit=True):
+        payment = super().save(commit=False)
+        
+        if self.purchase_order:
+            payment.purchase_order = self.purchase_order
+            payment.supplier = self.purchase_order.supplier
+        
+        # Always set company - get or create default
+        if not hasattr(payment, 'company') or not payment.company:
+            from customer.models import Organization
+            try:
+                payment.company = Organization.objects.first()
+                if not payment.company:
+                    payment.company = Organization.objects.create(
+                        name="Default Company",
+                        code="DEFAULT"
+                    )
+            except:
+                payment.company = Organization.objects.create(
+                    name="Default Company",
+                    code="DEFAULT"
+                )
+        
+        # Default to approved status for immediate posting
+        payment.status = 'APPROVED'
+        
+        if commit:
+            payment.save()
+            
+        return payment

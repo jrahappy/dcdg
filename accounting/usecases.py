@@ -4,7 +4,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 
 from accounting.models import JournalEntry
-from accounting.services import post_sale  # 이미 만드신 전기 함수 사용
+from accounting.services import post_sale, post_incoming_payment, post_outgoing_payment  # 이미 만드신 전기 함수 사용
 
 
 def _find_existing_entry(obj):

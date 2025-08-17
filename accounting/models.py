@@ -4,6 +4,7 @@ from django.core.validators import MinValueValidator
 from django.core.exceptions import ValidationError
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.conf import settings
 from decimal import Decimal
 from sales.models import Invoice, InvoiceItem, Payment
 from customer.models import Customer, Organization as Company
@@ -175,3 +176,204 @@ class PostingRule(models.Model):
 
     class Meta:
         unique_together = ("company", "doc_type")
+
+
+class Expense(models.Model):
+    """Direct expense tracking for the organization"""
+    
+    EXPENSE_CATEGORY_CHOICES = [
+        ('rent', 'Rent & Lease'),
+        ('utilities', 'Utilities'),
+        ('salaries', 'Salaries & Wages'),
+        ('insurance', 'Insurance'),
+        ('supplies', 'Office Supplies'),
+        ('marketing', 'Marketing & Advertising'),
+        ('travel', 'Travel & Entertainment'),
+        ('professional', 'Professional Services'),
+        ('maintenance', 'Repairs & Maintenance'),
+        ('depreciation', 'Depreciation'),
+        ('taxes', 'Taxes & Licenses'),
+        ('interest', 'Interest Expense'),
+        ('other', 'Other Expenses'),
+    ]
+    
+    STATUS_CHOICES = [
+        ('draft', 'Draft'),
+        ('approved', 'Approved'),
+        ('paid', 'Paid'),
+        ('posted', 'Posted to Ledger'),
+        ('cancelled', 'Cancelled'),
+    ]
+    
+    # Basic Information
+    company = models.ForeignKey(
+        Company, 
+        on_delete=models.CASCADE, 
+        related_name="expenses"
+    )
+    expense_number = models.CharField(
+        max_length=50, 
+        unique=True,
+        help_text="Auto-generated expense number"
+    )
+    expense_date = models.DateField()
+    due_date = models.DateField(null=True, blank=True)
+    
+    # Vendor/Payee Information
+    vendor_name = models.CharField(max_length=255)
+    vendor = models.ForeignKey(
+        'purchases.Supplier',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='expenses',
+        help_text="Link to supplier if applicable"
+    )
+    
+    # Expense Details
+    category = models.CharField(
+        max_length=20,
+        choices=EXPENSE_CATEGORY_CHOICES,
+        help_text="Type of expense"
+    )
+    description = models.TextField()
+    reference_number = models.CharField(
+        max_length=100,
+        blank=True,
+        help_text="Invoice number, receipt number, etc."
+    )
+    
+    # Financial Information
+    amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))]
+    )
+    tax_amount = models.DecimalField(
+        max_digits=10,
+        decimal_places=2,
+        default=Decimal('0.00'),
+        validators=[MinValueValidator(Decimal('0.00'))]
+    )
+    total_amount = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        validators=[MinValueValidator(Decimal('0.01'))],
+        help_text="Total including tax"
+    )
+    
+    # Payment Information
+    payment_method = models.CharField(
+        max_length=20,
+        choices=[
+            ('cash', 'Cash'),
+            ('check', 'Check'),
+            ('credit_card', 'Credit Card'),
+            ('bank_transfer', 'Bank Transfer'),
+            ('other', 'Other'),
+        ],
+        blank=True
+    )
+    financial_account = models.ForeignKey(
+        'customer.FinancialAccount',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='expenses',
+        help_text='Account used for payment'
+    )
+    paid_date = models.DateField(null=True, blank=True)
+    
+    # Accounting Information
+    expense_account = models.ForeignKey(
+        LedgerAccount,
+        on_delete=models.PROTECT,
+        related_name='expense_transactions',
+        null=True,
+        blank=True,
+        help_text="Expense account to debit"
+    )
+    status = models.CharField(
+        max_length=20,
+        choices=STATUS_CHOICES,
+        default='draft'
+    )
+    
+    # Attachments
+    receipt_file = models.FileField(
+        upload_to='expenses/receipts/',
+        blank=True,
+        null=True,
+        help_text="Upload receipt or invoice"
+    )
+    
+    # Tracking
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name='created_expenses'
+    )
+    approved_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='approved_expenses'
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    # Notes
+    notes = models.TextField(blank=True)
+    
+    class Meta:
+        ordering = ['-expense_date', '-created_at']
+        verbose_name = 'Expense'
+        verbose_name_plural = 'Expenses'
+        indexes = [
+            models.Index(fields=['company', 'expense_date']),
+            models.Index(fields=['status']),
+            models.Index(fields=['category']),
+        ]
+    
+    def __str__(self):
+        return f"{self.expense_number} - {self.vendor_name} - ${self.total_amount}"
+    
+    def save(self, *args, **kwargs):
+        # Auto-generate expense number if not set
+        if not self.expense_number:
+            from django.utils import timezone
+            now = timezone.now()
+            # Format: EXP-YYYYMMDD-XXXXX
+            date_str = now.strftime('%Y%m%d')
+            
+            # Get the last expense for today
+            last_expense = Expense.objects.filter(
+                expense_number__startswith=f'EXP-{date_str}-'
+            ).order_by('expense_number').last()
+            
+            if last_expense:
+                # Extract the sequence number and increment
+                last_num = int(last_expense.expense_number.split('-')[-1])
+                new_num = last_num + 1
+            else:
+                new_num = 1
+            
+            self.expense_number = f'EXP-{date_str}-{new_num:05d}'
+        
+        # Calculate total if not set
+        if not self.total_amount:
+            self.total_amount = self.amount + self.tax_amount
+        
+        super().save(*args, **kwargs)
+    
+    @property
+    def is_posted(self):
+        """Check if expense has been posted to ledger"""
+        return self.status == 'posted'
+    
+    @property
+    def is_paid(self):
+        """Check if expense has been paid"""
+        return self.status in ['paid', 'posted']

@@ -1,152 +1,152 @@
 {% extends 'dashboard/base_daisyui.html' %}
+{% load static %}
+
+{% block title %}{% if form.instance.pk %}Edit Payment{% else %}Record Payment{% endif %}{% endblock %}
 
 {% block dashboard_content %}
-<div class="space-y-4">
-    <!-- Page Header -->
-    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
+<div class="space-y-6">
+    <!-- Breadcrumb -->
+    <div class="text-sm breadcrumbs">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+            </a></li>
+            <li><a href="{% url 'sales:invoice_list' %}">Invoices</a></li>
             {% if form.initial.invoice %}
-                <h1 class="text-2xl font-bold">Record Payment for {{ form.initial.invoice.invoice_number }}</h1>
-                <div class="text-sm breadcrumbs">
-                    <ul>
-                        <li><a href="{% url 'dashboard:home' %}" class="link link-hover">Dashboard</a></li>
-                        <li><a href="{% url 'sales:invoice_list' %}" class="link link-hover">Invoices</a></li>
-                        <li><a href="{% url 'sales:invoice_detail' form.initial.invoice.pk %}" class="link link-hover">{{ form.initial.invoice.invoice_number }}</a></li>
-                        <li>Record Payment</li>
-                    </ul>
-                </div>
-            {% else %}
-                <h1 class="text-2xl font-bold">Record New Payment</h1>
-                <div class="text-sm breadcrumbs">
-                    <ul>
-                        <li><a href="{% url 'dashboard:home' %}" class="link link-hover">Dashboard</a></li>
-                        <li>Record Payment</li>
-                    </ul>
-                </div>
+            <li><a href="{% url 'sales:invoice_detail' form.initial.invoice.pk %}">{{ form.initial.invoice.invoice_number }}</a></li>
             {% endif %}
-        </div>
+            <li>{% if form.instance.pk %}Edit Payment{% else %}Record Payment{% endif %}</li>
+        </ul>
+    </div>
+    
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 class="text-3xl font-bold">
+            {% if form.instance.pk %}
+                Edit Payment {{ form.instance.payment_number }}
+            {% elif form.initial.invoice %}
+                Record Payment for {{ form.initial.invoice.invoice_number }}
+            {% else %}
+                Record New Payment
+            {% endif %}
+        </h1>
     </div>
 
+    {% if form.initial.invoice %}
+    <!-- Invoice Summary -->
+    <div class="card bg-info/10 border border-info/20">
+        <div class="card-body">
+            <h3 class="font-semibold mb-4">Invoice Summary</h3>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <div class="text-sm text-base-content/60">Customer</div>
+                    <div class="font-medium">
+                        {% if form.initial.invoice.customer %}
+                            {{ form.initial.invoice.customer.get_full_name }}
+                            {% if form.initial.invoice.customer.company_name %}
+                                <br><span class="text-sm">{{ form.initial.invoice.customer.company_name }}</span>
+                            {% endif %}
+                        {% elif form.initial.invoice.is_shop_order %}
+                            {{ form.initial.invoice.first_name }} {{ form.initial.invoice.last_name }}
+                            {% if form.initial.invoice.email %}
+                                <br><span class="text-sm">{{ form.initial.invoice.email }}</span>
+                            {% endif %}
+                        {% else %}
+                            <span class="text-base-content/60">No customer assigned</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div>
+                    <div class="text-sm text-base-content/60">Invoice Total</div>
+                    <div class="text-lg font-semibold">${{ form.initial.invoice.total_amount|floatformat:2 }}</div>
+                </div>
+                <div>
+                    <div class="text-sm text-base-content/60">Paid Amount</div>
+                    <div class="text-lg font-semibold text-success">${{ form.initial.invoice.paid_amount|floatformat:2 }}</div>
+                </div>
+                <div>
+                    <div class="text-sm text-base-content/60">Balance Due</div>
+                    <div class="text-lg font-semibold text-error">${{ form.initial.invoice.balance_due|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Payment Form -->
     <form method="post">
         {% csrf_token %}
         
+        <!-- Hidden fields -->
+        {{ form.invoice.as_hidden }}
+        {{ form.customer.as_hidden }}
+        {{ form.order.as_hidden }}
+        
         {% if form.errors %}
-        <div class="alert alert-error">
+        <div class="alert alert-error mb-6">
             <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <div>
                 <h3 class="font-bold">There were errors with your submission</h3>
-                <div class="text-sm">
-                    {% for field, errors in form.errors.items %}
-                        {% for error in errors %}
-                            <div>{{ field }}: {{ error }}</div>
-                        {% endfor %}
+                {% if form.non_field_errors %}
+                <ul class="mt-2 list-disc list-inside">
+                    {% for error in form.non_field_errors %}
+                        <li>{{ error }}</li>
                     {% endfor %}
-                </div>
+                </ul>
+                {% endif %}
             </div>
         </div>
         {% endif %}
 
-        {% if form.initial.invoice %}
-        <!-- Invoice Summary -->
-        <div class="card bg-info/10 border-info/20">
-            <div class="card-body">
-                <h2 class="card-title text-info">Invoice Summary</h2>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <div class="text-sm opacity-60">Customer</div>
-                        <div class="font-semibold">
-                            {% if form.initial.invoice.customer %}
-                                {{ form.initial.invoice.customer.get_full_name }}
-                                {% if form.initial.invoice.customer.company_name %}
-                                    - {{ form.initial.invoice.customer.company_name }}
-                                {% endif %}
-                            {% elif form.initial.invoice.is_shop_order %}
-                                {{ form.initial.invoice.first_name }} {{ form.initial.invoice.last_name }}
-                                {% if form.initial.invoice.email %}
-                                    ({{ form.initial.invoice.email }})
-                                {% endif %}
-                            {% else %}
-                                Anonymous Customer
-                            {% endif %}
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-3 gap-2">
-                        <div>
-                            <div class="text-sm opacity-60">Total</div>
-                            <div class="font-bold text-lg">${{ form.initial.invoice.total_amount|floatformat:2 }}</div>
-                        </div>
-                        <div>
-                            <div class="text-sm opacity-60">Paid</div>
-                            <div class="font-bold text-lg text-success">${{ form.initial.invoice.paid_amount|floatformat:2 }}</div>
-                        </div>
-                        <div>
-                            <div class="text-sm opacity-60">Balance</div>
-                            <div class="font-bold text-lg text-warning">${{ form.initial.invoice.balance_due|floatformat:2 }}</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Payment Details -->
         <div class="card bg-base-100 shadow-xl">
             <div class="card-body">
-                <h2 class="card-title">Payment Details</h2>
-                
-                <!-- Hidden fields -->
-                {{ form.invoice.as_hidden }}
-                {{ form.customer.as_hidden }}
-                {{ form.order.as_hidden }}
+                <h2 class="card-title mb-4">Payment Details</h2>
                 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <!-- Payment Date -->
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Payment Date <span class="text-error">*</span></span>
-                        </label>
-                        <input type="date" name="{{ form.payment_date.name }}" 
+                    <fieldset class="fieldset">
+                        <legend class="fieldset-legend">Payment Date <span class="text-error">*</span></legend>
+                        <input type="date" 
+                               name="{{ form.payment_date.name }}" 
                                value="{{ form.payment_date.value|default:'' }}"
-                               class="input input-bordered {% if form.payment_date.errors %}input-error{% endif %}"
+                               class="input {% if form.payment_date.errors %}input-error{% endif %}" 
                                required>
                         {% if form.payment_date.errors %}
-                            <label class="label">
-                                <span class="label-text-alt text-error">{{ form.payment_date.errors.0 }}</span>
-                            </label>
+                        <p class="label text-error">{{ form.payment_date.errors.0 }}</p>
                         {% endif %}
-                    </div>
+                    </fieldset>
 
                     <!-- Amount -->
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Amount <span class="text-error">*</span></span>
-                        </label>
-                        <label class="input-group">
+                    <fieldset class="fieldset">
+                        <legend class="fieldset-legend">Amount <span class="text-error">*</span></legend>
+                        <label class="input flex items-center gap-2">
                             <span>$</span>
-                            <input type="number" step="0.01" name="{{ form.amount.name }}" 
-                                   value="{{ form.amount.value|default:'' }}"
-                                   {% if form.initial.invoice %}
-                                   placeholder="Balance: ${{ form.initial.invoice.balance_due|floatformat:2 }}"
-                                   {% endif %}
-                                   class="input input-bordered w-full {% if form.amount.errors %}input-error{% endif %}"
-                                   required>
+                            <input type="number" 
+                                   name="{{ form.amount.name }}" 
+                                   value="{% if form.amount.value %}{{ form.amount.value }}{% elif form.initial.invoice %}{{ form.initial.invoice.balance_due }}{% endif %}"
+                                   step="0.01"
+                                   min="0.01"
+                                   {% if not form.instance.pk and form.initial.invoice %}max="{{ form.initial.invoice.balance_due }}"{% endif %}
+                                   class="grow border-0 outline-none bg-transparent" 
+                                   placeholder="0.00" 
+                                   required />
                         </label>
                         {% if form.amount.errors %}
-                            <label class="label">
-                                <span class="label-text-alt text-error">{{ form.amount.errors.0 }}</span>
-                            </label>
+                        <p class="label text-error">{{ form.amount.errors.0 }}</p>
+                        {% elif form.initial.invoice %}
+                        <p class="label">Balance due: ${{ form.initial.invoice.balance_due|floatformat:2 }}</p>
                         {% endif %}
-                    </div>
+                    </fieldset>
 
                     <!-- Payment Method -->
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Payment Method <span class="text-error">*</span></span>
-                        </label>
+                    <fieldset class="fieldset">
+                        <legend class="fieldset-legend">Payment Method <span class="text-error">*</span></legend>
                         <select name="{{ form.payment_method.name }}" 
-                                class="select select-bordered {% if form.payment_method.errors %}select-error{% endif %}"
+                                class="select {% if form.payment_method.errors %}select-error{% endif %}" 
                                 required>
                             <option value="">Select payment method</option>
                             {% for value, label in form.fields.payment_method.choices %}
@@ -154,95 +154,126 @@
                             {% endfor %}
                         </select>
                         {% if form.payment_method.errors %}
-                            <label class="label">
-                                <span class="label-text-alt text-error">{{ form.payment_method.errors.0 }}</span>
-                            </label>
+                        <span class="label text-error">{{ form.payment_method.errors.0 }}</span>
+                        {% else %}
+                        <span class="label">Required</span>
                         {% endif %}
-                    </div>
+                    </fieldset>
+
+                    <!-- Financial Account -->
+                    <fieldset class="fieldset">
+                        <legend class="fieldset-legend">{{ form.financial_account.label|default:"Deposit To Account" }}</legend>
+                        <select name="{{ form.financial_account.name }}" 
+                                class="select {% if form.financial_account.errors %}select-error{% endif %}">
+                            <option value="">Select deposit account</option>
+                            {% for account in form.financial_account.field.queryset %}
+                                <option value="{{ account.pk }}" {% if account.pk|stringformat:"s" == form.financial_account.value|stringformat:"s" %}selected{% endif %}>
+                                    {{ account.account_name }}
+                                    {% if account.is_primary %}(Primary){% endif %}
+                                    - {{ account.get_account_type_display }}
+                                    {% if account.bank_name %}({{ account.bank_name }}){% endif %}
+                                </option>
+                            {% endfor %}
+                        </select>
+                        {% if form.financial_account.errors %}
+                        <span class="label text-error">{{ form.financial_account.errors.0 }}</span>
+                        {% elif form.financial_account.help_text %}
+                        <span class="label">{{ form.financial_account.help_text }}</span>
+                        {% else %}
+                        <span class="label">Optional - Select where to deposit the payment</span>
+                        {% endif %}
+                    </fieldset>
 
                     <!-- Reference Number -->
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Reference Number</span>
-                        </label>
-                        <input type="text" name="{{ form.reference_number.name }}" 
+                    <fieldset class="fieldset">
+                        <legend class="fieldset-legend">Reference Number</legend>
+                        <input type="text" 
+                               name="{{ form.reference_number.name }}" 
                                value="{{ form.reference_number.value|default:'' }}"
-                               placeholder="Check number, transaction ID, etc."
-                               class="input input-bordered {% if form.reference_number.errors %}input-error{% endif %}">
+                               class="input {% if form.reference_number.errors %}input-error{% endif %}" 
+                               placeholder="Check number, transaction ID, etc.">
                         {% if form.reference_number.errors %}
-                            <label class="label">
-                                <span class="label-text-alt text-error">{{ form.reference_number.errors.0 }}</span>
-                            </label>
+                        <p class="label text-error">{{ form.reference_number.errors.0 }}</p>
+                        {% else %}
+                        <p class="label">Optional</p>
                         {% endif %}
-                    </div>
+                    </fieldset>
 
                     <!-- Bank Name -->
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Bank Name</span>
-                        </label>
-                        <input type="text" name="{{ form.bank_name.name }}" 
+                    <fieldset class="fieldset">
+                        <legend class="fieldset-legend">Bank Name</legend>
+                        <input type="text" 
+                               name="{{ form.bank_name.name }}" 
                                value="{{ form.bank_name.value|default:'' }}"
-                               placeholder="For check/bank transfer"
-                               class="input input-bordered {% if form.bank_name.errors %}input-error{% endif %}">
+                               class="input {% if form.bank_name.errors %}input-error{% endif %}" 
+                               placeholder="For check or bank transfer">
                         {% if form.bank_name.errors %}
-                            <label class="label">
-                                <span class="label-text-alt text-error">{{ form.bank_name.errors.0 }}</span>
-                            </label>
+                        <p class="label text-error">{{ form.bank_name.errors.0 }}</p>
+                        {% else %}
+                        <p class="label">Optional</p>
                         {% endif %}
-                    </div>
+                    </fieldset>
 
                     <!-- Status -->
-                    <div class="form-control">
-                        <label class="label">
-                            <span class="label-text">Payment Status</span>
-                        </label>
+                    <fieldset class="fieldset">
+                        <legend class="fieldset-legend">Payment Status</legend>
                         <select name="{{ form.status.name }}" 
-                                class="select select-bordered {% if form.status.errors %}select-error{% endif %}">
+                                class="select {% if form.status.errors %}select-error{% endif %}">
                             {% for value, label in form.fields.status.choices %}
-                                <option value="{{ value }}" {% if value == form.status.value|default:'completed' %}selected{% endif %}>{{ label }}</option>
+                                <option value="{{ value }}" 
+                                        {% if value == form.status.value %}selected{% elif not form.status.value and value == 'completed' %}selected{% endif %}>
+                                    {{ label }}
+                                </option>
                             {% endfor %}
                         </select>
                         {% if form.status.errors %}
-                            <label class="label">
-                                <span class="label-text-alt text-error">{{ form.status.errors.0 }}</span>
-                            </label>
+                        <span class="label text-error">{{ form.status.errors.0 }}</span>
+                        {% else %}
+                        <span class="label">Set to "Completed" for confirmed payments</span>
                         {% endif %}
-                    </div>
-                </div>
+                    </fieldset>
 
-                <!-- Notes -->
-                <div class="form-control">
-                    <label class="label">
-                        <span class="label-text">Notes</span>
-                    </label>
-                    <textarea name="{{ form.notes.name }}" 
-                              rows="3"
-                              placeholder="Additional notes about this payment"
-                              class="textarea textarea-bordered {% if form.notes.errors %}textarea-error{% endif %}">{{ form.notes.value|default:'' }}</textarea>
-                    {% if form.notes.errors %}
-                        <label class="label">
-                            <span class="label-text-alt text-error">{{ form.notes.errors.0 }}</span>
-                        </label>
-                    {% endif %}
-                </div>
-
-                <!-- Form Actions -->
-                <div class="card-actions justify-end mt-6">
-                    {% if form.initial.invoice %}
-                        <a href="{% url 'sales:invoice_detail' form.initial.invoice.pk %}" class="btn btn-ghost">Cancel</a>
-                    {% else %}
-                        <button type="button" onclick="window.history.back()" class="btn btn-ghost">Cancel</button>
-                    {% endif %}
-                    <button type="submit" class="btn btn-success">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
-                        </svg>
-                        Record Payment
-                    </button>
+                    <!-- Notes -->
+                    <fieldset class="fieldset md:col-span-2">
+                        <legend class="fieldset-legend">Notes</legend>
+                        <textarea name="{{ form.notes.name }}" 
+                                  class="textarea h-24 {% if form.notes.errors %}textarea-error{% endif %}" 
+                                  placeholder="Additional notes about this payment">{{ form.notes.value|default:'' }}</textarea>
+                        {% if form.notes.errors %}
+                        <div class="label text-error">{{ form.notes.errors.0 }}</div>
+                        {% else %}
+                        <div class="label">Optional - Add any additional information about this payment</div>
+                        {% endif %}
+                    </fieldset>
                 </div>
             </div>
         </div>
+
+        <!-- Form Actions -->
+        <div class="flex justify-end gap-3">
+            {% if form.initial.invoice %}
+            <a href="{% url 'sales:invoice_detail' form.initial.invoice.pk %}" class="btn btn-ghost">Cancel</a>
+            {% else %}
+            <button type="button" onclick="window.history.back()" class="btn btn-ghost">Cancel</button>
+            {% endif %}
+            <button type="submit" class="btn btn-success">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+                {% if form.instance.pk %}Update Payment{% else %}Record Payment{% endif %}
+            </button>
+        </div>
     </form>
 </div>
+
+<script>
+// Set today's date as default for payment_date if not set
+document.addEventListener('DOMContentLoaded', function() {
+    const paymentDateInput = document.querySelector('input[name="payment_date"]');
+    if (paymentDateInput && !paymentDateInput.value) {
+        const today = new Date().toISOString().split('T')[0];
+        paymentDateInput.value = today;
+    }
+});
+</script>
 {% endblock %}

@@ -1,0 +1,76 @@
+{% extends "accounting/base.html" %}
+{% load humanize %}
+
+{% block page_title %}Chart of Accounts{% endblock %}
+{% block breadcrumb %}<li>Chart of Accounts</li>{% endblock %}
+
+{% block header_actions %}
+<a href="{% url 'admin:accounting_ledgeraccount_changelist' %}" class="btn btn-outline btn-sm">
+    Manage Accounts
+</a>
+{% endblock %}
+
+{% block accounting_content %}
+<div class="space-y-6">
+    {% for account_type, accounts in grouped_accounts.items %}
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body">
+            <h2 class="card-title text-lg font-bold border-b-2 border-base-300 pb-2 mb-4">
+                {{ account_type }}
+            </h2>
+            
+            <div class="overflow-x-auto">
+                <table class="table table-zebra">
+                    <thead>
+                        <tr>
+                            <th>Code</th>
+                            <th>Account Name</th>
+                            <th class="text-right">Debit</th>
+                            <th class="text-right">Credit</th>
+                            <th class="text-right">Balance</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in accounts %}
+                        <tr>
+                            <td class="font-mono">{{ item.account.code }}</td>
+                            <td>
+                                <a href="{% url 'accounting:general_ledger' %}?account={{ item.account.id }}" 
+                                   class="link link-hover">
+                                    {{ item.account.name }}
+                                </a>
+                            </td>
+                            <td class="text-right font-mono">
+                                {% if item.debit != 0 %}
+                                    ${{ item.debit|floatformat:2|intcomma }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="text-right font-mono">
+                                {% if item.credit != 0 %}
+                                    ${{ item.credit|floatformat:2|intcomma }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </td>
+                            <td class="text-right font-mono {% if item.balance >= 0 %}text-success{% else %}text-error{% endif %}">
+                                ${{ item.balance|floatformat:2|intcomma }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% empty %}
+    <div class="alert alert-info">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-current shrink-0 w-6 h-6">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+        </svg>
+        <span>No accounts found. Please create accounts in the admin panel.</span>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

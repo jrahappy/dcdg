@@ -107,6 +107,7 @@ INSTALLED_APPS = [
     "factory",
     "factory_portal",
     "accounting",
+    "pages",
 ]
 
 MIDDLEWARE = [

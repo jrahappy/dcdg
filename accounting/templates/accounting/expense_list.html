@@ -1,0 +1,195 @@
+{% extends 'dashboard/base_daisyui.html' %}
+{% load humanize %}
+
+{% block title %}Expenses - Accounting{% endblock %}
+
+{% block dashboard_content %}
+<div class="container mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <div class="flex justify-between items-center">
+            <h1 class="text-3xl font-bold">Expenses</h1>
+            <a href="{% url 'accounting:expense_create' %}" class="btn btn-primary">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+                </svg>
+                Add Expense
+            </a>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="card bg-base-100 shadow-xl mb-6">
+        <div class="card-body">
+            <form method="get" class="grid grid-cols-1 md:grid-cols-5 gap-4">
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Status</span>
+                    </label>
+                    <select name="status" class="select select-bordered">
+                        <option value="">All Status</option>
+                        {% for value, label in status_choices %}
+                        <option value="{{ value }}" {% if filters.status == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Category</span>
+                    </label>
+                    <select name="category" class="select select-bordered">
+                        <option value="">All Categories</option>
+                        {% for value, label in category_choices %}
+                        <option value="{{ value }}" {% if filters.category == value %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">From Date</span>
+                    </label>
+                    <input type="date" name="date_from" value="{{ filters.date_from }}" class="input input-bordered">
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">To Date</span>
+                    </label>
+                    <input type="date" name="date_to" value="{{ filters.date_to }}" class="input input-bordered">
+                </div>
+                
+                <div class="form-control">
+                    <label class="label">
+                        <span class="label-text">Search</span>
+                    </label>
+                    <input type="text" name="search" value="{{ filters.search }}" placeholder="Number, vendor, description..." class="input input-bordered">
+                </div>
+                
+                <div class="form-control md:col-span-5">
+                    <div class="flex gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                            </svg>
+                            Filter
+                        </button>
+                        <a href="{% url 'accounting:expense_list' %}" class="btn btn-ghost">Clear</a>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="stats shadow mb-6">
+        <div class="stat">
+            <div class="stat-title">Total Expenses</div>
+            <div class="stat-value text-primary">${{ total_amount|floatformat:2|intcomma }}</div>
+            <div class="stat-desc">{{ expenses.paginator.count }} expense record(s)</div>
+        </div>
+    </div>
+
+    <!-- Expense List -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body p-0">
+            <div class="overflow-x-auto">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Number</th>
+                            <th>Vendor</th>
+                            <th>Category</th>
+                            <th>Description</th>
+                            <th class="text-right">Amount</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for expense in expenses %}
+                        <tr class="hover">
+                            <td>{{ expense.expense_date|date:"M d, Y" }}</td>
+                            <td>
+                                <a href="{% url 'accounting:expense_update' expense.pk %}" class="link link-primary">
+                                    {{ expense.expense_number }}
+                                </a>
+                            </td>
+                            <td>{{ expense.vendor_name }}</td>
+                            <td>
+                                <span class="badge badge-outline">{{ expense.get_category_display }}</span>
+                            </td>
+                            <td class="max-w-xs truncate">{{ expense.description }}</td>
+                            <td class="text-right font-mono">${{ expense.total_amount|floatformat:2|intcomma }}</td>
+                            <td>
+                                {% if expense.status == 'posted' %}
+                                <span class="badge badge-success">Posted</span>
+                                {% elif expense.status == 'paid' %}
+                                <span class="badge badge-info">Paid</span>
+                                {% elif expense.status == 'approved' %}
+                                <span class="badge badge-warning">Approved</span>
+                                {% elif expense.status == 'draft' %}
+                                <span class="badge badge-ghost">Draft</span>
+                                {% else %}
+                                <span class="badge">{{ expense.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="dropdown dropdown-end">
+                                    <label tabindex="0" class="btn btn-ghost btn-sm">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                        </svg>
+                                    </label>
+                                    <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52">
+                                        <li><a href="{% url 'accounting:expense_update' expense.pk %}">Edit</a></li>
+                                        {% if expense.is_posted %}
+                                        <li><a href="{% url 'accounting:general_ledger' %}?search={{ expense.expense_number }}">View Journal Entry</a></li>
+                                        {% endif %}
+                                        {% if expense.status in 'approved,paid' and not expense.is_posted %}
+                                        <li><a href="{% url 'accounting:expense_post' expense.pk %}" onclick="return confirm('Post this expense to the general ledger?')">Post to Ledger</a></li>
+                                        {% endif %}
+                                        <li><a href="{% url 'accounting:expense_delete' expense.pk %}" class="text-error">Delete</a></li>
+                                    </ul>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="8" class="text-center py-8">
+                                <div class="text-gray-500">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                    </svg>
+                                    <p>No expenses found</p>
+                                    <a href="{% url 'accounting:expense_create' %}" class="btn btn-primary btn-sm mt-4">Add First Expense</a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <div class="flex justify-center p-4">
+                <div class="btn-group">
+                    {% if page_obj.has_previous %}
+                    <a href="?page={{ page_obj.previous_page_number }}{% if filters.status %}&status={{ filters.status }}{% endif %}{% if filters.category %}&category={{ filters.category }}{% endif %}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.search %}&search={{ filters.search }}{% endif %}" class="btn">«</a>
+                    {% endif %}
+                    
+                    <button class="btn">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</button>
+                    
+                    {% if page_obj.has_next %}
+                    <a href="?page={{ page_obj.next_page_number }}{% if filters.status %}&status={{ filters.status }}{% endif %}{% if filters.category %}&category={{ filters.category }}{% endif %}{% if filters.date_from %}&date_from={{ filters.date_from }}{% endif %}{% if filters.date_to %}&date_to={{ filters.date_to }}{% endif %}{% if filters.search %}&search={{ filters.search }}{% endif %}" class="btn">»</a>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

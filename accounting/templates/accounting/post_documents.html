@@ -1,0 +1,197 @@
+{% extends "accounting/base.html" %}
+{% load humanize %}
+
+{% block page_title %}Post Documents{% endblock %}
+{% block breadcrumb %}<li>Post Documents</li>{% endblock %}
+
+{% block accounting_content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Summary Cards -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+        <div class="stat bg-base-100 rounded-lg shadow">
+            <div class="stat-figure text-warning">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+            </div>
+            <div class="stat-title">Unposted Invoices</div>
+            <div class="stat-value">{{ unposted_invoices.count }}</div>
+        </div>
+        
+        <div class="stat bg-base-100 rounded-lg shadow">
+            <div class="stat-figure text-info">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-2.293 2.293c-.63.63-.184 1.707.707 1.707H17m0 0a2 2 0 100 4 2 2 0 000-4zm-8 2a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+            </div>
+            <div class="stat-title">Unposted Purchases</div>
+            <div class="stat-value">{{ unposted_purchases.count }}</div>
+        </div>
+        
+        <div class="stat bg-base-100 rounded-lg shadow">
+            <div class="stat-figure text-success">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="inline-block w-8 h-8 stroke-current">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z"></path>
+                </svg>
+            </div>
+            <div class="stat-title">Unposted Payments</div>
+            <div class="stat-value">{{ unposted_payments.count }}</div>
+        </div>
+    </div>
+    
+    <!-- Document Lists -->
+    {% if unposted_invoices or unposted_purchases or unposted_payments %}
+    <div class="space-y-6">
+        <!-- Invoices -->
+        {% if unposted_invoices %}
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">Unposted Invoices</h2>
+                <div class="overflow-x-auto">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Invoice #</th>
+                                <th>Date</th>
+                                <th>Customer</th>
+                                <th class="text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for invoice in unposted_invoices|slice:":10" %}
+                            <tr>
+                                <td>{{ invoice.invoice_number }}</td>
+                                <td>{{ invoice.invoice_date|date:"M d, Y" }}</td>
+                                <td>{{ invoice.customer.name|default:"-" }}</td>
+                                <td class="text-right">${{ invoice.total_amount|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% if unposted_invoices.count > 10 %}
+                    <div class="text-center text-sm text-base-content/70 mt-2">
+                        ... and {{ unposted_invoices.count|add:"-10" }} more
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Purchase Orders -->
+        {% if unposted_purchases %}
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">Unposted Purchase Orders</h2>
+                <div class="overflow-x-auto">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>PO #</th>
+                                <th>Date</th>
+                                <th>Supplier</th>
+                                <th class="text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for po in unposted_purchases|slice:":10" %}
+                            <tr>
+                                <td>{{ po.order_number }}</td>
+                                <td>{{ po.order_date|date:"M d, Y" }}</td>
+                                <td>{{ po.supplier.name|default:"-" }}</td>
+                                <td class="text-right">${{ po.total|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% if unposted_purchases.count > 10 %}
+                    <div class="text-center text-sm text-base-content/70 mt-2">
+                        ... and {{ unposted_purchases.count|add:"-10" }} more
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Payments -->
+        {% if unposted_payments %}
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">Unposted Payments</h2>
+                <div class="overflow-x-auto">
+                    <table class="table table-sm">
+                        <thead>
+                            <tr>
+                                <th>Payment #</th>
+                                <th>Date</th>
+                                <th>Customer</th>
+                                <th class="text-right">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for payment in unposted_payments|slice:":10" %}
+                            <tr>
+                                <td>{{ payment.payment_number }}</td>
+                                <td>{{ payment.payment_date|date:"M d, Y" }}</td>
+                                <td>{{ payment.invoice.customer.name|default:"-" }}</td>
+                                <td class="text-right">${{ payment.amount|floatformat:2|intcomma }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% if unposted_payments.count > 10 %}
+                    <div class="text-center text-sm text-base-content/70 mt-2">
+                        ... and {{ unposted_payments.count|add:"-10" }} more
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Action Form -->
+        <div class="card bg-warning/10 border-2 border-warning shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">Post All Documents</h2>
+                <p>This will create journal entries for all unposted documents listed above.</p>
+                
+                <div class="alert alert-warning mt-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                    <span>This action cannot be undone. Journal entries will be created for all unposted documents.</span>
+                </div>
+                
+                <form method="post" class="mt-4">
+                    {% csrf_token %}
+                    <div class="card-actions justify-end">
+                        <a href="{% url 'accounting:dashboard' %}" class="btn btn-ghost">Cancel</a>
+                        <button type="submit" class="btn btn-warning">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Post All Documents
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <!-- No Documents -->
+    <div class="card bg-base-100 shadow-xl">
+        <div class="card-body text-center py-12">
+            <div class="text-6xl mb-4">✅</div>
+            <h2 class="text-2xl font-bold mb-2">All Documents Posted</h2>
+            <p class="text-base-content/70">There are no unposted documents at this time.</p>
+            <div class="card-actions justify-center mt-6">
+                <a href="{% url 'accounting:dashboard' %}" class="btn btn-primary">
+                    Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

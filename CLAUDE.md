@@ -3,7 +3,87 @@
 ## Project Overview
 Django-based dental support organization system with ongoing Tailwind CSS conversion.
 
-## Recent Work (Last updated: 2025-01-11)
+## Recent Work (Last updated: 2025-08-15)
+
+### Completed Tasks (2025-08-15)
+
+1. **Enhanced Accounting Integration and Payment Systems**
+   - **Purchase Order Filtering**:
+     - Fixed issue where draft purchase orders were being posted to general ledger
+     - Only approved purchase orders (not draft status) are now posted to accounting
+     - Added validation in both views and services to prevent draft posting
+   - **Journal Entry Rollback/Delete Function**:
+     - Added ability to delete/rollback posted journal entries
+     - Automatically updates source documents (marks as unposted) when journal is deleted
+     - Added confirmation page with full entry details before deletion
+     - Dropdown menu in General Ledger with delete option for posted entries
+     - Delete button in Journal Entry Detail page
+   - **Automatic Payment Posting to Ledger**:
+     - Sales payments (from invoice detail) now automatically post to accounting
+     - Creates journal entries: DR Bank, CR Accounts Receivable
+     - Shows journal entry number in success message
+     - Handles both new payments and status changes to "completed"
+   - **Supplier Payment System for Purchase Orders**:
+     - Created SupplierPayment functionality for purchase orders
+     - Added payment form with methods: Cash, Check, Wire Transfer, Credit Card, ACH
+     - Automatic posting to ledger: DR Accounts Payable, CR Bank
+     - Support for advance payments (prepayments)
+     - Payment history tracking with status and approval system
+   - **Payment History on Purchase Order Detail**:
+     - Added comprehensive payment history section
+     - Shows payment summary (total, paid, balance due)
+     - Payment table with date, amount, method, status, and type
+     - "Fully Paid" badge when balance is zero
+     - Quick "Add Payment" button for recording new payments
+   - **Template Fixes**:
+     - Fixed purchase order delete template (changed base.html to base_daisyui.html)
+     - Fixed dashboard URL reference (dashboard:home instead of dashboard:dashboard)
+   - **Files Modified Today**:
+     - `accounting/services.py`: Added rollback_journal_entry function, fixed draft PO posting
+     - `accounting/views.py`: Added delete_journal_entry view, filtered draft POs from posting
+     - `accounting/urls.py`: Added delete journal entry URL
+     - `accounting/templates/`: Added confirm_delete_journal.html, updated general_ledger.html
+     - `sales/views.py`: Added automatic payment posting in PaymentCreateView and PaymentUpdateView
+     - `purchases/models.py`: SupplierPayment model (already existed)
+     - `purchases/forms.py`: Added SupplierPaymentForm
+     - `purchases/views.py`: Added supplier_payment_create view, updated purchase_order_detail
+     - `purchases/urls.py`: Added supplier payment URL
+     - `purchases/templates/`: Added supplier_payment_form.html, updated purchase_order_detail_daisyui.html
+
+2. **Implemented Complete Accounting Module** (Earlier on 2025-08-15)
+   - **Core Features**:
+     - Double-entry bookkeeping system with journal entries and journal lines
+     - Chart of accounts with account types (Asset, Liability, Revenue, Expense, Equity)
+     - Automatic posting from sales invoices and purchase orders
+     - Posted journal entries are automatically approved (not drafts)
+   - **Admin Interface**:
+     - Complete admin configuration with inline journal lines
+     - Balance calculations and validation
+     - Search and filter capabilities
+   - **Financial Reports**:
+     - Accounting Dashboard with key metrics (Cash, A/R, A/P, Revenue, Expenses)
+     - General Ledger with filtering by account, date, and status
+     - Trial Balance report
+     - Income Statement (P&L)
+     - Balance Sheet with retained earnings calculation
+     - Chart of Accounts with balances
+   - **Journal Entry Approval System**:
+     - Individual entry approval/unapproval with balance validation
+     - Status filtering (All, Posted, Draft)
+     - Entries from sales/purchases are automatically posted (not drafts)
+     - Manual entries can be created as drafts and require approval
+   - **Integration**:
+     - Sales invoices automatically create A/R and Revenue entries
+     - Purchase orders automatically create Inventory/Expense and A/P entries
+     - Payments create bank and A/R/A/P entries
+     - Idempotent posting (prevents duplicate entries)
+   - **Files Created/Modified**:
+     - `accounting/admin.py`: Complete admin configuration
+     - `accounting/views.py`: 8 views for dashboard and reports
+     - `accounting/services.py`: Posting functions with posted=True
+     - `accounting/templates/`: All templates with DaisyUI styling
+     - `accounting/urls.py`: URL routing
+     - Fixed account code 1200→1100 for Accounts Receivable
 
 ### Completed Tasks (2025-01-11)
 
@@ -431,6 +511,34 @@ npm run dev
 ```
 
 ### Technical Notes
+
+#### Accounting Module Implementation
+- **Double-Entry Bookkeeping**: Every transaction creates balanced journal entries
+- **Chart of Accounts**: 
+  - 1010: Bank - Checking
+  - 1100: Accounts Receivable (not 1200 which is Inventory)
+  - 2000: Accounts Payable
+  - 4000: Sales Revenue
+  - 2200: Sales Tax Payable
+- **Automatic Posting**:
+  - Sales invoices → DR: A/R (1100), CR: Revenue (4000) + Tax (2200)
+  - Purchase orders → DR: Inventory/Expense, CR: A/P (2000)
+  - Payments → DR: Bank (1010), CR: A/R (1100)
+  - All automated entries are created with `posted=True` (not drafts)
+- **Journal Entry Approval**:
+  - Individual approval/unapproval with balance validation
+  - Entries must be balanced (total debits = total credits) to be approved
+  - Filter by status: All, Posted, Draft
+- **Idempotent Posting**: 
+  - Multiple calls with same document create only one journal entry
+  - Existing entries are returned without duplication
+- **Access URLs**:
+  - Dashboard: `/home/accounting/`
+  - General Ledger: `/home/accounting/general-ledger/`
+  - Trial Balance: `/home/accounting/trial-balance/`
+  - Income Statement: `/home/accounting/income-statement/`
+  - Balance Sheet: `/home/accounting/balance-sheet/`
+  - Post Documents: `/home/accounting/post-documents/`
 
 #### Purchase Order 3-Step Process Implementation
 - Views: `PurchaseOrderCreateStep1View`, `PurchaseOrderCreateStep2View`, `PurchaseOrderCreateStep3View`

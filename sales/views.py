@@ -1424,7 +1424,16 @@ class InvoiceItemDeleteView(StaffRequiredMixin, DeleteView):
 class PaymentCreateView(StaffRequiredMixin, CreateView):
     model = Payment
     form_class = PaymentForm
-    template_name = "sales/payment_form.html"
+    template_name = "sales/payment_form_daisyui.html"
+
+    def get_initial(self):
+        initial = super().get_initial()
+        invoice = get_object_or_404(Invoice, pk=self.kwargs["invoice_pk"])
+        initial["invoice"] = invoice
+        initial["customer"] = invoice.customer
+        # Set the amount to the balance due (what's left to pay)
+        initial["amount"] = invoice.balance_due
+        return initial
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1462,6 +1471,43 @@ class PaymentCreateView(StaffRequiredMixin, CreateView):
 
         invoice.save()
 
+        # Post payment to accounting ledger if status is completed
+        if form.instance.status == "completed":
+            try:
+                # Import accounting service
+                from accounting.services import post_incoming_payment
+                from customer.models import Organization as Company
+                
+                # Get or create company (using first company for now)
+                try:
+                    company = Company.objects.first()
+                    if not company:
+                        company = Company.objects.create(
+                            name="Default Company",
+                            code="DEFAULT"
+                        )
+                except:
+                    company = None
+                
+                # Set required fields for posting
+                payment = form.instance
+                payment.company = company
+                payment.date = payment.payment_date
+                payment.sale = invoice  # Map invoice to sale for the service
+                
+                # Post to ledger
+                journal_entry = post_incoming_payment(payment)
+                
+                messages.info(
+                    self.request, 
+                    f"Payment posted to accounting ledger (Journal Entry #{journal_entry.pk})"
+                )
+            except Exception as e:
+                messages.warning(
+                    self.request,
+                    f"Payment recorded but could not post to ledger: {str(e)}"
+                )
+
         messages.success(
             self.request, f"Payment of ${form.instance.amount} recorded successfully!"
         )
@@ -1479,7 +1525,7 @@ class PaymentDetailView(StaffRequiredMixin, DetailView):
 class PaymentUpdateView(StaffRequiredMixin, UpdateView):
     model = Payment
     form_class = PaymentForm
-    template_name = "sales/payment_form.html"
+    template_name = "sales/payment_form_daisyui.html"
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -1491,11 +1537,52 @@ class PaymentUpdateView(StaffRequiredMixin, UpdateView):
         return reverse_lazy("sales:payment_detail", kwargs={"pk": self.object.pk})
 
     def form_valid(self, form):
+        # Check if status changed to completed
+        old_status = Payment.objects.get(pk=self.object.pk).status
+        new_status = form.instance.status
+        
         messages.success(
             self.request,
             f"Payment {form.instance.payment_number} has been updated successfully.",
         )
         response = super().form_valid(form)
+
+        # Post to ledger if status changed to completed
+        if old_status != "completed" and new_status == "completed":
+            try:
+                # Import accounting service
+                from accounting.services import post_incoming_payment
+                from customer.models import Organization as Company
+                
+                # Get or create company
+                try:
+                    company = Company.objects.first()
+                    if not company:
+                        company = Company.objects.create(
+                            name="Default Company",
+                            code="DEFAULT"
+                        )
+                except:
+                    company = None
+                
+                # Set required fields for posting
+                payment = form.instance
+                payment.company = company
+                payment.date = payment.payment_date
+                payment.sale = payment.invoice  # Map invoice to sale
+                
+                # Post to ledger
+                journal_entry = post_incoming_payment(payment)
+                
+                messages.info(
+                    self.request, 
+                    f"Payment posted to accounting ledger (Journal Entry #{journal_entry.pk})"
+                )
+            except Exception as e:
+                messages.warning(
+                    self.request,
+                    f"Payment updated but could not post to ledger: {str(e)}"
+                )
 
         # Update invoice payment status if needed
         if form.instance.invoice:

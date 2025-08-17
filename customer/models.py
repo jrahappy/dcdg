@@ -123,6 +123,12 @@ class Customer(models.Model):
         message="Phone number must be entered in the format: '+999999999'. Up to 15 digits allowed.",
     )
     phone = models.CharField(validators=[phone_regex], max_length=17, blank=True)
+    profile_image = models.ImageField(
+        upload_to='profiles/',
+        blank=True,
+        null=True,
+        help_text="Profile picture"
+    )
     date_joined = models.DateTimeField(auto_now_add=True)
     is_active = models.BooleanField(default=True)
     internal_notes = models.TextField(blank=True)
@@ -313,3 +319,188 @@ class CustomerDocument(models.Model):
     document = models.FileField(upload_to="customer_documents/")
     description = models.CharField(max_length=255, blank=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
+
+
+class FinancialAccount(models.Model):
+    """
+    Represents both bank accounts and credit cards for an organization.
+    Used for accounting purposes and payment processing.
+    """
+    
+    ACCOUNT_TYPE_CHOICES = [
+        ("checking", "Checking Account"),
+        ("savings", "Savings Account"),
+        ("credit_card", "Credit Card"),
+        ("debit_card", "Debit Card"),
+        ("line_of_credit", "Line of Credit"),
+        ("merchant", "Merchant Account"),
+        ("other", "Other"),
+    ]
+    
+    CARD_NETWORK_CHOICES = [
+        ("visa", "Visa"),
+        ("mastercard", "Mastercard"),
+        ("amex", "American Express"),
+        ("discover", "Discover"),
+        ("other", "Other"),
+    ]
+    
+    # Relationship
+    organization = models.ForeignKey(
+        Organization, 
+        on_delete=models.CASCADE, 
+        related_name="financial_accounts"
+    )
+    
+    # Basic Information
+    account_type = models.CharField(
+        max_length=20, 
+        choices=ACCOUNT_TYPE_CHOICES,
+        help_text="Type of financial account"
+    )
+    account_name = models.CharField(
+        max_length=255,
+        help_text="Friendly name for this account (e.g., 'Main Checking', 'Company Visa')"
+    )
+    
+    # Bank Information
+    bank_name = models.CharField(
+        max_length=255, 
+        blank=True,
+        help_text="Name of the bank or financial institution"
+    )
+    routing_number = models.CharField(
+        max_length=20, 
+        blank=True,
+        help_text="Bank routing number (for ACH/wire transfers)"
+    )
+    account_number = models.CharField(
+        max_length=50, 
+        blank=True,
+        help_text="Bank account or card number (store securely)"
+    )
+    
+    # Credit Card Specific
+    card_network = models.CharField(
+        max_length=20,
+        choices=CARD_NETWORK_CHOICES,
+        blank=True,
+        help_text="Credit card network (for credit/debit cards)"
+    )
+    card_last_four = models.CharField(
+        max_length=4,
+        blank=True,
+        help_text="Last 4 digits of card number"
+    )
+    card_expiry_month = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Card expiry month (1-12)"
+    )
+    card_expiry_year = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Card expiry year (YYYY)"
+    )
+    cardholder_name = models.CharField(
+        max_length=255,
+        blank=True,
+        help_text="Name on the card"
+    )
+    
+    # Account Details
+    currency = models.CharField(
+        max_length=3,
+        default="USD",
+        help_text="Currency code (e.g., USD, EUR)"
+    )
+    credit_limit = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Credit limit for credit cards/lines of credit"
+    )
+    current_balance = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        help_text="Current balance (optional, for tracking)"
+    )
+    
+    # Accounting Integration
+    ledger_account = models.ForeignKey(
+        "accounting.LedgerAccount",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="financial_accounts",
+        help_text="Linked general ledger account for accounting"
+    )
+    
+    # Additional Information
+    swift_code = models.CharField(
+        max_length=20,
+        blank=True,
+        help_text="SWIFT/BIC code for international transfers"
+    )
+    iban = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text="International Bank Account Number"
+    )
+    
+    # Status and Metadata
+    is_primary = models.BooleanField(
+        default=False,
+        help_text="Primary account for this type"
+    )
+    is_active = models.BooleanField(default=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    
+    class Meta:
+        ordering = ["-is_primary", "account_type", "account_name"]
+        verbose_name = "Financial Account"
+        verbose_name_plural = "Financial Accounts"
+        indexes = [
+            models.Index(fields=["organization", "account_type", "is_active"]),
+        ]
+    
+    def __str__(self):
+        if self.account_type == "credit_card" and self.card_last_four:
+            return f"{self.account_name} (****{self.card_last_four})"
+        return self.account_name
+    
+    @property
+    def is_bank_account(self):
+        """Check if this is a bank account (checking/savings)"""
+        return self.account_type in ["checking", "savings"]
+    
+    @property
+    def is_card(self):
+        """Check if this is a card (credit/debit)"""
+        return self.account_type in ["credit_card", "debit_card"]
+    
+    @property
+    def display_number(self):
+        """Display safe version of account/card number"""
+        if self.is_card and self.card_last_four:
+            return f"****{self.card_last_four}"
+        elif self.account_number:
+            # Show last 4 digits of account number
+            return f"****{self.account_number[-4:]}" if len(self.account_number) >= 4 else "****"
+        return "****"
+    
+    def save(self, *args, **kwargs):
+        # If this is set as primary, unset other primary accounts of same type
+        if self.is_primary:
+            FinancialAccount.objects.filter(
+                organization=self.organization,
+                account_type=self.account_type,
+                is_primary=True
+            ).exclude(pk=self.pk).update(is_primary=False)
+        
+        super().save(*args, **kwargs)

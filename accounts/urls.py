@@ -8,6 +8,7 @@ urlpatterns = [
     # Account Management URLs
     path('manage/', views.account_profile, name='account-profile'),
     path('manage/profile/', views.account_profile, name='account-profile'),
+    path('manage/profile/upload-avatar/', views.profile_avatar_upload, name='profile-avatar-upload'),
     path('manage/info/', views.account_info, name='account-info'),
     path('manage/security/', views.account_security, name='account-security'),
     path('manage/sender/', views.sender_information, name='sender-information'),

@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib.auth import get_user_model
-from .models import Organization, Customer, CustomerAddress, CustomerContact, CustomerNote, CustomerDocument
+from .models import Organization, Customer, CustomerAddress, CustomerContact, CustomerNote, CustomerDocument, FinancialAccount
 
 User = get_user_model()
 
@@ -12,6 +12,13 @@ class UserInline(admin.TabularInline):
     readonly_fields = ['date_joined']
 
 
+class FinancialAccountInlineForOrg(admin.TabularInline):
+    from .models import FinancialAccount
+    model = FinancialAccount
+    extra = 0
+    fields = ['account_type', 'account_name', 'bank_name', 'is_primary', 'is_active']
+    
+
 @admin.register(Organization)
 class OrganizationAdmin(admin.ModelAdmin):
     list_display = ['name', 'organization_type', 'email', 'phone', 'city', 'member_count', 'is_active']
@@ -19,7 +26,7 @@ class OrganizationAdmin(admin.ModelAdmin):
     search_fields = ['name', 'email', 'tax_id', 'website']
     readonly_fields = ['created_at', 'updated_at', 'member_count']
     ordering = ['name']
-    inlines = [UserInline]
+    inlines = [UserInline, FinancialAccountInlineForOrg]
     
     fieldsets = (
         ('Organization Information', {
@@ -141,3 +148,46 @@ class CustomerDocumentAdmin(admin.ModelAdmin):
     search_fields = ['description', 'customer__company_name', 'customer__first_name', 'customer__last_name']
     readonly_fields = ['uploaded_at']
     ordering = ['-uploaded_at']
+
+
+class FinancialAccountInline(admin.TabularInline):
+    model = FinancialAccount
+    extra = 0
+    fields = ['account_type', 'account_name', 'bank_name', 'display_number', 'is_primary', 'is_active']
+    readonly_fields = ['display_number']
+
+
+@admin.register(FinancialAccount)
+class FinancialAccountAdmin(admin.ModelAdmin):
+    list_display = ['account_name', 'organization', 'account_type', 'bank_name', 'display_number', 'is_primary', 'is_active']
+    list_filter = ['account_type', 'is_primary', 'is_active', 'card_network']
+    search_fields = ['account_name', 'bank_name', 'organization__name', 'card_last_four']
+    readonly_fields = ['created_at', 'updated_at', 'display_number']
+    ordering = ['organization', '-is_primary', 'account_type', 'account_name']
+    
+    fieldsets = (
+        ('Organization & Type', {
+            'fields': ('organization', 'account_type', 'account_name', 'is_primary')
+        }),
+        ('Bank Information', {
+            'fields': ('bank_name', 'routing_number', 'account_number', 'swift_code', 'iban'),
+            'description': 'For bank accounts (checking/savings)'
+        }),
+        ('Card Information', {
+            'fields': ('card_network', 'card_last_four', 'cardholder_name', 'card_expiry_month', 'card_expiry_year'),
+            'description': 'For credit/debit cards'
+        }),
+        ('Account Details', {
+            'fields': ('currency', 'credit_limit', 'current_balance')
+        }),
+        ('Accounting Integration', {
+            'fields': ('ledger_account',)
+        }),
+        ('Additional Information', {
+            'fields': ('is_active', 'notes', 'created_at', 'updated_at')
+        }),
+    )
+    
+    def display_number(self, obj):
+        return obj.display_number
+    display_number.short_description = 'Account/Card Number'

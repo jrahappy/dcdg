@@ -1,0 +1,124 @@
+{% extends "accounting/base.html" %}
+{% load humanize %}
+
+{% block page_title %}Trial Balance{% endblock %}
+{% block breadcrumb %}<li>Trial Balance</li>{% endblock %}
+
+{% block accounting_content %}
+<!-- Date Filter -->
+<div class="card bg-base-100 shadow-xl mb-6">
+    <div class="card-body">
+        <form method="get" class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Date From</span>
+                </label>
+                <input type="date" name="date_from" value="{{ date_from }}" class="input input-bordered">
+            </div>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">Date To</span>
+                </label>
+                <input type="date" name="date_to" value="{{ date_to }}" class="input input-bordered">
+            </div>
+            
+            <div class="form-control">
+                <label class="label">
+                    <span class="label-text">&nbsp;</span>
+                </label>
+                <div class="flex gap-2">
+                    <button type="submit" class="btn btn-primary">Generate</button>
+                    <a href="{% url 'accounting:trial_balance' %}" class="btn btn-outline">Clear</a>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Trial Balance Report -->
+<div class="card bg-base-100 shadow-xl">
+    <div class="card-body">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="card-title">Trial Balance Report</h2>
+            {% if date_from or date_to %}
+            <div class="text-sm text-base-content/70">
+                {% if date_from %}From: {{ date_from }}{% endif %}
+                {% if date_to %}To: {{ date_to }}{% endif %}
+            </div>
+            {% endif %}
+        </div>
+        
+        <div class="overflow-x-auto">
+            <table class="table table-zebra">
+                <thead>
+                    <tr>
+                        <th>Account Code</th>
+                        <th>Account Name</th>
+                        <th>Type</th>
+                        <th class="text-right">Debit</th>
+                        <th class="text-right">Credit</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in trial_balance_data %}
+                    <tr>
+                        <td class="font-mono">{{ item.account.code }}</td>
+                        <td>{{ item.account.name }}</td>
+                        <td>
+                            <span class="badge badge-sm">{{ item.account.get_type_display }}</span>
+                        </td>
+                        <td class="text-right font-mono">
+                            {% if item.debit > 0 %}
+                                ${{ item.debit|floatformat:2|intcomma }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="text-right font-mono">
+                            {% if item.credit > 0 %}
+                                ${{ item.credit|floatformat:2|intcomma }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5" class="text-center text-base-content/50 py-8">
+                            No account activity found for the selected period
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+                <tfoot>
+                    <tr class="font-bold text-lg">
+                        <td colspan="3">Total</td>
+                        <td class="text-right font-mono">${{ total_debit|floatformat:2|intcomma }}</td>
+                        <td class="text-right font-mono">${{ total_credit|floatformat:2|intcomma }}</td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        
+        <!-- Balance Check -->
+        <div class="mt-6">
+            {% if is_balanced %}
+            <div class="alert alert-success">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>The trial balance is balanced. Total debits equal total credits.</span>
+            </div>
+            {% else %}
+            <div class="alert alert-error">
+                <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <span>The trial balance is NOT balanced! Please review journal entries for errors.</span>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

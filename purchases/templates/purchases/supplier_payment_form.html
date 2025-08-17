@@ -1,0 +1,187 @@
+{% extends 'dashboard/base_daisyui.html' %}
+{% load humanize %}
+
+{% block title %}Record Payment - {{ order.order_number }}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <!-- Breadcrumb -->
+    <div class="breadcrumbs text-sm mb-4">
+        <ul>
+            <li><a href="{% url 'dashboard:home' %}">Dashboard</a></li>
+            <li><a href="{% url 'purchases:purchase_order_list' %}">Purchase Orders</a></li>
+            <li><a href="{% url 'purchases:purchase_order_detail' order.pk %}">{{ order.order_number }}</a></li>
+            <li>Record Payment</li>
+        </ul>
+    </div>
+
+    <!-- Page Header -->
+    <div class="mb-6">
+        <h1 class="text-3xl font-bold">Record Supplier Payment</h1>
+        <p class="text-base-content/70 mt-2">Purchase Order: {{ order.order_number }} - {{ order.supplier.name }}</p>
+    </div>
+
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Payment Form -->
+        <div class="lg:col-span-2">
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Payment Details</h2>
+                    
+                    <!-- Payment Summary -->
+                    <div class="bg-base-200 rounded-lg p-4 mb-6">
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <p class="text-sm font-semibold text-base-content/70">Order Total</p>
+                                <p class="text-xl font-bold">${{ order.total_amount|floatformat:2|intcomma }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-base-content/70">Total Paid</p>
+                                <p class="text-xl font-bold text-success">${{ total_paid|floatformat:2|intcomma }}</p>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-base-content/70">Balance Due</p>
+                                <p class="text-xl font-bold text-error">${{ balance_due|floatformat:2|intcomma }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <form method="post" class="space-y-4">
+                        {% csrf_token %}
+                        
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Payment Date</span>
+                            </label>
+                            {{ form.date }}
+                            {% if form.date.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.date.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Payment Amount</span>
+                            </label>
+                            {{ form.amount }}
+                            {% if form.amount.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.amount.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-control">
+                            <label class="label">
+                                <span class="label-text">Payment Method</span>
+                            </label>
+                            {{ form.method }}
+                            {% if form.method.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.method.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="form-control">
+                            <label class="label cursor-pointer justify-start gap-4">
+                                {{ form.is_advance }}
+                                <span class="label-text">{{ form.is_advance.label }}</span>
+                            </label>
+                            {% if form.is_advance.errors %}
+                                <label class="label">
+                                    <span class="label-text-alt text-error">{{ form.is_advance.errors.0 }}</span>
+                                </label>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="divider"></div>
+                        
+                        <div class="card-actions justify-end">
+                            <a href="{% url 'purchases:purchase_order_detail' order.pk %}" class="btn btn-ghost">
+                                Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                                Record Payment
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Payment History -->
+        <div>
+            <div class="card bg-base-100 shadow-xl">
+                <div class="card-body">
+                    <h3 class="font-semibold mb-4">Payment History</h3>
+                    
+                    {% if payments %}
+                        <div class="space-y-3">
+                            {% for payment in payments %}
+                            <div class="border-l-4 {% if payment.status == 'APPROVED' %}border-success{% else %}border-warning{% endif %} pl-3">
+                                <div class="flex justify-between items-start">
+                                    <div>
+                                        <p class="font-semibold">${{ payment.amount|floatformat:2|intcomma }}</p>
+                                        <p class="text-sm text-base-content/70">{{ payment.date|date:"M d, Y" }}</p>
+                                        <p class="text-xs">{{ payment.method|default:"--" }}</p>
+                                    </div>
+                                    <span class="badge {% if payment.status == 'APPROVED' %}badge-success{% else %}badge-warning{% endif %} badge-sm">
+                                        {{ payment.get_status_display }}
+                                    </span>
+                                </div>
+                                {% if payment.is_advance %}
+                                    <span class="badge badge-info badge-xs mt-1">Advance Payment</span>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% else %}
+                        <p class="text-base-content/50 text-sm">No payments recorded yet</p>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Order Information -->
+            <div class="card bg-base-100 shadow-xl mt-4">
+                <div class="card-body">
+                    <h3 class="font-semibold mb-4">Order Information</h3>
+                    
+                    <div class="space-y-2 text-sm">
+                        <div class="flex justify-between">
+                            <span class="text-base-content/70">Order Number:</span>
+                            <span class="font-medium">{{ order.order_number }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-base-content/70">Order Date:</span>
+                            <span>{{ order.order_date|date:"M d, Y" }}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-base-content/70">Status:</span>
+                            <span class="badge badge-sm
+                                {% if order.status == 'draft' %}badge-ghost
+                                {% elif order.status == 'sent' %}badge-info
+                                {% elif order.status == 'confirmed' %}badge-primary
+                                {% elif order.status == 'partially_received' %}badge-warning
+                                {% elif order.status == 'received' %}badge-success
+                                {% elif order.status == 'cancelled' %}badge-error
+                                {% endif %}">
+                                {{ order.get_status_display }}
+                            </span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-base-content/70">Items:</span>
+                            <span>{{ order.items.count }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

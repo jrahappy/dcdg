@@ -10,7 +10,7 @@ from django.utils import timezone
 
 from customer.models import Customer, CustomerAddress
 from sales.models import Invoice, InvoiceShipment
-from .forms import ProfileForm, AddressForm, CompanyInfoForm
+from .forms import ProfileForm, AddressForm, CompanyInfoForm, ProfileImageForm
 from .models import Notification
 
 
@@ -314,6 +314,31 @@ def profile_edit(request):
             "customer": customer,
         },
     )
+
+
+@login_required
+def profile_image_upload(request):
+    """Upload or update profile image"""
+    customer, created = Customer.objects.get_or_create(
+        user=request.user,
+        defaults={
+            "email": request.user.email,
+            "first_name": request.user.first_name,
+            "last_name": request.user.last_name,
+            "company_category": "customer",
+        },
+    )
+    
+    if request.method == "POST":
+        form = ProfileImageForm(request.POST, request.FILES, instance=customer)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Profile image updated successfully!")
+            return redirect("customer_portal:profile")
+        else:
+            messages.error(request, "Please select a valid image file.")
+    
+    return redirect("customer_portal:profile")
 
 
 @login_required

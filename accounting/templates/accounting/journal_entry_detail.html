@@ -1,0 +1,218 @@
+{% extends "accounting/base.html" %}
+{% load humanize %}
+
+{% block page_title %}Journal Entry #{{ entry.id }}{% endblock %}
+{% block breadcrumb %}
+<li><a href="{% url 'accounting:general_ledger' %}">General Ledger</a></li>
+<li>Entry #{{ entry.id }}</li>
+{% endblock %}
+
+{% block accounting_content %}
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <!-- Entry Details -->
+    <div class="lg:col-span-2">
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h2 class="card-title">Journal Entry Details</h2>
+                
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div>
+                        <label class="label">
+                            <span class="label-text font-semibold">Date</span>
+                        </label>
+                        <p>{{ entry.date|date:"F d, Y" }}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="label">
+                            <span class="label-text font-semibold">Status</span>
+                        </label>
+                        <p>
+                            {% if entry.posted %}
+                                <span class="badge badge-success">Posted</span>
+                            {% else %}
+                                <span class="badge badge-warning">Draft</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    
+                    <div>
+                        <label class="label">
+                            <span class="label-text font-semibold">Memo</span>
+                        </label>
+                        <p>{{ entry.memo|default:"-" }}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="label">
+                            <span class="label-text font-semibold">Party</span>
+                        </label>
+                        <p>
+                            {% if entry.customer %}
+                                Customer: {{ entry.customer.name }}
+                            {% elif entry.supplier %}
+                                Supplier: {{ entry.supplier.name }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+                
+                <!-- Journal Lines -->
+                <h3 class="font-semibold mb-2">Journal Lines</h3>
+                <div class="overflow-x-auto">
+                    <table class="table table-zebra">
+                        <thead>
+                            <tr>
+                                <th>Account</th>
+                                <th>Description</th>
+                                <th class="text-right">Debit</th>
+                                <th class="text-right">Credit</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for line in lines %}
+                            <tr>
+                                <td>
+                                    <div class="font-mono">{{ line.account.code }}</div>
+                                    <div class="text-sm text-base-content/70">{{ line.account.name }}</div>
+                                </td>
+                                <td>{{ line.description|default:"-" }}</td>
+                                <td class="text-right font-mono">
+                                    {% if line.debit > 0 %}
+                                        ${{ line.debit|floatformat:2|intcomma }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                                <td class="text-right font-mono">
+                                    {% if line.credit > 0 %}
+                                        ${{ line.credit|floatformat:2|intcomma }}
+                                    {% else %}
+                                        -
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                        <tfoot>
+                            <tr class="font-semibold">
+                                <td colspan="2">Total</td>
+                                <td class="text-right font-mono">${{ total_debit|floatformat:2|intcomma }}</td>
+                                <td class="text-right font-mono">${{ total_credit|floatformat:2|intcomma }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                
+                {% if not is_balanced %}
+                <div class="alert alert-error mt-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>This journal entry is not balanced! Debits do not equal credits.</span>
+                </div>
+                {% else %}
+                <div class="alert alert-success mt-4">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="stroke-current shrink-0 h-6 w-6" fill="none" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    <span>This journal entry is balanced.</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Metadata -->
+    <div>
+        <div class="card bg-base-100 shadow-xl">
+            <div class="card-body">
+                <h3 class="font-semibold mb-4">Entry Information</h3>
+                
+                <div class="space-y-3">
+                    <div>
+                        <label class="label">
+                            <span class="label-text text-xs">Entry Number</span>
+                        </label>
+                        <p class="font-mono">#{{ entry.id }}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="label">
+                            <span class="label-text text-xs">Company</span>
+                        </label>
+                        <p>{{ entry.company.name }}</p>
+                    </div>
+                    
+                    <div>
+                        <label class="label">
+                            <span class="label-text text-xs">Created At</span>
+                        </label>
+                        <p class="text-sm">{{ entry.created_at|date:"M d, Y g:i A" }}</p>
+                    </div>
+                    
+                    {% if entry.source_object %}
+                    <div>
+                        <label class="label">
+                            <span class="label-text text-xs">Source Document</span>
+                        </label>
+                        <p class="text-sm">
+                            {% if source_document_url %}
+                                <a href="{{ source_document_url }}" class="link link-primary">
+                                    {{ entry.source_content_type.model|title }} #{{ entry.source_object_id }}
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="inline h-3 w-3 ml-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                    </svg>
+                                </a>
+                            {% else %}
+                                {{ entry.source_content_type.model|title }} #{{ entry.source_object_id }}
+                            {% endif %}
+                        </p>
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="card-actions justify-end mt-6">
+                    {% if entry.posted %}
+                        <form method="post" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="unapprove">
+                            <button type="submit" class="btn btn-sm btn-warning" 
+                                    onclick="return confirm('Are you sure you want to unapprove this journal entry?')">
+                                Unapprove Entry
+                            </button>
+                        </form>
+                    {% else %}
+                        {% if is_balanced %}
+                            <form method="post" style="display: inline;">
+                                {% csrf_token %}
+                                <input type="hidden" name="action" value="approve">
+                                <button type="submit" class="btn btn-sm btn-success">
+                                    Approve & Post
+                                </button>
+                            </form>
+                        {% else %}
+                            <button class="btn btn-sm btn-disabled" disabled>
+                                Cannot Approve (Unbalanced)
+                            </button>
+                        {% endif %}
+                    {% endif %}
+                    <a href="{% url 'admin:accounting_journalentry_change' entry.id %}" class="btn btn-sm btn-outline">
+                        Edit in Admin
+                    </a>
+                    {% if entry.posted %}
+                    <a href="{% url 'accounting:delete_journal_entry' entry.id %}?next={% url 'accounting:general_ledger' %}" class="btn btn-sm btn-error btn-outline">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                        Delete/Rollback
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
