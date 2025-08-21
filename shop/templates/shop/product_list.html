@@ -137,11 +137,20 @@
                                 </a>
                             </h2>
                             <p class="text-sm opacity-70">{{ product.short_description|truncatewords:12 }}</p>
-                            
+                            {% if product.is_price_disclosed %}
+                            <div class="flex items-center justify-between mt-4">
+                                <span class="text-xl font-bold line-through">${{ product.price|floatformat:2|intcomma }}</span>
+                            </div>
+                            <div class="card-actions justify-end mt-2">
+                                <a href="{% url 'shop:product_detail' product.pk %}"
+                                        class="btn btn-secondary btn-sm w-full">
+                                    View Details
+                                </a>
+                            </div>
+                            {% else %}
                             <div class="flex items-center justify-between mt-4">
                                 <span class="text-xl font-bold">${{ product.price|floatformat:2|intcomma }}</span>
                             </div>
-                            
                             <div class="card-actions justify-end mt-2">
                                 <button onclick="addToCart({{ product.pk }})" 
                                         class="btn btn-primary btn-sm w-full">
@@ -151,6 +160,8 @@
                                     Add to Cart
                                 </button>
                             </div>
+                            {% endif %}
+
                         </div>
                     </div>
                     {% endfor %}
@@ -201,10 +212,20 @@
                         </h2>
                         <p class="text-sm opacity-70">{{ product.short_description|truncatewords:12 }}</p>
                         
+                        {% if product.is_price_disclosed %}
+                        <div class="flex items-center justify-between mt-4">
+                            <span class="text-xl font-bold line-through">${{ product.price|floatformat:2|intcomma }}</span>
+                        </div>
+                        <div class="card-actions justify-end mt-2">
+                            <a href="{% url 'shop:product_detail' product.pk %}"
+                                    class="btn btn-secondary btn-sm w-full">
+                                View Details
+                            </a>
+                        </div>
+                        {% else %}
                         <div class="flex items-center justify-between mt-4">
                             <span class="text-xl font-bold">${{ product.price|floatformat:2|intcomma }}</span>
                         </div>
-                        
                         <div class="card-actions justify-end mt-2">
                             <button onclick="addToCart({{ product.pk }})" 
                                     class="btn btn-primary btn-sm w-full">
@@ -214,6 +235,9 @@
                                 Add to Cart
                             </button>
                         </div>
+                        {% endif %}
+                        
+                        
                     </div>
                 </div>
                 {% endfor %}

@@ -101,7 +101,7 @@
                 <!-- Price and Stock -->
                 <div class="flex items-center gap-4 mt-4">
                     {% if product.is_price_disclosed %}
-                    <div class="text-4xl font-bold text-primary ">Best Price Guaranteed</div>
+                    <div class="text-4xl font-bold text-primary ">Available Upon Request</div>
                     {% else %}
                     <div class="text-4xl font-bold text-primary">${{ product.price|floatformat:0|intcomma }}</div>
                     <div class="badge {% if product.quantity_in_stock > 0 %}badge-success{% else %}badge-error{% endif %} badge-lg">
@@ -142,24 +142,20 @@
                 {% if product.is_price_disclosed %}
                 <div class="card w-80 shadow-sm">
                     <div class="card-body">
-                        <span class="badge badge-xs badge-warning">Hot Product</span>
+                        <span class="badge badge-xs badge-warning"> Member Only </span>
                         <ul class="mt-6 flex flex-col gap-2 text-xs">
                             <li>
                                 <svg xmlns="http://www.w3.org/2000/svg" class="size-4 me-2 inline-block text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                                <span>Retail Price is not disclosed</span>
+                                <span>Best Price Guarantee</span>
                             </li>
-                            <li>
+                            <li >
                                 <svg xmlns="http://www.w3.org/2000/svg" class="size-4 me-2 inline-block text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                                <span>Best Price Guarantee</span>
-                            </li>
-                            <li class="opacity-50">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="size-4 me-2 inline-block text-base-content/50" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
-                                <span>Best Price Guarantee</span>
+                                <span>Premium – Price Confidential</span>
                                 
                             </li>
                         </ul>
                         <div class="mt-6">
-                            <button class="btn btn-primary btn-block">Speak to Specialist</button>
+                            <button class="btn btn-secondary btn-block">Ask for Price (201-145-300)</button>
                         </div>
                     </div>
                 </div>
