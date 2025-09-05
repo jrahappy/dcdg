@@ -286,6 +286,10 @@ class Product(models.Model):
             return [t.strip() for t in self.tags.split(",") if t.strip()]
         return []
 
+    def has_options(self):
+        """Check if the product has any product options"""
+        return self.options.filter(is_active=True).exists()
+
 
 class ProductDoc(models.Model):
     DOC_TYPE_CHOICES = [

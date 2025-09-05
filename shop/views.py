@@ -1,4 +1,24 @@
+# Standard library imports
+from datetime import timedelta
+from decimal import Decimal
+import json
+
+# Django imports
 from django.shortcuts import render, redirect, get_object_or_404
+from django.contrib import messages
+from django.http import JsonResponse
+from django.db import models
+from django.db.models import Q, Sum
+from django.utils import timezone
+from django.core.paginator import Paginator
+from django.template.loader import render_to_string
+
+# App/model imports
+from product.models import Product, Category, ProductOption, ProductOptionItem
+from sales.models import Invoice, InvoiceItem
+from .models import Cart, CartItem, ShippingRate, PromoCode
+from blog.models import Post, Category as BlogCategory
+from pages.models import NavMenu
 from django.contrib import messages
 from django.http import JsonResponse
 from django.db import models
@@ -7,32 +27,22 @@ from django.utils import timezone
 from django.core.paginator import Paginator
 from datetime import timedelta
 from decimal import Decimal
-import json
+import traceback
+from datetime import timedelta
+from decimal import Decimal
+from itertools import groupby
+from operator import attrgetter
+
 
 from product.models import Product, Category, ProductOption, ProductOptionItem
 from sales.models import Invoice, InvoiceItem
 from .models import Cart, CartItem, ShippingRate, PromoCode
 from blog.models import Post, Category as BlogCategory
 from pages.models import NavMenu
+from customer.models import CustomerAddress
 
 
-def get_cart(request):
-    """Get or create cart for the current session"""
-    if not request.session.session_key:
-        request.session.create()
-
-    cart, created = Cart.objects.prefetch_related(
-        "items",  # Prefetch cart items
-        "items__product",  # Prefetch products for each cart item
-        "items__product__images",  # Prefetch product images for gallery
-    ).get_or_create(
-        session_key=request.session.session_key,
-        defaults={"user": request.user if request.user.is_authenticated else None},
-    )
-    return cart
-
-
-def product_list(request):
+def index(request):
     """Display products for shopping"""
     # Optimize query with select_related for ForeignKeys and prefetch_related for reverse ForeignKeys
     queryset = (
@@ -79,9 +89,6 @@ def product_list(request):
     group_by_category = request.GET.get("group_by_category", "false") == "true"
 
     if group_by_category:
-        # Group products by category
-        from itertools import groupby
-        from operator import attrgetter
 
         # Sort by category order first, then by product name (or selected sort)
         if sort in ["price", "-price", "name", "-name", "-created_at"]:
@@ -137,7 +144,204 @@ def product_list(request):
         try:
             current_category = Category.objects.get(pk=category_id, is_active=True)
             # Get blog posts related to this product category
-            from blog.models import Post
+
+            related_posts = (
+                Post.objects.filter(
+                    product_category=current_category, status="published"
+                )
+                .select_related("author", "category")
+                .order_by("-published_date")[:3]
+            )
+        except Category.DoesNotExist:
+            pass
+
+    navbar_items = NavMenu.objects.filter(is_active=True).order_by("order")
+
+    context = {
+        "products": products,
+        "products_by_category": products_by_category if group_by_category else None,
+        "categories": categories,
+        "cart": get_cart(request),
+        "page_obj": page_obj,
+        "is_paginated": page_obj.has_other_pages(),
+        "group_by_category": group_by_category,
+        "related_posts": related_posts,
+        "current_category": current_category,
+        "navbar_items": navbar_items,
+    }
+
+    return render(request, "shop/index.html", context)
+
+
+def get_cart(request):
+    """Get or create cart for the current session or user"""
+    if not request.session.session_key:
+        request.session.create()
+
+    # For authenticated users, try to get their cart by user first
+    if request.user.is_authenticated:
+        # Try to find an existing cart for this user
+        cart = (
+            Cart.objects.filter(user=request.user)
+            .prefetch_related(
+                "items",  # Prefetch cart items
+                "items__product",  # Prefetch products for each cart item
+                "items__product__images",  # Prefetch product images for gallery
+            )
+            .first()
+        )
+
+        if cart:
+            # Update session_key if it has changed (new session)
+            if cart.session_key != request.session.session_key:
+                cart.session_key = request.session.session_key
+                cart.save(update_fields=["session_key"])
+            return cart
+
+        # If no cart exists for authenticated user, check if there's a recent anonymous cart
+        # that might have been missed during login (fallback mechanism)
+        old_session_key = request.session.get("_old_session_key", None)
+        if old_session_key:
+            anonymous_cart = (
+                Cart.objects.filter(session_key=old_session_key, user__isnull=True)
+                .prefetch_related(
+                    "items",
+                    "items__product",
+                    "items__product__images",
+                )
+                .first()
+            )
+
+            if anonymous_cart:
+                # Claim this cart for the user
+                anonymous_cart.user = request.user
+                anonymous_cart.session_key = request.session.session_key
+                anonymous_cart.save(update_fields=["user", "session_key"])
+                # Clean up the old session key reference
+                del request.session["_old_session_key"]
+                request.session.save()
+                return anonymous_cart
+
+    # For anonymous users or if no user cart exists, use session-based cart
+    cart, created = Cart.objects.prefetch_related(
+        "items",  # Prefetch cart items
+        "items__product",  # Prefetch products for each cart item
+        "items__product__images",  # Prefetch product images for gallery
+    ).get_or_create(
+        session_key=request.session.session_key,
+        defaults={"user": request.user if request.user.is_authenticated else None},
+    )
+
+    # If user is authenticated and cart was just created, assign it to them
+    if created and request.user.is_authenticated:
+        cart.user = request.user
+        cart.save(update_fields=["user"])
+
+    return cart
+
+
+def product_list(request):
+    """Display products for shopping"""
+    # Optimize query with select_related for ForeignKeys and prefetch_related for reverse ForeignKeys
+    queryset = (
+        Product.objects.filter(status="active")
+        .select_related(
+            "category",  # ForeignKey to Category
+            "supplier",  # ForeignKey to Supplier (if needed)
+        )
+        .prefetch_related(
+            "images",  # Prefetch related ProductImage objects
+        )
+    )
+
+    # Search
+    search = request.GET.get("search")
+    if search:
+        queryset = queryset.filter(
+            Q(name__icontains=search)
+            | Q(short_description__icontains=search)
+            | Q(long_description__icontains=search)
+            | Q(sku__icontains=search)
+        )
+
+    # Category filter
+    category_id = request.GET.get("category")
+    if category_id:
+        try:
+            category = Category.objects.get(pk=category_id, is_active=True)
+            # Get all active descendant categories
+            descendant_ids = [category.id]
+            descendants = list(category.children.filter(is_active=True))
+            while descendants:
+                child = descendants.pop()
+                descendant_ids.append(child.id)
+                descendants.extend(list(child.children.filter(is_active=True)))
+            queryset = queryset.filter(category_id__in=descendant_ids)
+        except Category.DoesNotExist:
+            pass
+
+    # Sort
+    sort = request.GET.get("sort", "-created_at")
+
+    # Check if we should group by category
+    group_by_category = request.GET.get("group_by_category", "false") == "true"
+
+    if group_by_category:
+
+        # Sort by category order first, then by product name (or selected sort)
+        if sort in ["price", "-price", "name", "-name", "-created_at"]:
+            queryset = queryset.order_by("category__order", "category__name", sort)
+        else:
+            # Default: order by category order, then by product name
+            queryset = queryset.order_by("category__order", "category__name", "name")
+
+        # Group products by category (only active categories)
+        products_by_category = []
+        for category, group in groupby(queryset, key=attrgetter("category")):
+            if (
+                category and category.is_active
+            ):  # Only include products with active categories
+                products_list = list(group)
+                products_by_category.append(
+                    {"category": category, "products": products_list}
+                )
+
+        # Pagination for grouped view (paginate categories, not individual products)
+        paginator = Paginator(products_by_category, 3)  # Show 3 categories per page
+        page_number = request.GET.get("page")
+        page_obj = paginator.get_page(page_number)
+
+        products = None  # Not used in grouped view
+    else:
+        # Regular pagination for non-grouped view
+        # Always apply category order first, then the selected sort
+        if sort in ["price", "-price", "name", "-name", "-created_at"]:
+            queryset = queryset.order_by("category__order", "category__name", sort)
+        else:
+            # Default: order by category order, then by product name
+            queryset = queryset.order_by("category__order", "category__name", "name")
+
+        paginator = Paginator(queryset, 32)
+        page_number = request.GET.get("page")
+        products = paginator.get_page(page_number)
+        page_obj = products
+        products_by_category = None
+
+    # Optimize categories query - prefetch children if needed for nested navigation
+    # Filter by is_active and sort by order field
+    categories = (
+        Category.objects.filter(parent__isnull=True, is_active=True)
+        .prefetch_related("children")
+        .order_by("order", "name")
+    )
+
+    # Get related blog posts if a category is selected
+    related_posts = None
+    current_category = None
+    if category_id:
+        try:
+            current_category = Category.objects.get(pk=category_id, is_active=True)
+            # Get blog posts related to this product category
 
             related_posts = (
                 Post.objects.filter(
@@ -236,7 +440,6 @@ def cart_view(request):
         request.headers.get("X-Requested-With") == "XMLHttpRequest"
         or request.GET.get("format") == "json"
     ):
-        from django.template.loader import render_to_string
 
         cart_items_html = render_to_string("shop/cart_items.html", {"cart": cart})
 
@@ -310,9 +513,6 @@ def add_to_cart(request, pk):
     if quantity < 1:
         return JsonResponse({"error": "Invalid quantity"}, status=400)
 
-    # Get selected options
-    import json
-
     selected_options = {}
     options_json = request.POST.get("selected_options", "{}")
     try:
@@ -321,7 +521,6 @@ def add_to_cart(request, pk):
         pass
 
     # Validate that all required options are selected
-    from product.models import ProductOption
 
     required_options = ProductOption.objects.filter(
         product=product, is_active=True
@@ -480,7 +679,6 @@ def checkout(request):
             # Check if we're using a saved address
             saved_address_id = request.POST.get("saved_address")
             if saved_address_id and request.user.is_authenticated:
-                from customer.models import CustomerAddress
 
                 try:
                     address = CustomerAddress.objects.get(
@@ -629,7 +827,6 @@ def checkout(request):
             return redirect("shop:order_success", tracking_code=invoice.tracking_code)
         except Exception as e:
             # Log the error for debugging
-            import traceback
 
             print(f"Checkout error: {str(e)}")
             print(traceback.format_exc())

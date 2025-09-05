@@ -1,6 +1,9 @@
 from allauth.account.adapter import DefaultAccountAdapter
 from django.shortcuts import redirect
 from django.urls import reverse
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class NoEmailVerificationAdapter(DefaultAccountAdapter):
@@ -27,6 +30,12 @@ class NoEmailVerificationAdapter(DefaultAccountAdapter):
         """
         user = request.user
         
+        # Preserve session to maintain cart continuity
+        if hasattr(request, 'session'):
+            # Ensure session is saved to maintain the session key
+            request.session.save()
+            logger.debug(f"Session preserved for user {user.email} with key: {request.session.session_key}")
+        
         if user.is_authenticated:
             # Check if user is staff/admin FIRST (they should go to admin dashboard)
             if user.is_staff or user.is_superuser:
@@ -46,6 +55,11 @@ class NoEmailVerificationAdapter(DefaultAccountAdapter):
                 from customer.models import Customer
                 customer = user.customer
                 if customer:
+                    # Check if there was a 'next' parameter (page user was trying to access)
+                    next_url = request.GET.get('next', '/')
+                    # Validate the next_url is safe (relative URL)
+                    if next_url and next_url.startswith('/'):
+                        return next_url
                     return '/'  # Redirect customers to shop homepage
             except (Customer.DoesNotExist, AttributeError):
                 pass

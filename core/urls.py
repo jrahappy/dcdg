@@ -21,7 +21,7 @@ from django.conf.urls.static import static
 from django.views.static import serve
 
 urlpatterns = [
-    path("", include("shop.urls")),  # Landing page is now the homepage
+    path("shop/", include("shop.urls")),  # Landing page is now the homepage
     path("landing/", include("landing.urls")),  # Landing page is now the homepage
     path("home/", include("dashboard.urls")),  # Dashboard for logged-in users
     path("home/customer/", include("customer.urls")),  # Customer addresses
@@ -32,7 +32,7 @@ urlpatterns = [
     path("home/sales/", include("sales.urls")),  # Sales app (quotes, orders, invoices)
     path("home/accounting/", include("accounting.urls")),  # Accounting and GL
     path("home/blog/", include("blog.urls")),  # Blog moved to /blog/
-    path("pages/", include("pages.urls")),  # Pages app
+    path("", include("pages.urls")),  # Pages app
     # path("shop/", include("shop.urls")),  # Shop for anonymous visitors
     path(
         "account/", include("customer_portal.urls")
@@ -47,12 +47,13 @@ urlpatterns = [
     path("dogfoot/", include("dogfoot.urls")),  # Dogfooding app
 ]
 
-if settings.DEBUG:
-    import debug_toolbar
-
-    urlpatterns = [
-        path("__debug__/", include(debug_toolbar.urls)),
-    ] + urlpatterns
+# Debug toolbar disabled - not installed
+# if settings.DEBUG:
+#     import debug_toolbar
+#
+#     urlpatterns = [
+#         path("__debug__/", include(debug_toolbar.urls)),
+#     ] + urlpatterns
 
 # Serve media files in both DEBUG and production modes
 # Note: In a real production environment, you should serve media files via a web server like Nginx

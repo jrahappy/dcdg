@@ -79,7 +79,7 @@ INSTALLED_APPS = [
     "django.contrib.humanize",
     # Third party apps
     "django_extensions",
-    "debug_toolbar",
+    # "debug_toolbar",  # Commented out - not installed
     "allauth",
     "allauth.account",
     "allauth.socialaccount",
@@ -87,6 +87,7 @@ INSTALLED_APPS = [
     "django_summernote",
     "channels",
     "widget_tweaks",
+    "django_cotton",
     # Local apps
     "dogfoot",
     "core",
@@ -114,6 +115,8 @@ MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",  # Add WhiteNoise here, after SecurityMiddleware
     "django.contrib.sessions.middleware.SessionMiddleware",
+    # Cart preservation middleware (before authentication)
+    "shop.middleware.PreserveCartSessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -124,7 +127,7 @@ MIDDLEWARE = [
     # Custom middleware to handle email verification redirects
     "accounts.middleware.EmailVerificationRedirectMiddleware",
     # Debug toolbar middleware
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
+    # "debug_toolbar.middleware.DebugToolbarMiddleware",  # Commented out - not installed
 ]
 
 ROOT_URLCONF = "core.urls"
@@ -133,8 +136,13 @@ TEMPLATES = [
     {
         "BACKEND": "django.template.backends.django.DjangoTemplates",
         "DIRS": [BASE_DIR / "templates"],
-        "APP_DIRS": True,
+        # APP_DIRS must be False when using custom loaders
         "OPTIONS": {
+            "loaders": [
+                "django_cotton.cotton_loader.Loader",
+                "django.template.loaders.filesystem.Loader",
+                "django.template.loaders.app_directories.Loader",
+            ],
             "context_processors": [
                 "django.template.context_processors.debug",
                 "django.template.context_processors.request",
@@ -142,6 +150,7 @@ TEMPLATES = [
                 "django.contrib.messages.context_processors.messages",
                 "shop.context_processors.shop_context",
             ],
+            "builtins": ["django_cotton.templatetags.cotton"],
         },
     },
 ]
@@ -390,6 +399,14 @@ DEBUG_TOOLBAR_CONFIG = {
 
 # Django Extensions configuration
 SHELL_PLUS_PRINT_SQL = True  # Print SQL queries in shell_plus
+
+# Session configuration for cart persistence
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'  # Use database sessions
+SESSION_COOKIE_AGE = 1209600  # 2 weeks
+SESSION_SAVE_EVERY_REQUEST = False  # Don't save on every request to preserve session key
+SESSION_COOKIE_NAME = 'sessionid'
+SESSION_COOKIE_HTTPONLY = True
+SESSION_EXPIRE_AT_BROWSER_CLOSE = False  # Keep session after browser close
 
 # Django Channels configuration
 # Use Redis in production, in-memory for development

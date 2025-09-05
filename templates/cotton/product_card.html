@@ -1,0 +1,75 @@
+<!-- <div class="bg-white shadow rounded border p-4">
+    <h2>{{ title }}</h2>
+    <p>{{ slot }}</p>
+    <button href="#">Read more</button>
+</div> -->
+{% load static %}
+{% load humanize %}
+
+<div class="card bg-base-100 shadow-sm hover:shadow-lg transition-shadow">
+    <figure class="px-4 pt-4">
+        <a href="{% url 'shop:product_detail' product.pk %}" class="block aspect-square w-full bg-base-200 rounded-lg overflow-hidden">
+        {% if product.main_image %}
+            <img src="{{ product.main_image.url }}" alt="{{ product.name }}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+        {% elif product.images.all %}
+
+            {% with product.images.all.0 as first_image %}
+            <img src="{{ first_image.image.url }}" alt="{{ product.name }}" 
+                    class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+            {% endwith %}
+
+        {% else %}
+            <img src="{% static 'img/integdental/integdental_logo_w200_1620064653__69009.original.png' %}" 
+                alt="Default product image" 
+                class="w-full h-full object-contain p-8">
+        {% endif %}
+
+        </a>
+
+    </figure>
+    <div class="card-body">
+        <h2 class="card-title text-base">
+            <a href="{% url 'shop:product_detail' product.pk %}" class="link link-hover">
+                {{ product.name|truncatechars:50 }}
+            </a>
+        </h2>
+        <p class="text-sm opacity-70">{{ product.short_description|truncatewords:12 }}</p>
+        
+        {% if product.is_price_disclosed %}
+        <div class="flex items-center justify-between mt-4">
+            <span class="text-xl font-bold line-through">${{ product.price|floatformat:2|intcomma }}</span>
+        </div>
+        <div class="card-actions justify-end mt-2">
+            <a href="{% url 'shop:product_detail' product.pk %}"
+                    class="btn btn-secondary btn-sm w-full">
+                View Details
+            </a>
+        </div>
+        {% else %}
+        {% if product.has_options %}
+        <div class="flex items-center justify-between mt-4">
+            <span class="text-xl font-bold">${{ product.price|floatformat:2|intcomma }}</span>
+        </div>
+        <div class="card-actions justify-end mt-2">
+            <a href="{% url 'shop:product_detail' product.pk %}"
+                    class="btn btn-info btn-sm w-full">
+                Select Options
+            </a>
+        </div>
+        {% else %}
+        <div class="flex items-center justify-between mt-4">
+            <span class="text-xl font-bold">${{ product.price|floatformat:2|intcomma }}</span>
+        </div>
+        <div class="card-actions justify-end mt-2">
+            <button onclick="addToCart({{ product.pk }})" 
+                    class="btn btn-primary btn-sm w-full">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
+                </svg>
+                Add to Cart
+            </button>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>

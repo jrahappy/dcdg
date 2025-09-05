@@ -3,7 +3,28 @@
 ## Project Overview
 Django-based dental support organization system with ongoing Tailwind CSS conversion.
 
-## Recent Work (Last updated: 2025-08-15)
+## Recent Work (Last updated: 2025-09-04)
+
+### Completed Tasks (2025-09-04)
+
+1. **Fixed Cart Persistence After Login**
+   - **Issue**: Cart items were not being preserved after user login due to Django session key cycling
+   - **Solution Implemented**:
+     - Created `PreserveCartSessionMiddleware` to store pre-login session key before authentication
+     - Enhanced `merge_cart_on_login` signal to handle session key changes and find anonymous carts
+     - Updated `get_cart()` function with fallback mechanism to recover missed carts
+     - Added proper session configuration for cart persistence (2-week session cookies)
+   - **Technical Details**:
+     - Middleware stores old session key in `_old_session_key` before login
+     - Signal checks multiple locations for anonymous cart (old key, current key, recent carts)
+     - Cart items with options are properly merged preserving quantities and prices
+     - Session engine set to database backend for reliability
+   - **Files Modified**:
+     - `shop/middleware.py`: Created new middleware for session preservation
+     - `shop/signals.py`: Enhanced cart merging signal with better cart discovery
+     - `shop/views.py`: Added fallback cart recovery in get_cart()
+     - `core/settings.py`: Added middleware and session configuration
+     - `accounts/adapter.py`: Already had session preservation code
 
 ### Completed Tasks (2025-08-15)
 

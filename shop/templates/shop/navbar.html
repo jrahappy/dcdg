@@ -17,7 +17,7 @@
             </ul>
         </div>
         
-        <a href="{% url 'shop:product_list' %}" class="btn btn-ghost text-xl">
+        <a href="/" class="btn btn-ghost text-xl">
             <img src="{% static 'img/integdental/integdental_logo_w200.png' %}" alt="IntegDental" class="h-8">
         </a>
         
@@ -31,8 +31,8 @@
     
     <div class="navbar-end">
         <!-- Notification Button -->
-                {% if user.is_authenticated %}
-                <div class="dropdown dropdown-end">
+        {% if user.is_authenticated %}
+        <!-- <div class="dropdown dropdown-end">
             <button tabindex="0" class="btn btn-ghost btn-circle mr-2">
                 <div class="indicator">
                     <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -49,7 +49,7 @@
                     <a href="#" class="text-xs text-primary hover:underline">Mark all as read</a>
                 </li>
                 <div id="notification-list" class="max-h-96 overflow-y-auto">
-                    <!-- Notifications will be loaded here -->
+                    Notifications will be loaded here 
                     <li class="p-4 text-center text-base-content/60">
                         <span>No new notifications</span>
                     </li>
@@ -59,7 +59,7 @@
                     View all notifications
                 </a></li>
             </ul>
-        </div>
+        </div> -->
         {% endif %}
         
         <!-- Cart Button -->
