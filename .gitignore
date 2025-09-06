@@ -17,8 +17,8 @@ dogfoot/
 *.pyc
 local_settings.py
 # db.sqlite3
+# media/
 db.sqlite3-journal
-media/
 staticfiles/
 nul
 
