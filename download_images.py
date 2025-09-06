@@ -151,7 +151,7 @@ def main():
     """Main function to run the image downloader"""
 
     # Your website URL
-    website_url = "https://integdental.com/kerator-astra-yellow-aqua-lilac-st-4-0/"
+    website_url = "https://store-8d46pm0wcs.mybigcommerce.com/manage/products/119/edit"
 
     # Output directory (relative to this script)
     output_dir = "static/img/integdental"

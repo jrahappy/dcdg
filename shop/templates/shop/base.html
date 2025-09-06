@@ -30,7 +30,7 @@
             },
             
             loadCartSummary() {
-                fetch('/cart/?format=json', {
+                fetch('/shop/cart/?format=json', {
                     headers: {
                         'X-Requested-With': 'XMLHttpRequest',
                     }
@@ -52,7 +52,7 @@
             },
             
             addToCart(productId, quantity = 1) {
-                fetch(`/cart/add/${productId}/`, {
+                fetch(`/shop/cart/add/${productId}/`, {
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': getCookie('csrftoken'),
@@ -310,7 +310,7 @@ function addToCart(productId, quantity = 1) {
     } else {
         console.error('Could not find Alpine component');
         // Fallback: direct API call
-        fetch(`/cart/add/${productId}/`, {
+        fetch(`/shop/cart/add/${productId}/`, {
             method: 'POST',
             headers: {
                 'X-CSRFToken': getCookie('csrftoken'),

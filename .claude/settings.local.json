@@ -32,7 +32,13 @@
       "Read(/D:\\Dev\\dcdg\\dcdg\\product/**)",
       "Read(/D:\\Dev\\dcdg\\dcdg\\product/**)",
       "Read(/D:\\Dev\\dcdg\\dcdg\\product/**)",
-      "Read(/D:\\Dev\\dcdg\\dcdg\\product/**)"
+      "Read(/D:\\Dev\\dcdg\\dcdg\\product/**)",
+      "Read(/D:\\Dev\\dcdg\\dcdg\\shop/**)",
+      "Read(/D:\\Dev\\dcdg\\dcdg\\core/**)",
+      "Read(/D:\\Dev\\dcdg\\dcdg\\shop\\templates/**)",
+      "Read(/D:\\Dev\\dcdg\\dcdg\\shop\\templates\\shop/**)",
+      "Read(/D:\\Dev\\dcdg\\dcdg\\shop\\templates\\shop/**)",
+      "Read(/D:\\Dev\\dcdg\\dcdg\\shop\\templates\\shop/**)"
     ],
     "deny": [],
     "ask": [],

@@ -393,7 +393,7 @@ function addToCartFromDetail() {
     }
     
     // Make direct API call with options
-    fetch(`/cart/add/${productId}/`, {
+    fetch(`/shop/cart/add/${productId}/`, {
         method: 'POST',
         headers: {
             'X-CSRFToken': getCookie('csrftoken'),
