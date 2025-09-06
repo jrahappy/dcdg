@@ -9,23 +9,17 @@
 <div class="card bg-base-100 shadow-sm hover:shadow-lg transition-shadow">
     <figure class="px-4 pt-4">
         <a href="{% url 'shop:product_detail' product.pk %}" class="block aspect-square w-full bg-base-200 rounded-lg overflow-hidden">
-        {% if product.main_image %}
-            <img src="{{ product.main_image.url }}" alt="{{ product.name }}" class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
-        {% elif product.images.all %}
-
-            {% with product.images.all.0 as first_image %}
-            <img src="{{ first_image.image.url }}" alt="{{ product.name }}" 
-                    class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
-            {% endwith %}
-
-        {% else %}
-            <img src="{% static 'img/integdental/integdental_logo_w200_1620064653__69009.original.png' %}" 
-                alt="Default product image" 
-                class="w-full h-full object-contain p-8">
-        {% endif %}
-
+        {% with product.get_primary_image as primary_image %}
+            {% if primary_image %}
+                <img src="{{ primary_image.url }}" alt="{{ product.name }}" 
+                     class="w-full h-full object-cover hover:scale-105 transition-transform duration-300">
+            {% else %}
+                <img src="{% static 'img/integdental/integdental_logo_w200_1620064653__69009.original.png' %}" 
+                     alt="Default product image" 
+                     class="w-full h-full object-contain p-8">
+            {% endif %}
+        {% endwith %}
         </a>
-
     </figure>
     <div class="card-body">
         <h2 class="card-title text-base">

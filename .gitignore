@@ -16,7 +16,7 @@ dogfoot/
 *.pot
 *.pyc
 local_settings.py
-db.sqlite3
+# db.sqlite3
 db.sqlite3-journal
 media/
 staticfiles/
@@ -53,3 +53,12 @@ dist/
 .vite/
 
 management/
+
+# claude
+.claude/settings.local.json
+.claude/settings.json
+.claude/logs/
+.claude/cache/
+.claude/sessions/
+.claude/temp/
+

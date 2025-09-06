@@ -290,6 +290,24 @@ class Product(models.Model):
         """Check if the product has any product options"""
         return self.options.filter(is_active=True).exists()
 
+    def get_primary_image(self):
+        """Get the primary image or first image if no primary is set"""
+        # First check if main_image field is set
+        if self.main_image:
+            return self.main_image
+        
+        # Then check for a primary image in the gallery
+        primary_image = self.images.filter(is_primary=True).first()
+        if primary_image:
+            return primary_image.image
+        
+        # Finally, return the first image if available
+        first_image = self.images.first()
+        if first_image:
+            return first_image.image
+        
+        return None
+
 
 class ProductDoc(models.Model):
     DOC_TYPE_CHOICES = [
