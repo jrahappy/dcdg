@@ -165,10 +165,18 @@ def product_create(request):
     else:
         form = ProductForm()
 
+    # Get all product options with descriptions
+    product_options_info = ProductOptionName.objects.filter(is_active=True).values('id', 'name', 'description')
+    
     return render(
         request,
         "product/product_form.html",
-        {"form": form, "title": "Create New Product", "button_text": "Create Product"},
+        {
+            "form": form, 
+            "title": "Create New Product", 
+            "button_text": "Create Product",
+            "product_options_info": product_options_info,
+        },
     )
 
 
@@ -206,6 +214,9 @@ def product_update(request, pk):
     else:
         form = ProductForm(instance=product)
 
+    # Get all product options with descriptions
+    product_options_info = ProductOptionName.objects.filter(is_active=True).values('id', 'name', 'description')
+    
     return render(
         request,
         "product/product_form.html",
@@ -214,6 +225,7 @@ def product_update(request, pk):
             "product": product,
             "title": f"Edit Product: {product.name}",
             "button_text": "Update Product",
+            "product_options_info": product_options_info,
         },
     )
 

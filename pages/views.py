@@ -45,11 +45,18 @@ def home(request):
         .select_related("category")
         .order_by("-created_at")[:8]
     )
+    luna_products = (
+        Product.objects.filter(status="active", category=11)
+        .select_related("category")
+        .order_by("-created_at")[:8]
+    )
+
     context = {
         "categories": categories,
         "navbar_items": navbar_items,
         "cbct_products": cbct_products,
         "od_products": od_products,
+        "luna_products": luna_products,
     }
 
     return render(request, "pages/home.html", context)

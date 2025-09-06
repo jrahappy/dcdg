@@ -124,7 +124,13 @@
                                     </div>
                                     {% endif %}
                                     <div>
-                                        <div class="font-bold">{{ product.name }}</div>
+                                        <div class="font-bold">
+                                            {{ product.name }}
+                                            <!-- Debug: is_price_disclosed = {{ product.is_price_disclosed }} -->
+                                            {% if product.is_price_disclosed %}
+                                                <span class="badge badge-info badge-sm ml-2">Price Hidden</span>
+                                            {% endif %}
+                                        </div>
                                         <div class="text-sm opacity-50">{{ product.short_description|truncatechars:50 }}</div>
                                     </div>
                                 </div>
@@ -145,7 +151,13 @@
                                     -
                                 {% endif %}
                             </td>
-                            <td class="font-semibold">${{ product.price|floatformat:2 }}</td>
+                            <td class="font-semibold">
+                                {% if product.is_price_disclosed %}
+                                    <span class="text-base-content/50">Contact for price</span>
+                                {% else %}
+                                    ${{ product.price|floatformat:2 }}
+                                {% endif %}
+                            </td>
                             <td>
                                 {% if product.quantity_in_stock > 10 %}
                                     <div class="badge badge-success">{{ product.quantity_in_stock }} in stock</div>
@@ -210,16 +222,22 @@
                     <div class="avatar placeholder">
                         <div class="bg-neutral text-neutral-content rounded-xl w-24 h-24">
                             <span class="text-2xl">{{ product.name.0|upper }}</span>
+                            
                         </div>
                     </div>
                 </figure>
                 {% endif %}
                 <div class="card-body">
-                    <h2 class="card-title text-sm">
-                        {{ product.name|truncatechars:30 }}
-                        {% if product.is_new %}
-                        <div class="badge badge-secondary badge-sm">NEW</div>
-                        {% endif %}
+                    <h2 class="card-title text-sm flex items-center justify-between">
+                        <div>{{ product.name|truncatechars:30 }}</div>
+                        <div class="flex gap-1">
+                            {% if product.is_new %}
+                                <div class="badge badge-secondary badge-sm">NEW</div>
+                            {% endif %}
+                            {% if product.is_price_disclosed %}
+                                <div class="badge badge-warning badge-sm ml-2">Price Hidden</div>
+                            {% endif %}
+                        </div>
                     </h2>
                     <p class="text-xs text-base-content/60">{{ product.short_description|truncatechars:60 }}</p>
                     

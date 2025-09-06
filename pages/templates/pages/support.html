@@ -1,0 +1,82 @@
+{% extends 'shop/base.html' %}
+
+{% load static %}
+{% load humanize %}
+
+{% block page_title %}Shop - Support{% endblock %}
+
+{% block content %}
+<!-- Hero Section with Background Image -->
+<div class="relative h-[300px] bg-white overflow-hidden">
+  <!-- Background Image -->
+  <div class="absolute inset-0 z-0">
+    <div 
+      class="absolute inset-0 bg-contain bg-right bg-no-repeat opacity-40"
+      style="background-image: url('{% static 'img/integdental/rayscan_vision_18_1.png' %}');"
+    ></div>
+    <!-- Light Gradient Overlay -->
+    <div class="absolute inset-0 bg-gradient-to-l from-transparent via-white/70 to-white/90"></div>
+  </div>
+
+  <!-- Pattern Overlay -->
+  <svg aria-hidden="true" class="absolute inset-0 z-10 size-full mask-[radial-gradient(100%_100%_at_top_right,white,transparent)] stroke-gray-200">
+    <defs>
+      <pattern id="hero-pattern" width="200" height="200" x="50%" y="-1" patternUnits="userSpaceOnUse">
+        <path d="M100 200V.5M.5 .5H200" fill="none" />
+      </pattern>
+    </defs>
+    <svg x="50%" y="-1" class="overflow-visible fill-gray-50">
+      <path d="M-100.5 0h201v201h-201Z M699.5 0h201v201h-201Z M499.5 400h201v201h-201Z M-300.5 600h201v201h-201Z" stroke-width="0" />
+    </svg>
+    <rect width="100%" height="100%" fill="url(#hero-pattern)" stroke-width="0" />
+  </svg>
+
+  <!-- Content -->
+  <div class="relative z-20 h-full flex items-center mx-auto max-w-7xl px-6 lg:px-8">
+    <div class="mx-auto max-w-2xl lg:mx-0 lg:max-w-3xl">
+      <!-- Heading -->
+      <h1 class="text-3xl font-bold tracking-tight text-gray-900 sm:text-4xl lg:text-5xl">
+        Where Accuracy
+        <span class="text-indigo-600">Meets Patient Care.</span>
+      </h1>
+      
+      <!-- Description -->
+      <p class="mt-4 text-base font-medium text-gray-600 sm:text-lg max-w-2xl">
+        Crystal-clear CBCT scans that empower dentists and reassure patients
+      </p>
+      
+      <!-- CTAs -->
+      <div class="mt-6 flex items-center gap-x-4">
+        <a href="#" class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-lg hover:bg-indigo-500 transition-all hover:scale-105 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600">
+          Speak with a Specialist
+        </a>
+        <a href="#" class="text-sm font-semibold text-gray-900 hover:text-indigo-600 transition-colors">
+          See all CBCT <span aria-hidden="true">→</span>
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+<div class="divider my-8"></div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+    {% for product in cbct_products %}
+      <c-product-card >
+        {{ product }}
+      </c-product-card>
+    {% empty %}
+    <!-- Empty State for grouped view -->
+    <div class="hero min-h-[400px] bg-base-200 rounded-lg">
+        <div class="hero-content text-center">
+            <div class="max-w-md">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-16 h-16 mx-auto mb-4 opacity-50">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 10.5V6a3.75 3.75 0 10-7.5 0v4.5m11.356-1.993l1.263 12c.07.665-.45 1.243-1.119 1.243H4.25a1.125 1.125 0 01-1.12-1.243l1.264-12A1.125 1.125 0 015.513 7.5h12.974c.576 0 1.059.435 1.119 1.007zM8.625 10.5a.375.375 0 11-.75 0 .375.375 0 01.75 0zm7.5 0a.375.375 0 11-.75 0 .375.375 0 01.75 0z" />
+                </svg>
+                <h3 class="text-2xl font-bold mb-2">No products found</h3>
+                <p class="text-base-content/70 mb-4">No products are categorized yet.</p>
+                <a href="{% url 'shop:product_list' %}" class="btn btn-primary">View All Products</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

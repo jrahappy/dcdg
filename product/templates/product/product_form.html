@@ -331,36 +331,63 @@
                 <h2 class="card-title mb-4">Product Options</h2>
                 <p class="text-base-content/60 mb-4">Select which options should be available for this product</p>
                 
-                <div class="space-y-3">
-                    {% for choice in form.product_options %}
-                    <div class="form-control">
-                        <label class="label cursor-pointer flex flex-row justify-start gap-4">
-                            {{ choice.tag }}
-                            <div class="flex-1">
-                                <span class="label-text font-medium">{{ choice.choice_label }}</span>
-                                {% if choice.choice_label == "Color" %}
-                                <span class="label-text-alt block">Allow customers to choose from different colors</span>
-                                {% elif choice.choice_label == "Size" %}
-                                <span class="label-text-alt block">Allow customers to choose from different sizes</span>
-                                {% else %}
-                                <span class="label-text-alt block">Enable {{ choice.choice_label|lower }} selection for this product</span>
-                                {% endif %}
-                            </div>
-                        </label>
-                    </div>
-                    {% empty %}
-                    <div class="alert">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-info shrink-0 w-6 h-6">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
-                        </svg>
-                        <div>
-                            <span>No product options available.</span>
-                            <a href="{% url 'product:option_create' %}" class="link link-primary">Create options</a>
-                            <span>to enable product variations.</span>
-                        </div>
-                    </div>
-                    {% endfor %}
+                {% if form.product_options %}
+                <!-- Search Filter -->
+                <div class="form-control mb-4">
+                    <input type="text" 
+                           id="option-search" 
+                           placeholder="Search options..." 
+                           class="input input-bordered input-sm"
+                           onkeyup="filterOptions()">
                 </div>
+                
+                <!-- Options List with Scrollbar -->
+                <div class="border border-base-300 rounded-lg p-2 max-h-96 overflow-y-auto" id="options-container">
+                    <div class="space-y-3">
+                        {% for choice in form.product_options %}
+                        <div class="form-control option-item" data-option-name="{{ choice.choice_label|lower }}" data-option-id="{{ choice.value }}">
+                            <label class="label cursor-pointer flex flex-row justify-start gap-4 hover:bg-base-200 rounded-lg px-2">
+                                {{ choice.tag }}
+                                <div class="flex-1">
+                                    <span class="label-text font-medium">{{ choice.choice_label }}</span>
+                                    <span class="label-text-alt block option-description">
+                                        {% for option_info in product_options_info %}
+                                            {% if option_info.name == choice.choice_label %}
+                                                {% if option_info.description %}
+                                                    {{ option_info.description }}
+                                                {% else %}
+                                                    Enable {{ choice.choice_label|lower }} selection for this product
+                                                {% endif %}
+                                            {% endif %}
+                                        {% endfor %}
+                                    </span>
+                                </div>
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <!-- Select/Deselect All Buttons -->
+                <div class="flex gap-2 mt-3">
+                    <button type="button" onclick="selectAllOptions()" class="btn btn-xs btn-ghost">Select All</button>
+                    <button type="button" onclick="deselectAllOptions()" class="btn btn-xs btn-ghost">Deselect All</button>
+                    <span class="ml-auto text-sm text-base-content/60">
+                        <span id="selected-count">0</span> selected
+                    </span>
+                </div>
+                {% else %}
+                <div class="alert">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-info shrink-0 w-6 h-6">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                    </svg>
+                    <div>
+                        <span>No product options available.</span>
+                        <a href="{% url 'product:option_create' %}" class="link link-primary">Create options</a>
+                        <span>to enable product variations.</span>
+                    </div>
+                </div>
+                {% endif %}
                 {% if form.product_options.errors %}
                 <label class="label">
                     <span class="label-text-alt text-error">{{ form.product_options.errors.0 }}</span>
@@ -411,6 +438,16 @@
                             <div class="flex-1">
                                 <span class="label-text font-medium">Featured Product</span>
                                 <span class="label-text-alt block">This product will be highlighted in listings</span>
+                            </div>
+                        </label>
+                    </div>
+
+                    <div class="form-control">
+                        <label class="label cursor-pointer flex flex-row justify-start gap-4">
+                            {{ form.is_price_disclosed }}
+                            <div class="flex-1">
+                                <span class="label-text font-medium">Price Not Disclosed</span>
+                                <span class="label-text-alt block">Hide price and show "View Details" button instead of "Add to Cart"</span>
                             </div>
                         </label>
                     </div>
@@ -479,4 +516,56 @@
         @apply input input-bordered flex-1;
     }
 </style>
+
+<script>
+function filterOptions() {
+    const searchInput = document.getElementById('option-search');
+    const filter = searchInput.value.toLowerCase();
+    const optionItems = document.querySelectorAll('.option-item');
+    
+    optionItems.forEach(item => {
+        const optionName = item.getAttribute('data-option-name');
+        if (optionName.includes(filter)) {
+            item.style.display = '';
+        } else {
+            item.style.display = 'none';
+        }
+    });
+}
+
+function selectAllOptions() {
+    const visibleCheckboxes = document.querySelectorAll('.option-item:not([style*="display: none"]) input[type="checkbox"]');
+    visibleCheckboxes.forEach(checkbox => {
+        checkbox.checked = true;
+    });
+    updateSelectedCount();
+}
+
+function deselectAllOptions() {
+    const visibleCheckboxes = document.querySelectorAll('.option-item:not([style*="display: none"]) input[type="checkbox"]');
+    visibleCheckboxes.forEach(checkbox => {
+        checkbox.checked = false;
+    });
+    updateSelectedCount();
+}
+
+function updateSelectedCount() {
+    const checkedBoxes = document.querySelectorAll('.option-item input[type="checkbox"]:checked');
+    const countElement = document.getElementById('selected-count');
+    if (countElement) {
+        countElement.textContent = checkedBoxes.length;
+    }
+}
+
+// Initialize count on page load and add change listeners
+document.addEventListener('DOMContentLoaded', function() {
+    updateSelectedCount();
+    
+    // Add change listeners to all option checkboxes
+    const checkboxes = document.querySelectorAll('.option-item input[type="checkbox"]');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateSelectedCount);
+    });
+});
+</script>
 {% endblock %}

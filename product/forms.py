@@ -34,6 +34,7 @@ class ProductForm(forms.ModelForm):
             "dimensions",
             "status",
             "is_featured",
+            "is_price_disclosed",
             "tags",
             "is_serial_number_managed",
         ]
@@ -138,6 +139,11 @@ class ProductForm(forms.ModelForm):
                 }
             ),
             "is_featured": forms.CheckboxInput(
+                attrs={
+                    "class": "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                }
+            ),
+            "is_price_disclosed": forms.CheckboxInput(
                 attrs={
                     "class": "h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                 }
